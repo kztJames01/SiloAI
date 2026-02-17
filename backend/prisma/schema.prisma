@@ -1,0 +1,132 @@
+// This is your Prisma schema file
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+  relationMode = "foreignKeys"
+}
+
+model User {
+  id        String   @id @default(uuid())
+  email     String   @unique
+  password  String
+  name      String?
+  apiKeys   ApiKey[]
+  workflows Workflow[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+model ApiKey {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name      String
+  key       String   @unique
+  lastUsed  DateTime?
+  createdAt DateTime @default(now())
+
+  @@map("api_keys")
+}
+
+model Workflow {
+  id          String            @id @default(uuid())
+  userId      String
+  user        User              @relation(fields: [userId], references: [id], onDelete: Cascade)
+  name        String
+  description String?
+  nodes       Json              // Store workflow nodes as JSON
+  edges       Json              // Store connections between nodes
+  trigger     Json              // Trigger configuration
+  isActive    Boolean           @default(false)
+  executions  WorkflowExecution[]
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@map("workflows")
+}
+
+model WorkflowExecution {
+  id         String   @id @default(uuid())
+  workflowId String
+  workflow   Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+  status     ExecutionStatus @default(RUNNING)
+  startedAt  DateTime @default(now())
+  finishedAt DateTime?
+  input      Json?
+  output     Json?
+  logs       ExecutionLog[]
+  error      String?
+
+  @@map("workflow_executions")
+}
+
+model ExecutionLog {
+  id          String            @id @default(uuid())
+  executionId String
+  execution   WorkflowExecution @relation(fields: [executionId], references: [id], onDelete: Cascade)
+  nodeId      String
+  nodeName    String
+  level       LogLevel          @default(INFO)
+  message     String
+  data        Json?
+  timestamp   DateTime          @default(now())
+
+  @@map("execution_logs")
+}
+
+model Integration {
+  id            String   @id @default(uuid())
+  name          String   @unique
+  displayName   String
+  description   String?
+  iconUrl       String?
+  authType      AuthType
+  baseUrl       String?
+  credentials   UserIntegration[]
+  createdAt     DateTime @default(now())
+
+  @@map("integrations")
+}
+
+model UserIntegration {
+  id            String      @id @default(uuid())
+  userId        String
+  integrationId String
+  integration   Integration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
+  credentials   Json        // Encrypted credentials
+  isActive      Boolean     @default(true)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
+
+  @@unique([userId, integrationId])
+  @@map("user_integrations")
+}
+
+enum ExecutionStatus {
+  RUNNING
+  SUCCESS
+  FAILED
+  CANCELLED
+}
+
+enum LogLevel {
+  INFO
+  WARN
+  ERROR
+  DEBUG
+}
+
+enum AuthType {
+  NONE
+  API_KEY
+  OAUTH2
+  BASIC
+  BEARER
+}
