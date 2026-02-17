@@ -1,0 +1,38 @@
+{
+  "name": "silo",
+  "version": "1.0.0",
+  "description": "AI-powered workflow automation platform",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "frontend",
+    "mobile",
+    "shared"
+  ],
+  "scripts": {
+    "dev": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\"",
+    "dev:all": "concurrently \"npm run dev:backend\" \"npm run dev:frontend\" \"npm run dev:mobile\"",
+    "dev:backend": "npm run dev --workspace=backend",
+    "dev:frontend": "npm run dev --workspace=frontend",
+    "dev:mobile": "npm run start --workspace=mobile",
+    "dev:mobile:ios": "npm run ios --workspace=mobile",
+    "dev:mobile:android": "npm run android --workspace=mobile",
+    "mobile:web": "npm run web --workspace=mobile",
+    "build": "npm run build --workspaces",
+    "docker:up": "docker-compose up -d",
+    "docker:down": "docker-compose down",
+    "docker:build": "docker-compose build"
+  },
+  "keywords": [
+    "automation",
+    "workflow",
+    "ai",
+    "no-code",
+    "low-code"
+  ],
+  "author": "",
+  "license": "MIT",
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  }
+}
