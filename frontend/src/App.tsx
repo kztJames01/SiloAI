@@ -13,6 +13,8 @@ import ExecutionDetailPage from './pages/ExecutionDetailPage';
 import ProfilePage from './pages/ProfilePage';
 import FieldPage from './pages/FieldPage';
 import SafetyDashboardPage from './pages/SafetyDashboardPage';
+import { AISettingsPage } from './pages/AISettingsPage';
+import IntegrationsPage from './pages/IntegrationsPage';
 
 // Components
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -55,6 +57,29 @@ function App() {
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
 
+      {/* Standalone Workflow Editor - No Dashboard Layout */}
+      <Route
+        path="/workflows/new"
+        element={
+          <ProtectedRoute>
+            <RoleGate allowedRoles={['admin']}>
+              <WorkflowEditorPage />
+            </RoleGate>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/workflows/:id"
+        element={
+          <ProtectedRoute>
+            <RoleGate allowedRoles={['admin']}>
+              <WorkflowEditorPage />
+            </RoleGate>
+          </ProtectedRoute>
+        }
+      />
+
+      {/* Dashboard Layout Routes */}
       <Route
         path="/"
         element={
@@ -77,22 +102,6 @@ function App() {
           element={
             <RoleGate allowedRoles={['admin']}>
               <DashboardPage />
-            </RoleGate>
-          }
-        />
-        <Route
-          path="workflows/new"
-          element={
-            <RoleGate allowedRoles={['admin']}>
-              <WorkflowEditorPage />
-            </RoleGate>
-          }
-        />
-        <Route
-          path="workflows/:id"
-          element={
-            <RoleGate allowedRoles={['admin']}>
-              <WorkflowEditorPage />
             </RoleGate>
           }
         />
@@ -128,7 +137,21 @@ function App() {
             </RoleGate>
           }
         />
-        <Route path="profile" element={<ProfilePage />} />
+        <Route
+          path="ai-settings"
+          element={
+            <RoleGate allowedRoles={['admin']}>
+              <AISettingsPage />
+            </RoleGate>
+          }
+        />        <Route
+          path="integrations"
+          element={
+            <RoleGate allowedRoles={['admin']}>
+              <IntegrationsPage />
+            </RoleGate>
+          }
+        />        <Route path="profile" element={<ProfilePage />} />
       </Route>
     </Routes>
   );

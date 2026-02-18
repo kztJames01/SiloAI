@@ -14,6 +14,8 @@ import {
   Play,
   LogOut,
   MoreHorizontal,
+  Brain,
+  Plug,
 } from 'lucide-react';
 import { useUiStore, useAuthStore } from '../lib/store';
 
@@ -27,6 +29,8 @@ const mainNavItems = [
   { id: 'workflows', icon: Workflow, label: 'Workflows', href: '/workflows' },
   { id: 'safety', icon: Shield, label: 'Safety', href: '/safety' },
   { id: 'executions', icon: Play, label: 'Executions', href: '/executions' },
+  { id: 'integrations', icon: Plug, label: 'Integrations', href: '/integrations' },
+  { id: 'ai-settings', icon: Brain, label: 'AI Settings', href: '/ai-settings' },
 ];
 
 export function Layout() {
