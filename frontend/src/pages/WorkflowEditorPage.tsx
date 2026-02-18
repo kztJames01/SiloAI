@@ -6,7 +6,7 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { 
   Play, X, MoreVertical, Clock3, 
-  Zap, MessageSquare, FileText, Database, Code, Undo2, Redo2, Settings
+  Zap, MessageSquare, FileText, Database, Code, Undo2, Redo2, Settings, ChevronLeft, ChevronRight
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import type { NodeDefinition } from '@silo/shared';
@@ -95,6 +95,7 @@ export default function WorkflowEditorPage() {
     type: 'manual',
     config: {},
   });
+  const [isPaletteOpen, setIsPaletteOpen] = useState(true);
   const canvasRef = useRef<HTMLDivElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
 
@@ -473,28 +474,84 @@ export default function WorkflowEditorPage() {
       </div>
 
       <div className="flex-1 flex overflow-hidden relative">
-        {/* Fixed Node Palette Sidebar */}
-        <aside className="fixed left-24 top-6 z-20 w-16 bg-white rounded-lg shadow-lg border border-gray-200">
-          <div className="p-2 space-y-2">
-              {availableNodes.filter((n: NodeDefinition) => n.category !== 'Triggers' && n.category !== 'Logic').map((node: NodeDefinition) => {
-                const Icon = getIconComponent(node.type);
-                return (
-                  <button
-                    key={node.type}
-                    onClick={() => addStepToCanvas(node.type)}
-                    className="w-12 h-12 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors group relative"
-                    title={node.name}
-                    style={{ color: node.color || '#3B82F6' }}
-                  >
-                    <Icon className="h-5 w-5" />
-                    <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap">
-                      {node.name}
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </aside>
+        {/* Figma-style Node Palette Sidebar */}
+        <aside 
+          className={`fixed left-4 top-20 bottom-4 z-50 bg-white rounded-lg shadow-lg border border-gray-200 transition-all duration-300 flex flex-col ${
+            isPaletteOpen ? 'w-[200px]' : 'w-14'
+          }`}
+        >
+          {/* Toggle Button */}
+          <button
+            onClick={() => setIsPaletteOpen(!isPaletteOpen)}
+            className="absolute -right-3 top-4 w-6 h-6 bg-white rounded-full shadow-md border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors z-10"
+            title={isPaletteOpen ? 'Collapse' : 'Expand'}
+          >
+            {isPaletteOpen ? (
+              <ChevronLeft className="h-3.5 w-3.5 text-gray-600" />
+            ) : (
+              <ChevronRight className="h-3.5 w-3.5 text-gray-600" />
+            )}
+          </button>
+
+          {/* Palette Content */}
+          <div className="flex-1 overflow-y-auto">
+            {isPaletteOpen ? (
+              <div className="p-3 space-y-3">
+                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-1">
+                  Nodes
+                </h3>
+                {/* 2-Column Grid */}
+                <div className="grid grid-cols-2 gap-2">
+                  {availableNodes.filter((n: NodeDefinition) => n.category !== 'Triggers' && n.category !== 'Logic').map((node: NodeDefinition) => {
+                    const Icon = getIconComponent(node.type);
+                    return (
+                      <button
+                        key={node.type}
+                        onClick={() => addStepToCanvas(node.type)}
+                        className="flex flex-col items-center justify-center p-2 rounded-lg hover:bg-gray-50 transition-colors border border-gray-100 hover:border-gray-300 group"
+                        title={node.name}
+                      >
+                        <div 
+                          className="w-8 h-8 rounded flex items-center justify-center mb-1"
+                          style={{ 
+                            backgroundColor: `${node.color || '#3B82F6'}15`, 
+                            color: node.color || '#3B82F6' 
+                          }}
+                        >
+                          <Icon className="h-4 w-4" />
+                        </div>
+                        <span className="text-[10px] text-gray-700 text-center leading-tight font-medium">
+                          {node.name}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ) : (
+              /* Collapsed: Single Column Icons */
+              <div className="p-2 space-y-2">
+                {availableNodes.filter((n: NodeDefinition) => n.category !== 'Triggers' && n.category !== 'Logic').map((node: NodeDefinition) => {
+                  const Icon = getIconComponent(node.type);
+                  return (
+                    <button
+                      key={node.type}
+                      onClick={() => addStepToCanvas(node.type)}
+                      className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors group relative"
+                      title={node.name}
+                      style={{ color: node.color || '#3B82F6' }}
+                    >
+                      <Icon className="h-5 w-5" />
+                      <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50">
+                        {node.name}
+                      </div>
+                    </button>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </aside>
 
         {/* Canvas */}
         <div 
