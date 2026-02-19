@@ -57,3 +57,20 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  /* Hide scrollbar globally for overflow areas */
+  .no-scrollbar::-webkit-scrollbar,
+  .overflow-y-auto::-webkit-scrollbar,
+  .overflow-y-scroll::-webkit-scrollbar,
+  .overflow-x-auto::-webkit-scrollbar {
+    display: none;
+  }
+  .no-scrollbar,
+  .overflow-y-auto,
+  .overflow-y-scroll,
+  .overflow-x-auto {
+    -ms-overflow-style: none;
+    scrollbar-width: none;
+  }
+}

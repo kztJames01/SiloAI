@@ -15,10 +15,14 @@ import FieldPage from './pages/FieldPage';
 import SafetyDashboardPage from './pages/SafetyDashboardPage';
 import { AISettingsPage } from './pages/AISettingsPage';
 import IntegrationsPage from './pages/IntegrationsPage';
+import AppExplorerPage from './pages/AppExplorerPage';
+import AppDetailPage from './pages/AppDetailPage';
+import OrganizationDashboardPage from './pages/OrganizationDashboardPage';
 
 // Components
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { Layout } from './components/Layout';
+import WorkflowDashboardPage from './pages/WorkflowDashboardPage';
 
 function RoleGate({
   allowedRoles,
@@ -98,10 +102,26 @@ function App() {
           }
         />
         <Route
-          path="workflows"
+          path="dashboard"
           element={
             <RoleGate allowedRoles={['admin']}>
               <DashboardPage />
+            </RoleGate>
+          }
+        />
+        <Route
+          path="workflows"
+          element={
+            <RoleGate allowedRoles={['admin']}>
+              <WorkflowDashboardPage />
+            </RoleGate>
+          }
+        />
+        <Route
+          path="orgs"
+          element={
+            <RoleGate allowedRoles={['admin']}>
+              <OrganizationDashboardPage />
             </RoleGate>
           }
         />
@@ -146,6 +166,22 @@ function App() {
           }
         />        <Route
           path="integrations"
+          element={
+            <RoleGate allowedRoles={['admin']}>
+              <AppExplorerPage />
+            </RoleGate>
+          }
+        />
+        <Route
+          path="integrations/:provider"
+          element={
+            <RoleGate allowedRoles={['admin']}>
+              <AppDetailPage />
+            </RoleGate>
+          }
+        />
+        <Route
+          path="integrations/manage"
           element={
             <RoleGate allowedRoles={['admin']}>
               <IntegrationsPage />

@@ -20,13 +20,13 @@ import {
 import { useUiStore, useAuthStore } from '../lib/store';
 
 const sidebarNavItems = [
-  { id: 'home', icon: Home, label: 'Home', href: '/workflows' },
-  { id: 'templates', icon: LayoutGrid, label: 'Templates', href: '/templates' },
-  { id: 'apps', icon: Globe, label: 'Apps', href: '/#discover-apps' },
+  { id: 'home', icon: Home, label: 'Home', href: '/dashboard' },
+  { id: 'org', icon: Globe, label: 'Organizations', href: '/orgs' },
 ];
 
 const mainNavItems = [
   { id: 'workflows', icon: Workflow, label: 'Workflows', href: '/workflows' },
+  { id: 'templates', icon: LayoutGrid, label: 'Templates', href: '/templates' },
   { id: 'safety', icon: Shield, label: 'Safety', href: '/safety' },
   { id: 'executions', icon: Play, label: 'Executions', href: '/executions' },
   { id: 'integrations', icon: Plug, label: 'Integrations', href: '/integrations' },
@@ -69,9 +69,8 @@ export function Layout() {
             const Icon = item.icon;
             // Check for active state: exact match for templates, /workflows for home, or hash links
             const isActive = 
-              (item.id === 'home' && location.pathname === '/workflows') ||
-              (item.id === 'templates' && location.pathname === '/templates') ||
-              (item.href.startsWith('/#') && location.pathname === '/workflows' && location.hash === item.href.substring(1));
+              (item.id === 'home' && location.pathname === '/') ||
+              (item.href.startsWith('/#') && location.pathname === '/' && location.hash === item.href.substring(1));
             return (
               <Link
                 key={item.id}
