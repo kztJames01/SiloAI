@@ -6,7 +6,8 @@ import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { 
   Play, X, MoreVertical, Clock3, 
-  Zap, MessageSquare, FileText, Database, Code, Undo2, Redo2, Settings, ChevronLeft, ChevronRight
+  Zap, MessageSquare, FileText, Database, Code, Undo2, Redo2, Settings, ChevronLeft, ChevronRight,
+  Wrench, Bot, Boxes, History, Link2, StickyNote, Search, AppWindow
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import type { NodeDefinition } from '@silo/shared';
@@ -96,6 +97,12 @@ export default function WorkflowEditorPage() {
     config: {},
   });
   const [isPaletteOpen, setIsPaletteOpen] = useState(true);
+  type SidebarTab = 'nodes' | 'versions' | 'assets' | 'notes';
+  const [activeTab, setActiveTab] = useState<SidebarTab>('nodes');
+  type NodeCategory = 'all' | 'built-in' | 'productivity' | 'ai';
+  const [nodeCategory, setNodeCategory] = useState<NodeCategory>('all');
+  const [nodeSearch, setNodeSearch] = useState('');
+  const [workflowNotes, setWorkflowNotes] = useState('');
   const canvasRef = useRef<HTMLDivElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
 
@@ -474,84 +481,275 @@ export default function WorkflowEditorPage() {
       </div>
 
       <div className="flex-1 flex overflow-hidden relative">
-        {/* Figma-style Node Palette Sidebar */}
-        <aside 
-          className={`fixed left-4 top-20 bottom-4 z-50 bg-white rounded-lg shadow-lg border border-gray-200 transition-all duration-300 flex flex-col ${
-            isPaletteOpen ? 'w-[200px]' : 'w-14'
-          }`}
-        >
-          {/* Toggle Button */}
-          <button
-            onClick={() => setIsPaletteOpen(!isPaletteOpen)}
-            className="absolute -right-3 top-4 w-6 h-6 bg-white rounded-full shadow-md border border-gray-200 flex items-center justify-center hover:bg-gray-50 transition-colors z-10"
-            title={isPaletteOpen ? 'Collapse' : 'Expand'}
-          >
-            {isPaletteOpen ? (
-              <ChevronLeft className="h-3.5 w-3.5 text-gray-600" />
-            ) : (
-              <ChevronRight className="h-3.5 w-3.5 text-gray-600" />
-            )}
-          </button>
+        {/* Tabbed Sidebar */}
+        {(() => {
+          const SIDEBAR_TABS: { id: SidebarTab; label: string; icon: React.ElementType }[] = [
+            { id: 'nodes',    label: 'Nodes',    icon: Boxes },
+            { id: 'versions', label: 'Versions', icon: History },
+            { id: 'assets',   label: 'Assets',   icon: Link2 },
+            { id: 'notes',    label: 'Notes',    icon: StickyNote },
+          ];
 
-          {/* Palette Content */}
-          <div className="flex-1 overflow-y-auto">
-            {isPaletteOpen ? (
-              <div className="p-3 space-y-3">
-                <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wide px-1">
-                  Nodes
-                </h3>
-                {/* 2-Column Grid */}
-                <div className="grid grid-cols-2 gap-2">
-                  {availableNodes.filter((n: NodeDefinition) => n.category !== 'Triggers' && n.category !== 'Logic').map((node: NodeDefinition) => {
-                    const Icon = getIconComponent(node.type);
-                    return (
-                      <button
-                        key={node.type}
-                        onClick={() => addStepToCanvas(node.type)}
-                        className="flex flex-col items-center justify-center p-2 rounded-lg hover:bg-gray-50 transition-colors border border-gray-100 hover:border-gray-300 group"
-                        title={node.name}
-                      >
-                        <div 
-                          className="w-8 h-8 rounded flex items-center justify-center mb-1"
-                          style={{ 
-                            backgroundColor: `${node.color || '#3B82F6'}15`, 
-                            color: node.color || '#3B82F6' 
-                          }}
-                        >
-                          <Icon className="h-4 w-4" />
-                        </div>
-                        <span className="text-[10px] text-gray-700 text-center leading-tight font-medium">
-                          {node.name}
-                        </span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </div>
-            ) : (
-              /* Collapsed: Single Column Icons */
-              <div className="p-2 space-y-2">
-                {availableNodes.filter((n: NodeDefinition) => n.category !== 'Triggers' && n.category !== 'Logic').map((node: NodeDefinition) => {
-                  const Icon = getIconComponent(node.type);
+          const builtInCategories = ['Core', 'Logic', 'Healthcare', 'Field Operations', 'Triggers'];
+          const filteredNodes = availableNodes
+            .filter((n: NodeDefinition) => n.category !== 'Triggers' && n.category !== 'Logic')
+            .filter((n: NodeDefinition) => {
+              if (nodeCategory === 'built-in') return builtInCategories.includes(n.category ?? '');
+              if (nodeCategory === 'ai') return n.category === 'AI';
+              if (nodeCategory === 'productivity') return false;
+              return true; // 'all'
+            })
+            .filter((n: NodeDefinition) =>
+              nodeSearch === '' || n.name.toLowerCase().includes(nodeSearch.toLowerCase())
+            );
+
+          return (
+            <aside
+              className={`fixed left-4 top-20 bottom-4 z-50 flex transition-all duration-300 ${
+                isPaletteOpen ? 'w-[272px]' : 'w-14'
+              }`}
+            >
+              {/* Narrow icon strip (always visible) */}
+              <div className="w-14 flex-shrink-0 bg-[#1e1e1e] rounded-l-xl flex flex-col items-center py-3 gap-0.5 shadow-xl">
+                {SIDEBAR_TABS.map((tab) => {
+                  const Icon = tab.icon;
+                  const isActive = activeTab === tab.id && isPaletteOpen;
                   return (
                     <button
-                      key={node.type}
-                      onClick={() => addStepToCanvas(node.type)}
-                      className="w-10 h-10 flex items-center justify-center rounded-lg hover:bg-gray-100 transition-colors group relative"
-                      title={node.name}
-                      style={{ color: node.color || '#3B82F6' }}
+                      key={tab.id}
+                      onClick={() => {
+                        setActiveTab(tab.id);
+                        if (!isPaletteOpen) setIsPaletteOpen(true);
+                      }}
+                      title={tab.label}
+                      className={`relative w-10 h-10 rounded-lg flex flex-col items-center justify-center gap-0.5 transition-all group ${
+                        isActive
+                          ? 'bg-white/15 text-white'
+                          : 'text-gray-400 hover:text-white hover:bg-white/10'
+                      }`}
                     >
-                      <Icon className="h-5 w-5" />
-                      <div className="absolute left-full ml-2 px-2 py-1 bg-gray-900 text-white text-xs rounded opacity-0 group-hover:opacity-100 pointer-events-none whitespace-nowrap z-50">
-                        {node.name}
-                      </div>
+                      <Icon className="h-4 w-4" />
+                      <span className="text-[9px] font-medium leading-none">{tab.label}</span>
+                      {isActive && (
+                        <span className="absolute left-0 top-2 bottom-2 w-0.5 bg-purple-400 rounded-r" />
+                      )}
                     </button>
                   );
                 })}
+
+                {/* Collapse toggle at bottom of strip */}
+                <button
+                  onClick={() => setIsPaletteOpen(!isPaletteOpen)}
+                  title={isPaletteOpen ? 'Collapse' : 'Expand'}
+                  className="mt-auto w-10 h-10 rounded-lg flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-all"
+                >
+                  {isPaletteOpen ? (
+                    <ChevronLeft className="h-4 w-4" />
+                  ) : (
+                    <ChevronRight className="h-4 w-4" />
+                  )}
+                </button>
               </div>
-            )}
-          </div>
-        </aside>
+
+              {/* Content panel */}
+              {isPaletteOpen && (
+                <div className="flex-1 bg-white rounded-r-xl shadow-xl border border-l-0 border-gray-200 flex flex-col overflow-hidden">
+
+                  {/* ── NODES TAB ── */}
+                  {activeTab === 'nodes' && (
+                    <div className="flex flex-col h-full">
+                      {/* Search */}
+                      <div className="p-3 border-b border-gray-100">
+                        <div className="relative">
+                          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400 pointer-events-none" />
+                          <input
+                            type="text"
+                            value={nodeSearch}
+                            onChange={(e) => setNodeSearch(e.target.value)}
+                            placeholder="Search apps or modules"
+                            className="w-full pl-8 pr-3 py-1.5 text-xs border border-purple-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
+                          />
+                        </div>
+                      </div>
+                      {/* Category pills */}
+                      <div className="flex items-center gap-1 px-3 py-2 border-b border-gray-100 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                        {([
+                          { id: 'all', label: 'All', icon: Boxes },
+                          { id: 'built-in', label: 'Built-in', icon: Wrench },
+                          { id: 'productivity', label: 'Productivity', icon: AppWindow },
+                          { id: 'ai', label: 'AI', icon: Bot },
+                        ] as { id: NodeCategory; label: string; icon: React.ElementType }[]).map((cat) => {
+                          const CatIcon = cat.icon;
+                          return (
+                            <button
+                              key={cat.id}
+                              onClick={() => setNodeCategory(cat.id)}
+                              className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold whitespace-nowrap transition-all ${
+                                nodeCategory === cat.id
+                                  ? 'bg-purple-600 text-white'
+                                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                              }`}
+                            >
+                              <CatIcon className="h-3 w-3" />
+                              {cat.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                      {/* Node grid */}
+                      <div className="flex-1 overflow-y-auto p-3 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                        {nodeCategory === 'productivity' ? (
+                          <div className="flex flex-col items-center justify-center h-full text-center gap-3 py-8">
+                            <AppWindow className="h-10 w-10 text-gray-300" />
+                            <p className="text-xs font-medium text-gray-500">Connect apps & services</p>
+                            <p className="text-[10px] text-gray-400">Integration nodes coming soon</p>
+                            <button
+                              onClick={() => window.open('/integrations', '_blank')}
+                              className="text-[10px] text-purple-600 hover:text-purple-700 font-semibold underline"
+                            >
+                              Browse integrations
+                            </button>
+                          </div>
+                        ) : filteredNodes.length === 0 ? (
+                          <div className="flex flex-col items-center justify-center h-full py-8 text-center">
+                            <Search className="h-8 w-8 text-gray-200 mb-2" />
+                            <p className="text-xs text-gray-400">No matching nodes</p>
+                          </div>
+                        ) : (
+                          <div className="grid grid-cols-2 gap-2">
+                            {filteredNodes.map((node: NodeDefinition) => {
+                              const Icon = getIconComponent(node.type);
+                              return (
+                                <button
+                                  key={node.type}
+                                  onClick={() => addStepToCanvas(node.type)}
+                                  className="flex flex-col items-center justify-center p-2 rounded-xl hover:bg-gray-50 transition-colors border border-gray-100 hover:border-purple-300 hover:shadow-sm group"
+                                  title={node.name}
+                                >
+                                  <div
+                                    className="w-9 h-9 rounded-xl flex items-center justify-center mb-1.5"
+                                    style={{
+                                      backgroundColor: `${node.color || '#7C3AED'}18`,
+                                      color: node.color || '#7C3AED',
+                                    }}
+                                  >
+                                    <Icon className="h-4.5 w-4.5 h-[18px] w-[18px]" />
+                                  </div>
+                                  <span className="text-[10px] text-gray-700 text-center leading-tight font-medium group-hover:text-purple-700">
+                                    {node.name}
+                                  </span>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ── VERSIONS TAB ── */}
+                  {activeTab === 'versions' && (
+                    <div className="flex flex-col h-full">
+                      <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
+                        <h3 className="text-sm font-semibold text-gray-900">Versions</h3>
+                      </div>
+                      <div className="flex-1 overflow-y-auto p-3 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                        {history.length === 0 ? (
+                          <div className="flex flex-col items-center justify-center h-full py-10 text-center">
+                            <History className="h-10 w-10 text-gray-200 mb-3" />
+                            <p className="text-xs text-gray-400">No versions saved yet</p>
+                          </div>
+                        ) : (
+                          <div className="space-y-2">
+                            {[...history].reverse().map((snap, revIdx) => {
+                              const idx = history.length - 1 - revIdx;
+                              const isCurrentVersion = idx === historyIndex;
+                              const d = new Date(snap.timestamp);
+                              const label = idx === 0 ? 'Draft' : `Version ${idx}`;
+                              const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                              const dateStr = d.toLocaleDateString([], { month: 'short', day: 'numeric' });
+                              return (
+                                <button
+                                  key={idx}
+                                  onClick={() => rollbackToVersion(idx)}
+                                  className={`w-full flex items-center gap-3 p-3 rounded-xl text-left transition-all border ${
+                                    isCurrentVersion
+                                      ? 'border-purple-400 bg-purple-50'
+                                      : 'border-gray-200 hover:border-purple-300 hover:bg-gray-50'
+                                  }`}
+                                >
+                                  <div className="w-8 h-8 rounded-full bg-purple-200 text-purple-700 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                                    KT
+                                  </div>
+                                  <div className="min-w-0">
+                                    <p className="text-xs font-semibold text-gray-900">{label}</p>
+                                    <p className="text-[10px] text-gray-500">
+                                      {dateStr} · {timeStr}
+                                    </p>
+                                  </div>
+                                  {isCurrentVersion && (
+                                    <span className="ml-auto text-[9px] font-bold text-purple-600 bg-purple-100 px-1.5 py-0.5 rounded-full">
+                                      Current
+                                    </span>
+                                  )}
+                                </button>
+                              );
+                            })}
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ── LINKED ASSETS TAB ── */}
+                  {activeTab === 'assets' && (
+                    <div className="flex flex-col h-full">
+                      <div className="px-4 py-3 border-b border-gray-100">
+                        <h3 className="text-sm font-semibold text-gray-900">Linked assets</h3>
+                        <p className="text-[10px] text-gray-500 mt-0.5">Assets referenced in this workflow.</p>
+                      </div>
+                      <div className="p-3 border-b border-gray-100 flex gap-2">
+                        <button className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 rounded-lg text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
+                          <span className="text-orange-500">⊞</span> Create Table
+                        </button>
+                        <button className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 rounded-lg text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
+                          <span className="text-red-500">□</span> Create Form
+                        </button>
+                      </div>
+                      <div className="flex-1 flex flex-col items-center justify-center p-4 text-center">
+                        <div className="w-full bg-gray-50 rounded-xl p-6 border border-gray-100">
+                          <Link2 className="h-8 w-8 text-gray-300 mx-auto mb-2" />
+                          <p className="text-xs text-gray-500 leading-relaxed">
+                            Tables and Forms used in this workflow will be displayed here.
+                          </p>
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* ── NOTES TAB ── */}
+                  {activeTab === 'notes' && (
+                    <div className="flex flex-col h-full">
+                      <div className="px-4 py-3 border-b border-gray-100">
+                        <h3 className="text-sm font-semibold text-gray-900">Notes</h3>
+                        <p className="text-[10px] text-gray-500 mt-0.5">Add notes about this workflow.</p>
+                      </div>
+                      <div className="flex-1 p-3">
+                        <textarea
+                          value={workflowNotes}
+                          onChange={(e) => setWorkflowNotes(e.target.value)}
+                          placeholder="Write notes about this workflow, e.g. purpose, owner, edge cases..."
+                          className="w-full h-full resize-none text-xs border border-gray-200 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-700 placeholder-gray-400 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+                        />
+                      </div>
+                    </div>
+                  )}
+
+                </div>
+              )}
+            </aside>
+          );
+        })()}
 
         {/* Canvas */}
         <div 
