@@ -1,0 +1,18 @@
+{
+  "name": "@silo/shared",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "src/index.ts",
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts",
+    "./api/client": "./src/api/client.ts",
+    "./api/auth": "./src/api/auth.ts",
+    "./api/workflow": "./src/api/workflow.ts",
+    "./api/execution": "./src/api/execution.ts",
+    "./api/integration": "./src/api/integration.ts",
+    "./api/node": "./src/api/node.ts",
+    "./types": "./src/types/index.ts"
+  }
+}
