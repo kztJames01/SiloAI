@@ -83,30 +83,261 @@ model ExecutionLog {
 
 model Integration {
   id            String   @id @default(uuid())
-  name          String   @unique
-  displayName   String
+  provider      String   @unique // IntegrationProvider enum value
+  name          String
   description   String?
-  iconUrl       String?
+  category      String
   authType      AuthType
-  baseUrl       String?
-  credentials   UserIntegration[]
+  logo          String?
+  color         String?
+  docUrl        String?
+  enabled       Boolean  @default(true)
+  comingSoon    Boolean  @default(false)
+  connections   IntegrationConnection[]
   createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
   @@map("integrations")
 }
 
-model UserIntegration {
+model IntegrationConnection {
   id            String      @id @default(uuid())
   userId        String
   integrationId String
   integration   Integration @relation(fields: [integrationId], references: [id], onDelete: Cascade)
-  credentials   Json        // Encrypted credentials
-  isActive      Boolean     @default(true)
+  name          String      // User-friendly connection name
+  credentials   String      // AES-256-GCM encrypted credentials
+  status        ConnectionStatus @default(ACTIVE)
+  lastUsed      DateTime?
+  lastTested    DateTime?
+  errorMessage  String?
+  metadata      Json?       // Provider-specific metadata
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 
-  @@unique([userId, integrationId])
-  @@map("user_integrations")
+  @@unique([userId, integrationId, name])
+  @@index([userId])
+  @@index([integrationId])
+  @@index([status])
+  @@map("integration_connections")
+}
+
+model IntegrationLog {
+  id            String   @id @default(uuid())
+  userId        String
+  connectionId  String
+  provider      String
+  action        String
+  success       Boolean
+  duration      Int      // milliseconds
+  requestId     String?
+  errorCode     String?
+  errorMessage  String?
+  metadata      Json?
+  timestamp     DateTime @default(now())
+
+  @@index([userId])
+  @@index([connectionId])
+  @@index([provider])
+  @@index([timestamp])
+  @@map("integration_logs")
+}
+
+model OAuth2Token {
+  id            String   @id @default(uuid())
+  userId        String
+  provider      String
+  accessToken   String   // Encrypted
+  refreshToken  String?  // Encrypted
+  tokenType     String   @default("Bearer")
+  scope         String?
+  expiresAt     DateTime?
+  metadata      Json?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@unique([userId, provider])
+  @@index([userId])
+  @@index([expiresAt])
+  @@map("oauth2_tokens")
+}
+
+enum ConnectionStatus {
+  ACTIVE
+  EXPIRED
+  ERROR
+  DISCONNECTED
+}
+
+// AI Models
+
+model LLMConfiguration {
+  id          String      @id @default(uuid())
+  userId      String
+  name        String
+  provider    LLMProvider
+  model       String
+  apiKey      String?     // Encrypted
+  baseUrl     String?
+  temperature Float?      @default(0.7)
+  maxTokens   Int?
+  isDefault   Boolean     @default(false)
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  @@map("llm_configurations")
+}
+
+model PromptTemplate {
+  id           String   @id @default(uuid())
+  userId       String?  // null for system templates
+  name         String
+  description  String?
+  template     String
+  systemPrompt String?
+  variables    Json     // Array of PromptVariable
+  examples     Json?    // Array of example messages
+  category     String?
+  isPublic     Boolean  @default(false)
+  usageCount   Int      @default(0)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("prompt_templates")
+}
+
+model AIContext {
+  id             String   @id @default(uuid())
+  conversationId String   @unique
+  userId         String
+  messages       Json     // Array of messages
+  variables      Json     // Key-value pairs
+  metadata       Json?
+  lastAccessedAt DateTime @default(now())
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([userId])
+  @@index([lastAccessedAt])
+  @@map("ai_contexts")
+}
+
+model TokenUsageLog {
+  id           String      @id @default(uuid())
+  userId       String
+  workflowId   String?
+  executionId  String?
+  nodeId       String?
+  provider     LLMProvider
+  model        String
+  promptTokens Int
+  completionTokens Int
+  totalTokens  Int
+  cost         Float?
+  timestamp    DateTime    @default(now())
+
+  @@index([userId])
+  @@index([workflowId])
+  @@index([executionId])
+  @@index([timestamp])
+  @@map("token_usage_logs")
+}
+
+model AIDebugLog {
+  id          String      @id @default(uuid())
+  executionId String
+  nodeId      String
+  type        AIDebugType
+  provider    LLMProvider
+  model       String
+  messages    Json?       // Array of messages
+  response    Json?       // LLMResponse object
+  error       String?
+  latency     Int         // milliseconds
+  tokenUsage  Json?       // TokenUsage object
+  timestamp   DateTime    @default(now())
+
+  @@index([executionId])
+  @@index([nodeId])
+  @@index([timestamp])
+  @@map("ai_debug_logs")
+}
+
+model AIAgent {
+  id           String   @id @default(uuid())
+  userId       String
+  name         String
+  description  String?
+  systemPrompt String
+  llmProvider  LLMProvider
+  llmModel     String
+  tools        Json?    // Array of available tools
+  maxIterations Int     @default(5)
+  enableMemory Boolean  @default(false)
+  ragConfig    Json?    // RAG configuration
+  isActive     Boolean  @default(true)
+  executions   AIAgentExecution[]
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  @@map("ai_agents")
+}
+
+model AIAgentExecution {
+  id          String              @id @default(uuid())
+  agentId     String
+  agent       AIAgent             @relation(fields: [agentId], references: [id], onDelete: Cascade)
+  input       String
+  output      String?
+  steps       Json                // Array of AIAgentStep
+  status      AgentExecutionStatus @default(RUNNING)
+  error       String?
+  promptTokens Int                @default(0)
+  completionTokens Int            @default(0)
+  totalTokens Int                 @default(0)
+  cost        Float?
+  startedAt   DateTime            @default(now())
+  finishedAt  DateTime?
+
+  @@index([agentId])
+  @@index([status])
+  @@map("ai_agent_executions")
+}
+
+model RAGDocument {
+  id         String   @id @default(uuid())
+  userId     String
+  indexName  String
+  content    String
+  metadata   Json
+  embedding  Json?    // Vector embedding
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([userId])
+  @@index([indexName])
+  @@map("rag_documents")
+}
+
+enum LLMProvider {
+  OPENAI
+  ANTHROPIC
+  GEMINI
+  OLLAMA
+  CUSTOM
+}
+
+enum AIDebugType {
+  PROMPT
+  RESPONSE
+  ERROR
+  TOOL_CALL
+}
+
+enum AgentExecutionStatus {
+  RUNNING
+  COMPLETED
+  FAILED
 }
 
 enum ExecutionStatus {
