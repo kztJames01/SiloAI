@@ -50,3 +50,12 @@ postgres-data/
 
 # Redis
 dump.rdb
+
+
+        AI_IMPLEMENTATION_SUMMARY.md
+        AI_INTEGRATION_GUIDE.md
+        AI_SETUP_INSTRUCTIONS.md
+        BACKEND_SUMMARY.md
+        COMPLETE_GUIDE.md
+        INTEGRATIONS_GUIDE.md
+        QUICK_START_AI.md

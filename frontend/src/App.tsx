@@ -8,16 +8,17 @@ import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import TemplatesPage from './pages/TemplatesPage';
 import WorkflowEditorPage from './pages/WorkflowEditorPage';
-import ExecutionsPage from './pages/ExecutionsPage';
 import ExecutionDetailPage from './pages/ExecutionDetailPage';
 import ProfilePage from './pages/ProfilePage';
 import FieldPage from './pages/FieldPage';
 import SafetyDashboardPage from './pages/SafetyDashboardPage';
-import { AISettingsPage } from './pages/AISettingsPage';
 import IntegrationsPage from './pages/IntegrationsPage';
 import AppExplorerPage from './pages/AppExplorerPage';
 import AppDetailPage from './pages/AppDetailPage';
 import OrganizationDashboardPage from './pages/OrganizationDashboardPage';
+import DataStoragePage from './pages/DataStoragePage';
+import AgentsPage from './pages/AgentsPage';
+import AgentDetailPage from './pages/AgentDetailPage';
 
 // Components
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -83,6 +84,28 @@ function App() {
         }
       />
 
+      {/* Agent detail / new — full-page layout (no sidebar) */}
+      <Route
+        path="/agents/new"
+        element={
+          <ProtectedRoute>
+            <RoleGate allowedRoles={['admin']}>
+              <AgentDetailPage />
+            </RoleGate>
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/agents/:id"
+        element={
+          <ProtectedRoute>
+            <RoleGate allowedRoles={['admin']}>
+              <AgentDetailPage />
+            </RoleGate>
+          </ProtectedRoute>
+        }
+      />
+
       {/* Dashboard Layout Routes */}
       <Route
         path="/"
@@ -118,6 +141,14 @@ function App() {
           }
         />
         <Route
+          path="agents"
+          element={
+            <RoleGate allowedRoles={['admin']}>
+              <AgentsPage />
+            </RoleGate>
+          }
+        />
+        <Route
           path="orgs"
           element={
             <RoleGate allowedRoles={['admin']}>
@@ -142,10 +173,10 @@ function App() {
           }
         />
         <Route
-          path="executions"
+          path="data-storage"
           element={
             <RoleGate allowedRoles={['admin']}>
-              <ExecutionsPage />
+              <DataStoragePage />
             </RoleGate>
           }
         />
@@ -157,14 +188,8 @@ function App() {
             </RoleGate>
           }
         />
+        <Route path="ai-settings" element={<Navigate to="/agents" replace />} />
         <Route
-          path="ai-settings"
-          element={
-            <RoleGate allowedRoles={['admin']}>
-              <AISettingsPage />
-            </RoleGate>
-          }
-        />        <Route
           path="integrations"
           element={
             <RoleGate allowedRoles={['admin']}>

@@ -81,6 +81,42 @@ export const nodeApi = {
   categories: async () => wrapResponse(with401Redirect(sharedNodeApi.categories())),
 };
 
+// Agent API
+export const agentApi = {
+  list: async () => {
+    const data = await sharedApiClient.request<any>('/api/agents', { method: 'GET', token: getToken() ?? undefined });
+    return { data };
+  },
+  get: async (id: string) => {
+    const data = await sharedApiClient.request<any>(`/api/agents/${id}`, { method: 'GET', token: getToken() ?? undefined });
+    return { data };
+  },
+  create: async (body: any) => {
+    const data = await sharedApiClient.request<any>('/api/agents', { method: 'POST', body, token: getToken() ?? undefined });
+    return { data };
+  },
+  update: async (id: string, body: any) => {
+    const data = await sharedApiClient.request<any>(`/api/agents/${id}`, { method: 'PUT', body, token: getToken() ?? undefined });
+    return { data };
+  },
+  delete: async (id: string) => {
+    const data = await sharedApiClient.request<any>(`/api/agents/${id}`, { method: 'DELETE', token: getToken() ?? undefined });
+    return { data };
+  },
+  run: async (id: string, body: { task: string; context?: any }) => {
+    const data = await sharedApiClient.request<any>(`/api/agents/${id}/run`, { method: 'POST', body, token: getToken() ?? undefined });
+    return { data };
+  },
+  executions: async (id: string) => {
+    const data = await sharedApiClient.request<any>(`/api/agents/${id}/executions`, { method: 'GET', token: getToken() ?? undefined });
+    return { data };
+  },
+  presets: async () => {
+    const data = await sharedApiClient.request<any>('/api/agents/presets', { method: 'GET', token: getToken() ?? undefined });
+    return { data };
+  },
+};
+
 // Generic API client for custom endpoints
 export const api = {
   get: async (path: string) => {

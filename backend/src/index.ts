@@ -14,6 +14,8 @@ import workflowRoutes from './api/routes/workflow.routes';
 import executionRoutes from './api/routes/execution.routes';
 import integrationRoutes from './api/routes/integration.routes';
 import nodeRoutes from './api/routes/node.routes';
+import aiRoutes from './api/routes/ai.routes';
+import agentRoutes from './api/routes/agent.routes';
 
 // Import middleware
 import { errorHandler } from './api/middleware/error.middleware';
@@ -54,6 +56,8 @@ app.use('/api/workflows', workflowRoutes);
 app.use('/api/executions', executionRoutes);
 app.use('/api/integrations', integrationRoutes);
 app.use('/api/nodes', nodeRoutes);
+app.use('/api/ai', aiRoutes);
+app.use('/api/agents', agentRoutes);
 
 // Error handling
 app.use(errorHandler);

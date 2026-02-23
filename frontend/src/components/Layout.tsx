@@ -11,11 +11,11 @@ import {
   Globe,
   Workflow,
   Shield,
-  Play,
+  Database,
   LogOut,
   MoreHorizontal,
-  Brain,
   Plug,
+  Bot,
 } from 'lucide-react';
 import { useUiStore, useAuthStore } from '../lib/store';
 
@@ -26,12 +26,14 @@ const sidebarNavItems = [
 
 const mainNavItems = [
   { id: 'workflows', icon: Workflow, label: 'Workflows', href: '/workflows' },
+  { id: 'agents', icon: Bot, label: 'AI Agents', href: '/agents' },
   { id: 'templates', icon: LayoutGrid, label: 'Templates', href: '/templates' },
   { id: 'safety', icon: Shield, label: 'Safety', href: '/safety' },
-  { id: 'executions', icon: Play, label: 'Executions', href: '/executions' },
+  { id: 'data-storage', icon: Database, label: 'Data Storage', href: '/data-storage' },
   { id: 'integrations', icon: Plug, label: 'Integrations', href: '/integrations' },
-  { id: 'ai-settings', icon: Brain, label: 'AI Settings', href: '/ai-settings' },
 ];
+
+
 
 export function Layout() {
   const location = useLocation();
@@ -113,7 +115,7 @@ export function Layout() {
           })}
         </nav>
 
-        {/* Footer - More and Logout */}
+        {/* Footer - More + Logout */}
         <div className="border-t border-gray-200 p-4 space-y-1">
           <button
             className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-gray-700 hover:bg-gray-50 transition-colors w-full"
