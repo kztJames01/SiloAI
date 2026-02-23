@@ -86,4 +86,35 @@ router.get('/workflow/:workflowId', async (req: AuthRequest, res) => {
   res.json({ executions });
 });
 
+// Get real-time logs for an execution (polling endpoint)
+router.get('/:id/logs', async (req: AuthRequest, res) => {
+  const { since } = req.query;
+  const sinceDate = since ? new Date(since as string) : new Date(0);
+
+  const execution = await prisma.workflowExecution.findFirst({
+    where: {
+      id: req.params.id,
+      workflow: {
+        userId: req.userId,
+      },
+    },
+  });
+
+  if (!execution) {
+    throw new AppError('Execution not found', 404);
+  }
+
+  const logs = await prisma.executionLog.findMany({
+    where: {
+      executionId: req.params.id,
+      timestamp: {
+        gt: sinceDate,
+      },
+    },
+    orderBy: { timestamp: 'asc' },
+  });
+
+  res.json({ logs, status: execution.status });
+});
+
 export default router;
