@@ -146,8 +146,8 @@ export default function OrganizationDashboardPage() {
     totalCredits: 1000,
     resetDate: '3/18/26, 2:07 AM',
     resetDays: 28,
-    activeScenarios: 0,
-    totalScenarios: 2,
+    activeWorkflows: 0,
+    totalWorkflows: 2,
   });
 
   useEffect(() => {
@@ -199,9 +199,9 @@ export default function OrganizationDashboardPage() {
           />
           <StatCard
             icon={<Play className="h-6 w-6 text-purple-600" />}
-            label="Active scenarios"
-            value={stats.activeScenarios}
-            subValue={`/ ${stats.totalScenarios}`}
+            label="Active Workflows"
+            value={stats.activeWorkflows}
+            subValue={`/ ${stats.totalWorkflows}`}
             color="bg-purple-100"
           />
         </div>

@@ -4,10 +4,11 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { workflowApi, nodeApi } from '../lib/api';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
-import { 
-  Play, X, MoreVertical, Clock3, 
+import {
+  Play, X, MoreVertical, Clock3,
   Zap, MessageSquare, FileText, Database, Code, Undo2, Redo2, Settings, ChevronLeft, ChevronRight,
-  Wrench, Bot, Boxes, History, Link2, StickyNote, Search, AppWindow
+  Wrench, Bot, Boxes, History, Link2, StickyNote, Search, AppWindow,
+  Sparkles, LayoutGrid, Save, CheckCheck, Cloud, CloudOff, Timer
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import type { NodeDefinition } from '@silo/shared';
@@ -31,6 +32,8 @@ interface WorkflowStep {
 interface WorkflowSnapshot {
   timestamp: number;
   steps: WorkflowStep[];
+  label?: string;   // present on explicit saved versions
+  isSaved?: boolean;
 }
 
 interface TriggerConfig {
@@ -103,6 +106,14 @@ export default function WorkflowEditorPage() {
   const [nodeCategory, setNodeCategory] = useState<NodeCategory>('all');
   const [nodeSearch, setNodeSearch] = useState('');
   const [workflowNotes, setWorkflowNotes] = useState('');
+  const [notesSaved, setNotesSaved] = useState(false);
+  const [isAiSummarizing, setIsAiSummarizing] = useState(false);
+  const [aiSummary, setAiSummary] = useState('');
+  // Version / save state
+  const [savedVersions, setSavedVersions] = useState<WorkflowSnapshot[]>([]);
+  const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
+  const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
+  const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
   const canvasRef = useRef<HTMLDivElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
 
@@ -191,7 +202,35 @@ export default function WorkflowEditorPage() {
   const setAndTrackSteps = (nextSteps: WorkflowStep[]) => {
     setSteps(nextSteps);
     pushHistory(nextSteps);
+    setHasUnsavedChanges(true);
   };
+
+  /** Commits current state as a named version and persists to backend */
+  const saveVersion = (label?: string) => {
+    const versionLabel = label || `Version ${savedVersions.length + 1}`;
+    const snap: WorkflowSnapshot = {
+      timestamp: Date.now(),
+      steps: steps.map((s) => ({ ...s, config: { ...s.config } })),
+      label: versionLabel,
+      isSaved: true,
+    };
+    setSavedVersions((prev) => [snap, ...prev]);
+    setLastSavedAt(new Date());
+    setHasUnsavedChanges(false);
+    saveMutation.mutate();
+  };
+
+  /** Auto-save every 10 minutes when enabled */
+  useEffect(() => {
+    if (!autoSaveEnabled) return;
+    const interval = setInterval(() => {
+      if (hasUnsavedChanges) {
+        saveVersion('Auto-save');
+      }
+    }, 10 * 60 * 1000);
+    return () => clearInterval(interval);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoSaveEnabled, hasUnsavedChanges, steps]);
 
   const saveMutation = useMutation({
     mutationFn: async () => {
@@ -228,7 +267,6 @@ export default function WorkflowEditorPage() {
       return workflowApi.update(id!, payload);
     },
     onSuccess: (response) => {
-      toast.success('Workflow saved successfully');
       queryClient.invalidateQueries({ queryKey: ['workflows'] });
       if (isNewWorkflow) {
         navigate(`/workflows/${response.data.workflow.id}`);
@@ -257,8 +295,8 @@ export default function WorkflowEditorPage() {
 
   const addStepToCanvas = (type: StepType) => {
     const nodeDef = availableNodes.find((n: NodeDefinition) => n.type === type);
-    const nextY = steps.length > 0 
-      ? Math.max(...steps.map(s => s.position.y)) + 200 
+    const nextY = steps.length > 0
+      ? Math.max(...steps.map(s => s.position.y)) + 200
       : 100;
     const newStep = createStep(type, nextY, nodeDef);
     const next = [...steps, newStep];
@@ -286,10 +324,10 @@ export default function WorkflowEditorPage() {
     const next = steps.map((step) =>
       step.id === selectedStep.id
         ? {
-            ...step,
-            ...updates,
-            config: updates.config ? { ...step.config, ...updates.config } : step.config,
-          }
+          ...step,
+          ...updates,
+          config: updates.config ? { ...step.config, ...updates.config } : step.config,
+        }
         : step
     );
     setAndTrackSteps(next);
@@ -404,7 +442,7 @@ export default function WorkflowEditorPage() {
           >
             ← Back
           </Button>
-          
+
           {isEditingName ? (
             <input
               ref={nameInputRef}
@@ -422,7 +460,7 @@ export default function WorkflowEditorPage() {
               className="text-lg font-semibold px-2 py-1 border border-primary rounded focus:outline-none focus:ring-2 focus:ring-primary"
             />
           ) : (
-            <h1 
+            <h1
               onClick={() => setIsEditingName(true)}
               className="text-lg font-semibold cursor-pointer hover:text-primary px-2 py-1 rounded hover:bg-gray-50"
             >
@@ -460,22 +498,75 @@ export default function WorkflowEditorPage() {
             Trigger: {triggerConfig.type}
           </Button>
           <div className="h-6 w-px bg-gray-300 mx-2" />
+
+          {/* Last-saved indicator */}
+          {lastSavedAt && !hasUnsavedChanges && (
+            <span className="text-xs text-gray-400 hidden sm:block whitespace-nowrap">
+              Saved {lastSavedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+            </span>
+          )}
+          {hasUnsavedChanges && (
+            <span className="text-xs text-amber-500 hidden sm:block whitespace-nowrap">
+              Unsaved changes
+            </span>
+          )}
+
+          {/* Auto-save toggle */}
+          <button
+            onClick={() => {
+              const next = !autoSaveEnabled;
+              setAutoSaveEnabled(next);
+              toast(next ? 'Auto-save on — saves every 10 min' : 'Auto-save off', { icon: next ? '✅' : '⏸️' });
+            }}
+            title={autoSaveEnabled ? 'Auto-save ON (every 10 min) — click to disable' : 'Auto-save OFF — click to enable'}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
+              autoSaveEnabled
+                ? 'bg-purple-50 border-purple-300 text-purple-700 hover:bg-purple-100'
+                : 'bg-gray-50 border-gray-200 text-gray-400 hover:bg-gray-100'
+            }`}
+          >
+            {autoSaveEnabled ? <Cloud className="h-3.5 w-3.5" /> : <CloudOff className="h-3.5 w-3.5" />}
+            <span className="hidden sm:block">{autoSaveEnabled ? 'Auto-save' : 'Auto-save off'}</span>
+            <Timer className="h-3 w-3 opacity-60" />
+          </button>
+
+          {/* Manual Save */}
           <Button
             variant="outline"
             size="sm"
-            onClick={() => saveMutation.mutate()}
+            onClick={() => saveVersion()}
+            disabled={saveMutation.isPending}
+            className={`gap-1.5 ${
+              hasUnsavedChanges
+                ? 'border-amber-400 text-amber-700 hover:bg-amber-50'
+                : 'bg-white'
+            }`}
+          >
+            <Save className="h-3.5 w-3.5" />
+            {saveMutation.isPending ? 'Saving…' : 'Save'}
+          </Button>
+
+          {/* Publish */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={() => {
+              saveVersion('Published');
+              toast.success('Workflow published');
+            }}
             disabled={saveMutation.isPending}
             className="bg-white"
           >
-            {saveMutation.isPending ? 'Saving...' : 'Publish'}
+            Publish
           </Button>
+
           <Button
             size="sm"
             onClick={() => executeMutation.mutate()}
             disabled={isNewWorkflow || executeMutation.isPending}
           >
             <Play className="h-4 w-4 mr-2" />
-            {executeMutation.isPending ? 'Running...' : 'Test run'}
+            {executeMutation.isPending ? 'Running…' : 'Test run'}
           </Button>
         </div>
       </div>
@@ -484,10 +575,10 @@ export default function WorkflowEditorPage() {
         {/* Tabbed Sidebar */}
         {(() => {
           const SIDEBAR_TABS: { id: SidebarTab; label: string; icon: React.ElementType }[] = [
-            { id: 'nodes',    label: 'Nodes',    icon: Boxes },
+            { id: 'nodes', label: 'Nodes', icon: Boxes },
             { id: 'versions', label: 'Versions', icon: History },
-            { id: 'assets',   label: 'Assets',   icon: Link2 },
-            { id: 'notes',    label: 'Notes',    icon: StickyNote },
+            { id: 'assets', label: 'Assets', icon: Link2 },
+            { id: 'notes', label: 'Notes', icon: StickyNote },
           ];
 
           const builtInCategories = ['Core', 'Logic', 'Healthcare', 'Field Operations', 'Triggers'];
@@ -505,12 +596,11 @@ export default function WorkflowEditorPage() {
 
           return (
             <aside
-              className={`fixed left-4 top-20 bottom-4 z-50 flex transition-all duration-300 ${
-                isPaletteOpen ? 'w-[272px]' : 'w-14'
-              }`}
+              className={`fixed left-4 top-20 bottom-4 z-50 flex transition-all duration-300 ${isPaletteOpen ? 'w-[350px]' : 'w-16'
+                }`}
             >
               {/* Narrow icon strip (always visible) */}
-              <div className="w-14 flex-shrink-0 bg-[#1e1e1e] rounded-l-xl flex flex-col items-center py-3 gap-0.5 shadow-xl">
+              <div className="w-16 flex-shrink-0 bg-[#1e1e1e] rounded-l-xl flex flex-col items-center py-3 gap-0.5 shadow-xl">
                 {SIDEBAR_TABS.map((tab) => {
                   const Icon = tab.icon;
                   const isActive = activeTab === tab.id && isPaletteOpen;
@@ -522,11 +612,10 @@ export default function WorkflowEditorPage() {
                         if (!isPaletteOpen) setIsPaletteOpen(true);
                       }}
                       title={tab.label}
-                      className={`relative w-10 h-10 rounded-lg flex flex-col items-center justify-center gap-0.5 transition-all group ${
-                        isActive
+                      className={`relative w-10 h-10 mt-2 rounded-lg flex flex-col items-center justify-center gap-0.5 transition-all group ${isActive
                           ? 'bg-white/15 text-white'
                           : 'text-gray-400 hover:text-white hover:bg-white/10'
-                      }`}
+                        }`}
                     >
                       <Icon className="h-4 w-4" />
                       <span className="text-[9px] font-medium leading-none">{tab.label}</span>
@@ -584,11 +673,10 @@ export default function WorkflowEditorPage() {
                             <button
                               key={cat.id}
                               onClick={() => setNodeCategory(cat.id)}
-                              className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold whitespace-nowrap transition-all ${
-                                nodeCategory === cat.id
+                              className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold whitespace-nowrap transition-all ${nodeCategory === cat.id
                                   ? 'bg-purple-600 text-white'
                                   : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                              }`}
+                                }`}
                             >
                               <CatIcon className="h-3 w-3" />
                               {cat.label}
@@ -652,47 +740,82 @@ export default function WorkflowEditorPage() {
                     <div className="flex flex-col h-full">
                       <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
                         <h3 className="text-sm font-semibold text-gray-900">Versions</h3>
+                        <button
+                          onClick={() => saveVersion()}
+                          disabled={saveMutation.isPending || !hasUnsavedChanges}
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-purple-600 text-white text-[10px] font-semibold hover:bg-purple-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                        >
+                          <Save className="h-3 w-3" /> Save now
+                        </button>
                       </div>
+
+                      {/* Auto-save status strip */}
+                      <div className={`px-4 py-2 flex items-center gap-2 text-[10px] border-b border-gray-100 ${
+                        autoSaveEnabled ? 'bg-purple-50 text-purple-700' : 'bg-gray-50 text-gray-400'
+                      }`}>
+                        {autoSaveEnabled
+                          ? <><Cloud className="h-3 w-3" /> Auto-saves every 10 min</>
+                          : <><CloudOff className="h-3 w-3" /> Auto-save is off</>}
+                        <button
+                          onClick={() => setAutoSaveEnabled(v => !v)}
+                          className="ml-auto underline font-semibold"
+                        >
+                          {autoSaveEnabled ? 'Disable' : 'Enable'}
+                        </button>
+                      </div>
+
                       <div className="flex-1 overflow-y-auto p-3 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
-                        {history.length === 0 ? (
-                          <div className="flex flex-col items-center justify-center h-full py-10 text-center">
-                            <History className="h-10 w-10 text-gray-200 mb-3" />
-                            <p className="text-xs text-gray-400">No versions saved yet</p>
+                        {savedVersions.length === 0 ? (
+                          <div className="flex flex-col items-center justify-center h-full py-10 text-center gap-3">
+                            <History className="h-10 w-10 text-gray-200" />
+                            <p className="text-xs text-gray-400">No saved versions yet.</p>
+                            <p className="text-[10px] text-gray-400">Hit "Save" or wait for auto-save.</p>
                           </div>
                         ) : (
                           <div className="space-y-2">
-                            {[...history].reverse().map((snap, revIdx) => {
-                              const idx = history.length - 1 - revIdx;
-                              const isCurrentVersion = idx === historyIndex;
+                            {savedVersions.map((snap, idx) => {
+                              const isLatest = idx === 0;
                               const d = new Date(snap.timestamp);
-                              const label = idx === 0 ? 'Draft' : `Version ${idx}`;
                               const timeStr = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
                               const dateStr = d.toLocaleDateString([], { month: 'short', day: 'numeric' });
                               return (
-                                <button
-                                  key={idx}
-                                  onClick={() => rollbackToVersion(idx)}
-                                  className={`w-full flex items-center gap-3 p-3 rounded-xl text-left transition-all border ${
-                                    isCurrentVersion
+                                <div
+                                  key={snap.timestamp}
+                                  className={`rounded-xl border p-3 transition-all ${
+                                    isLatest
                                       ? 'border-purple-400 bg-purple-50'
-                                      : 'border-gray-200 hover:border-purple-300 hover:bg-gray-50'
+                                      : 'border-gray-200 hover:border-purple-200 hover:bg-gray-50'
                                   }`}
                                 >
-                                  <div className="w-8 h-8 rounded-full bg-purple-200 text-purple-700 flex items-center justify-center text-xs font-bold flex-shrink-0">
-                                    KT
+                                  <div className="flex items-start gap-2.5">
+                                    <div className="w-8 h-8 rounded-full bg-purple-200 text-purple-700 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                                      KT
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-xs font-semibold text-gray-900 truncate">{snap.label}</p>
+                                      <p className="text-[10px] text-gray-500">{dateStr} · {timeStr}</p>
+                                      <p className="text-[10px] text-gray-400">{snap.steps.length} node{snap.steps.length !== 1 ? 's' : ''}</p>
+                                    </div>
+                                    {isLatest && (
+                                      <span className="text-[9px] font-bold text-purple-600 bg-purple-100 px-1.5 py-0.5 rounded-full flex-shrink-0">
+                                        Latest
+                                      </span>
+                                    )}
                                   </div>
-                                  <div className="min-w-0">
-                                    <p className="text-xs font-semibold text-gray-900">{label}</p>
-                                    <p className="text-[10px] text-gray-500">
-                                      {dateStr} · {timeStr}
-                                    </p>
-                                  </div>
-                                  {isCurrentVersion && (
-                                    <span className="ml-auto text-[9px] font-bold text-purple-600 bg-purple-100 px-1.5 py-0.5 rounded-full">
-                                      Current
-                                    </span>
+                                  {!isLatest && (
+                                    <button
+                                      onClick={() => {
+                                        const restored = snap.steps.map(s => ({ ...s, config: { ...s.config } }));
+                                        setSteps(restored);
+                                        setHasUnsavedChanges(true);
+                                        toast('Restored to ' + snap.label);
+                                      }}
+                                      className="mt-2 w-full text-[10px] font-semibold text-purple-600 hover:text-purple-800 text-center py-1 rounded-lg hover:bg-purple-50 transition-colors"
+                                    >
+                                      Restore this version
+                                    </button>
                                   )}
-                                </button>
+                                </div>
                               );
                             })}
                           </div>
@@ -710,17 +833,17 @@ export default function WorkflowEditorPage() {
                       </div>
                       <div className="p-3 border-b border-gray-100 flex gap-2">
                         <button className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 rounded-lg text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
-                          <span className="text-orange-500">⊞</span> Create Table
+                          <span className="text-orange-500">⊞</span> Import APIs
                         </button>
                         <button className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 rounded-lg text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
-                          <span className="text-red-500">□</span> Create Form
+                          <span className="text-red-500">□</span> Upload Files
                         </button>
                       </div>
                       <div className="flex-1 flex flex-col items-center justify-center p-4 text-center">
                         <div className="w-full bg-gray-50 rounded-xl p-6 border border-gray-100">
                           <Link2 className="h-8 w-8 text-gray-300 mx-auto mb-2" />
                           <p className="text-xs text-gray-500 leading-relaxed">
-                            Tables and Forms used in this workflow will be displayed here.
+                            APIs and Files used in this workflow will be displayed here.
                           </p>
                         </div>
                       </div>
@@ -730,18 +853,115 @@ export default function WorkflowEditorPage() {
                   {/* ── NOTES TAB ── */}
                   {activeTab === 'notes' && (
                     <div className="flex flex-col h-full">
-                      <div className="px-4 py-3 border-b border-gray-100">
-                        <h3 className="text-sm font-semibold text-gray-900">Notes</h3>
-                        <p className="text-[10px] text-gray-500 mt-0.5">Add notes about this workflow.</p>
+
+                      {/* ── TOP HALF: Notes ── */}
+                      <div className="flex flex-col" style={{ flex: '0 0 50%', minHeight: 0 }}>
+                        <div className="px-4 py-2.5 border-b border-gray-100 flex items-center justify-between">
+
+                          <h3 className="text-sm font-semibold text-gray-900">Notes</h3>
+
+                          <button
+                            onClick={() => {
+                              setNotesSaved(true);
+                              toast.success('Notes saved');
+                              setTimeout(() => setNotesSaved(false), 2500);
+                            }}
+                            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${notesSaved
+                                ? 'bg-green-100 text-green-700'
+                                : 'bg-purple-600 text-white hover:bg-purple-700'
+                              }`}
+                          >
+                            {notesSaved ? (
+                              <><CheckCheck className="h-3.5 w-3.5" /> Saved</>
+                            ) : (
+                              <><Save className="h-3.5 w-3.5" /> Save</>
+                            )}
+                          </button>
+                        </div>
+                        <div className="flex-1 p-3 overflow-hidden">
+                          <textarea
+                            value={workflowNotes}
+                            onChange={(e) => { setWorkflowNotes(e.target.value); setNotesSaved(false); }}
+                            placeholder="Write notes about this workflow, e.g. purpose, owner, edge cases..."
+                            className="w-full h-full resize-none text-xs border border-gray-200 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-700 placeholder-gray-400 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+                          />
+                        </div>
                       </div>
-                      <div className="flex-1 p-3">
-                        <textarea
-                          value={workflowNotes}
-                          onChange={(e) => setWorkflowNotes(e.target.value)}
-                          placeholder="Write notes about this workflow, e.g. purpose, owner, edge cases..."
-                          className="w-full h-full resize-none text-xs border border-gray-200 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-700 placeholder-gray-400 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
-                        />
+
+                      {/* Divider */}
+                      <div className="border-t border-gray-200" />
+
+                      <div className="flex flex-col" style={{ flex: '0 0 50%', minHeight: 0 }}>
+                        <div className="px-4 py-2.5 border-b border-gray-100">
+                          <h3 className="text-sm font-semibold text-gray-900">AI Tools</h3>
+                          <p className="text-[10px] text-gray-500">Analyse and tidy your workflow.</p>
+                        </div>
+                        <div className="flex-1 overflow-y-auto p-3 space-y-3 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+
+                          {/* Summarize with AI */}
+                          <div className="rounded-xl border border-gray-200 overflow-hidden">
+                            <button
+                              onClick={async () => {
+                                if (isAiSummarizing) return;
+                                setIsAiSummarizing(true);
+                                setAiSummary('');
+                                // Simulate AI call — replace with real API call when ready
+                                await new Promise((r) => setTimeout(r, 1400));
+                                const nodeList = steps.map((s, i) => `${i + 1}. ${s.label} (${s.type})`).join(', ');
+                                setAiSummary(
+                                  nodeList
+                                    ? `This workflow has ${steps.length} step${steps.length !== 1 ? 's' : ''}: ${nodeList}. It processes data sequentially through each node.`
+                                    : 'No steps found — add nodes to the canvas to generate a summary.'
+                                );
+                                setIsAiSummarizing(false);
+                              }}
+                              className="w-full flex items-center gap-2 px-3 py-2.5 bg-gradient-to-r from-purple-50 to-violet-50 hover:from-purple-100 hover:to-violet-100 transition-colors text-left"
+                            >
+                              <div className="w-7 h-7 rounded-lg bg-purple-600 flex items-center justify-center flex-shrink-0">
+                                <Sparkles className="h-3.5 w-3.5 text-white" />
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <p className="text-xs font-semibold text-gray-900">Summarise with AI</p>
+                                <p className="text-[10px] text-gray-500">Generate a plain-English description</p>
+                              </div>
+                              {isAiSummarizing && (
+                                <div className="w-4 h-4 border-2 border-purple-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+                              )}
+                            </button>
+                            {aiSummary && (
+                              <div className="px-3 py-2.5 bg-white border-t border-gray-100">
+                                <p className="text-[11px] text-gray-700 leading-relaxed">{aiSummary}</p>
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Auto Align Boxes */}
+                          <button
+                            onClick={() => {
+                              // Lay out steps in a tidy vertical column
+                              if (steps.length === 0) return;
+                              const aligned = steps.map((step, i) => ({
+                                ...step,
+                                position: { x: 400, y: 100 + i * 200 },
+                              }));
+                              setSteps(aligned);
+                              pushHistory(aligned);
+                              toast.success('Boxes aligned');
+                            }}
+                            className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl border border-gray-200 hover:border-purple-300 hover:bg-purple-50 transition-all text-left group"
+                          >
+                            <div className="w-7 h-7 rounded-lg bg-gray-100 group-hover:bg-purple-100 flex items-center justify-center flex-shrink-0 transition-colors">
+                              <LayoutGrid className="h-3.5 w-3.5 text-gray-600 group-hover:text-purple-600" />
+                            </div>
+                            <div>
+                              <p className="text-xs font-semibold text-gray-900 group-hover:text-purple-700">Auto Align Boxes</p>
+                              <p className="text-[10px] text-gray-500">Tidy nodes into a vertical layout</p>
+                            </div>
+                          </button>
+
+                        </div>
                       </div>
+
                     </div>
                   )}
 
@@ -752,7 +972,7 @@ export default function WorkflowEditorPage() {
         })()}
 
         {/* Canvas */}
-        <div 
+        <div
           ref={canvasRef}
           className="flex-1 overflow-auto relative bg-gray-50"
           style={{ cursor: isPanning ? 'grabbing' : draggingStep ? 'move' : 'default' }}
@@ -786,7 +1006,7 @@ export default function WorkflowEditorPage() {
               <span className="text-xl font-bold">−</span>
             </button>
           </div>
-          <div 
+          <div
             className="relative"
             style={{
               width: '200%',
@@ -801,22 +1021,22 @@ export default function WorkflowEditorPage() {
               {sortedSteps.map((step, index) => {
                 if (index === sortedSteps.length - 1) return null;
                 const nextStep = sortedSteps[index + 1];
-                
+
                 // Calculate start and end points
                 const startX = step.position.x + 150; // center of card
                 const startY = step.position.y + 70; // bottom of card
                 const endX = nextStep.position.x + 150;
                 const endY = nextStep.position.y;
-                
+
                 // Calculate control points for smooth curve
                 const midY = (startY + endY) / 2;
                 const curvature = Math.min(Math.abs(endY - startY) / 3, 60);
-                
+
                 const path = `M ${startX} ${startY} 
                   C ${startX} ${startY + curvature}, 
                   ${endX} ${endY - curvature}, 
                   ${endX} ${endY}`;
-                
+
                 return (
                   <g key={`line-${step.id}`}>
                     <path
@@ -865,9 +1085,8 @@ export default function WorkflowEditorPage() {
               return (
                 <div
                   key={step.id}
-                  className={`step-card absolute w-[300px] bg-white rounded-lg shadow-sm border-2 cursor-move transition-all ${
-                    isSelected ? 'border-primary shadow-md' : 'border-gray-200 hover:border-gray-300'
-                  }`}
+                  className={`step-card absolute w-[300px] bg-white rounded-lg shadow-sm border-2 cursor-move transition-all ${isSelected ? 'border-primary shadow-md' : 'border-gray-200 hover:border-gray-300'
+                    }`}
                   onMouseDown={(e) => {
                     e.stopPropagation();
                     handleStepMouseDown(e, step.id);
@@ -881,7 +1100,7 @@ export default function WorkflowEditorPage() {
                   }}
                 >
                   <div className="flex items-center gap-3 p-4">
-                    <div 
+                    <div
                       className="w-10 h-10 rounded flex items-center justify-center flex-shrink-0"
                       style={{ backgroundColor: `${color}15`, color }}
                     >
@@ -922,11 +1141,11 @@ export default function WorkflowEditorPage() {
           <div className="w-[420px] bg-white border-l border-gray-200 flex flex-col z-20 shadow-lg">
             <div className="h-16 px-6 flex items-center justify-between border-b border-gray-200">
               <div className="flex items-center gap-3">
-                <div 
+                <div
                   className="w-8 h-8 rounded flex items-center justify-center"
-                  style={{ 
-                    backgroundColor: `${getStepColor(selectedStep.type)}15`, 
-                    color: getStepColor(selectedStep.type) 
+                  style={{
+                    backgroundColor: `${getStepColor(selectedStep.type)}15`,
+                    color: getStepColor(selectedStep.type)
                   }}
                 >
                   {(() => {
