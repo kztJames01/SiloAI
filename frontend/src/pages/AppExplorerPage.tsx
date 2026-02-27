@@ -117,40 +117,40 @@ export default function AppExplorerPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+      <div className="flex items-center justify-center min-h-screen bg-background">
         <div className="flex flex-col items-center gap-4">
           <div className="animate-spin h-10 w-10 rounded-full border-4 border-primary border-t-transparent" />
-          <p className="text-gray-500 text-sm">Loading integrations...</p>
+          <p className="text-muted-foreground text-sm">Loading integrations...</p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* Hero */}
-      <div className="bg-white border-b border-gray-200">
+      <div className="bg-card border-b border-border">
         <div className="max-w-7xl mx-auto px-6 py-14 text-center">
           <div className="inline-flex items-center gap-2 bg-primary/10 text-primary text-xs font-semibold px-3 py-1 rounded-full mb-4">
             <Zap className="h-3.5 w-3.5" />
             {integrations.length} Apps Available
           </div>
-          <h1 className="text-5xl font-extrabold text-gray-900 tracking-tight mb-4">
+          <h1 className="text-5xl font-extrabold text-foreground tracking-tight mb-4">
             App Integrations
           </h1>
-          <p className="text-xl text-gray-500 max-w-2xl mx-auto mb-8">
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto mb-8">
             Save time and resources by connecting all your favorite apps on Silo with just a few
             clicks.
           </p>
           {/* Search */}
           <div className="max-w-2xl mx-auto relative">
-            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-gray-400 pointer-events-none" />
+            <Search className="absolute left-4 top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground pointer-events-none" />
             <input
               type="text"
               placeholder="Search apps..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full pl-12 pr-4 py-4 text-base rounded-2xl border border-gray-200 shadow-sm bg-white focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
+              className="w-full pl-12 pr-4 py-4 text-base rounded-2xl border border-border shadow-sm bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary transition-all"
             />
           </div>
         </div>
@@ -159,7 +159,7 @@ export default function AppExplorerPage() {
       <div className="max-w-7xl mx-auto px-6 py-8 flex gap-8">
         {/* Sidebar */}
         <aside className="hidden lg:flex flex-col gap-1 w-56 flex-shrink-0">
-          <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2 px-3">
+          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 px-3">
             Browse by Category
           </p>
           {categories.map((cat) => {
@@ -169,7 +169,7 @@ export default function AppExplorerPage() {
                 key={cat}
                 onClick={() => setSelectedCategory(cat)}
                 className={`flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-left ${
-                  active ? 'bg-primary text-white shadow-sm' : 'text-gray-700 hover:bg-gray-100'
+                  active ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                 }`}
               >
                 {cat !== 'all' && (
@@ -193,7 +193,7 @@ export default function AppExplorerPage() {
             <section className="mb-10">
               <div className="flex items-center gap-2 mb-4">
                 <Star className="h-4.5 w-4.5 text-amber-400 fill-amber-400" />
-                <h2 className="text-lg font-semibold text-gray-800">Featured Apps</h2>
+                <h2 className="text-lg font-semibold text-foreground">Featured Apps</h2>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 {featured.map((integration) => {
@@ -202,7 +202,7 @@ export default function AppExplorerPage() {
                     <button
                       key={integration.provider}
                       onClick={() => navigate(`/integrations/${integration.provider}`)}
-                      className="group bg-white border border-gray-200 rounded-2xl p-5 flex flex-col items-center gap-3 hover:shadow-md hover:border-primary/30 transition-all text-center relative"
+                      className="group bg-card border border-border rounded-2xl p-5 flex flex-col items-center gap-3 hover:shadow-md hover:border-primary/30 transition-all text-center relative"
                     >
                       {connected && (
                         <span className="absolute top-3 right-3 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
@@ -210,7 +210,7 @@ export default function AppExplorerPage() {
                         </span>
                       )}
                       <IntegrationLogo integration={integration} size="lg" />
-                      <span className="text-sm font-semibold text-gray-800 group-hover:text-primary transition-colors">
+                      <span className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
                         {integration.name}
                       </span>
                     </button>
@@ -223,27 +223,27 @@ export default function AppExplorerPage() {
           {/* All Apps header */}
           <div className="flex items-center justify-between mb-4">
             <div>
-              <h2 className="text-lg font-semibold text-gray-800">
+              <h2 className="text-lg font-semibold text-foreground">
                 {searchQuery
                   ? `Results for "${searchQuery}"`
                   : selectedCategory === 'all'
                   ? 'All Apps'
                   : <span className="capitalize">{selectedCategory}</span>}
               </h2>
-              <p className="text-sm text-gray-400 mt-0.5">
+              <p className="text-sm text-muted-foreground mt-0.5">
                 Showing {filtered.length} of {integrations.length} apps
               </p>
             </div>
-            <div className="flex items-center gap-1 bg-gray-100 rounded-lg p-1">
+            <div className="flex items-center gap-1 bg-muted rounded-lg p-1">
               <button
                 onClick={() => setViewMode('grid')}
-                className={`p-1.5 rounded-md transition-all ${viewMode === 'grid' ? 'bg-white shadow-sm text-primary' : 'text-gray-500 hover:text-gray-700'}`}
+                className={`p-1.5 rounded-md transition-all ${viewMode === 'grid' ? 'bg-card shadow-sm text-primary' : 'text-muted-foreground hover:text-foreground'}`}
               >
                 <Grid3x3 className="h-4 w-4" />
               </button>
               <button
                 onClick={() => setViewMode('list')}
-                className={`p-1.5 rounded-md transition-all ${viewMode === 'list' ? 'bg-white shadow-sm text-primary' : 'text-gray-500 hover:text-gray-700'}`}
+                className={`p-1.5 rounded-md transition-all ${viewMode === 'list' ? 'bg-card shadow-sm text-primary' : 'text-muted-foreground hover:text-foreground'}`}
               >
                 <List className="h-4 w-4" />
               </button>
@@ -258,8 +258,8 @@ export default function AppExplorerPage() {
                 onClick={() => setSelectedCategory(cat)}
                 className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap flex-shrink-0 transition-colors ${
                   selectedCategory === cat
-                    ? 'bg-primary text-white'
-                    : 'bg-white border border-gray-200 text-gray-700 hover:bg-gray-50'
+                    ? 'bg-primary text-primary-foreground'
+                    : 'bg-card border border-border text-muted-foreground hover:bg-accent'
                 }`}
               >
                 {cat !== 'all' && CATEGORY_ICONS[cat] ? `${CATEGORY_ICONS[cat]} ` : ''}
@@ -270,10 +270,10 @@ export default function AppExplorerPage() {
 
           {/* Grid / List view */}
           {filtered.length === 0 ? (
-            <div className="text-center py-20 bg-white border border-gray-200 rounded-2xl">
+            <div className="text-center py-20 bg-card border border-border rounded-2xl">
               <div className="text-5xl mb-4">🔍</div>
-              <h3 className="text-lg font-semibold text-gray-700 mb-2">No apps found</h3>
-              <p className="text-gray-400 text-sm">Try a different search term or category</p>
+              <h3 className="text-lg font-semibold text-foreground mb-2">No apps found</h3>
+              <p className="text-muted-foreground text-sm">Try a different search term or category</p>
             </div>
           ) : viewMode === 'grid' ? (
             <div className="grid grid-cols-2 sm:grid-cols-3 xl:grid-cols-4 gap-4">
@@ -283,7 +283,7 @@ export default function AppExplorerPage() {
                   <button
                     key={integration.provider}
                     onClick={() => navigate(`/integrations/${integration.provider}`)}
-                    className="group bg-white border border-gray-200 rounded-2xl p-5 flex flex-col items-center gap-3 hover:shadow-md hover:border-primary/30 transition-all text-center relative w-full"
+                    className="group bg-card border border-border rounded-2xl p-5 flex flex-col items-center gap-3 hover:shadow-md hover:border-primary/30 transition-all text-center relative w-full"
                   >
                     {connected && (
                       <span className="absolute top-3 right-3 w-5 h-5 bg-green-500 rounded-full flex items-center justify-center">
@@ -291,16 +291,16 @@ export default function AppExplorerPage() {
                       </span>
                     )}
                     {integration.comingSoon && (
-                      <span className="absolute top-3 left-3 bg-gray-100 text-gray-500 text-[10px] font-semibold px-1.5 py-0.5 rounded-full">
+                      <span className="absolute top-3 left-3 bg-muted text-muted-foreground text-[10px] font-semibold px-1.5 py-0.5 rounded-full">
                         Soon
                       </span>
                     )}
                     <IntegrationLogo integration={integration} size="md" />
                     <div className="w-full">
-                      <p className="text-sm font-semibold text-gray-800 group-hover:text-primary transition-colors text-center">
+                      <p className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors text-center">
                         {integration.name}
                       </p>
-                      <p className="text-xs text-gray-400 mt-0.5 line-clamp-2 text-center">
+                      <p className="text-xs text-muted-foreground mt-0.5 line-clamp-2 text-center">
                         {integration.description}
                       </p>
                     </div>
@@ -316,30 +316,30 @@ export default function AppExplorerPage() {
                   <button
                     key={integration.provider}
                     onClick={() => navigate(`/integrations/${integration.provider}`)}
-                    className="group bg-white border border-gray-200 rounded-xl px-5 py-4 flex items-center gap-4 hover:shadow-md hover:border-primary/30 transition-all text-left w-full"
+                    className="group bg-card border border-border rounded-xl px-5 py-4 flex items-center gap-4 hover:shadow-md hover:border-primary/30 transition-all text-left w-full"
                   >
                     <IntegrationLogo integration={integration} size="sm" />
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <p className="text-sm font-semibold text-gray-800 group-hover:text-primary transition-colors">
+                        <p className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
                           {integration.name}
                         </p>
                         {integration.comingSoon && (
-                          <span className="bg-gray-100 text-gray-500 text-[10px] font-semibold px-1.5 py-0.5 rounded-full">
+                          <span className="bg-muted text-muted-foreground text-[10px] font-semibold px-1.5 py-0.5 rounded-full">
                             Soon
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-gray-400 truncate mt-0.5">
+                      <p className="text-xs text-muted-foreground truncate mt-0.5">
                         {integration.description}
                       </p>
                     </div>
                     <div className="flex items-center gap-3 flex-shrink-0">
-                      <span className="text-xs text-gray-400 capitalize hidden sm:block">
+                      <span className="text-xs text-muted-foreground capitalize hidden sm:block">
                         {integration.category}
                       </span>
                       {connected ? (
-                        <span className="flex items-center gap-1 text-xs font-medium text-green-600 bg-green-50 px-2 py-1 rounded-full">
+                        <span className="flex items-center gap-1 text-xs font-medium text-green-600 bg-green-500/10 px-2 py-1 rounded-full">
                           <Check className="h-3 w-3" /> Connected
                         </span>
                       ) : (
@@ -347,7 +347,7 @@ export default function AppExplorerPage() {
                           View
                         </span>
                       )}
-                      <ArrowRight className="h-4 w-4 text-gray-300 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
+                      <ArrowRight className="h-4 w-4 text-muted-foreground/50 group-hover:text-primary group-hover:translate-x-0.5 transition-all" />
                     </div>
                   </button>
                 );

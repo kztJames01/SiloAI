@@ -75,9 +75,11 @@ interface UiState {
   role: UserRole;
   isMaskingEnabled: boolean;
   sidebarOpen: boolean;
+  isDark: boolean;
   setRole: (role: UserRole) => void;
   toggleMasking: () => void;
   setSidebarOpen: (open: boolean) => void;
+  toggleDark: () => void;
 }
 
 const getInitialRole = (): UserRole =>
@@ -89,10 +91,15 @@ const getInitialMasking = (): boolean =>
 const getInitialSidebarOpen = (): boolean =>
   localStorage.getItem('ui_sidebar_open') !== 'false';
 
+// Default to dark mode unless user has explicitly set light
+const getInitialDark = (): boolean =>
+  localStorage.getItem('ui_dark') !== 'false';
+
 export const useUiStore = create<UiState>((set) => ({
   role: getInitialRole(),
   isMaskingEnabled: getInitialMasking(),
   sidebarOpen: getInitialSidebarOpen(),
+  isDark: getInitialDark(),
 
   setRole: (role: UserRole) => {
     localStorage.setItem('ui_role', role);
@@ -110,4 +117,13 @@ export const useUiStore = create<UiState>((set) => ({
     localStorage.setItem('ui_sidebar_open', String(open));
     set({ sidebarOpen: open });
   },
+
+  toggleDark: () =>
+    set((state) => {
+      const next = !state.isDark;
+      localStorage.setItem('ui_dark', String(next));
+      if (next) document.documentElement.classList.add('dark');
+      else document.documentElement.classList.remove('dark');
+      return { isDark: next };
+    }),
 }));

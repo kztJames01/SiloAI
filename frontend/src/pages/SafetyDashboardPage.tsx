@@ -104,8 +104,8 @@ export default function SafetyDashboardPage() {
     <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       <div className="space-y-6">
         <div>
-        <h1 className="text-3xl font-bold text-gray-900">Safety & Governance</h1>
-        <p className="text-gray-600 mt-1">Audit trail and access controls</p>
+        <h1 className="text-3xl font-bold text-foreground">Safety & Governance</h1>
+        <p className="text-muted-foreground mt-1">Audit trail and access controls</p>
       </div>
 
       <Card>
@@ -115,18 +115,18 @@ export default function SafetyDashboardPage() {
         <CardContent>
           <div className="space-y-3">
             {trail.length === 0 ? (
-              <p className="text-sm text-gray-600">No audit events yet</p>
+              <p className="text-sm text-muted-foreground">No audit events yet</p>
             ) : (
               trail.map((item: { id: string; actor: string; action: string; status: string; at: string }) => (
-                <div key={item.id} className="border rounded-lg p-3 bg-gray-50">
+                <div key={item.id} className="border border-border rounded-lg p-3 bg-muted/40">
                   <div className="flex items-center justify-between gap-3">
-                    <p className="font-medium text-gray-900">{maskValue(item.actor, isMaskingEnabled)}</p>
+                    <p className="font-medium text-foreground">{maskValue(item.actor, isMaskingEnabled)}</p>
                     <span className={`px-2 py-1 rounded-full text-xs font-medium ${statusClass[item.status]}`}>
                       {item.status}
                     </span>
                   </div>
-                  <p className="text-sm text-gray-700 mt-1">{maskValue(item.action, isMaskingEnabled)}</p>
-                  <p className="text-xs text-gray-500 mt-1">{item.at}</p>
+                  <p className="text-sm text-muted-foreground mt-1">{maskValue(item.action, isMaskingEnabled)}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{item.at}</p>
                 </div>
               ))
             )}
@@ -201,16 +201,16 @@ export default function SafetyDashboardPage() {
               const masked    = '•'.repeat(32);
               return (
                 <div key={type}>
-                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">
                     {type === 'public' ? 'Public Key' : 'Private Key'}
                   </p>
-                  <div className="flex items-center gap-2 bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5">
-                    <code className="flex-1 text-xs font-mono text-gray-800 truncate select-all">
+                  <div className="flex items-center gap-2 bg-muted border border-border rounded-lg px-3 py-2.5">
+                    <code className="flex-1 text-xs font-mono text-foreground truncate select-all">
                       {isVisible ? API_KEYS[type] : masked}
                     </code>
                     <button
                       onClick={toggle}
-                      className="p-1 text-gray-400 hover:text-gray-700 transition-colors flex-shrink-0"
+                      className="p-1 text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
                       title={isVisible ? 'Hide' : 'Reveal'}
                     >
                       {isVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
@@ -218,7 +218,7 @@ export default function SafetyDashboardPage() {
                     <button
                       onClick={() => copyKey(type)}
                       className={`p-1 flex-shrink-0 transition-colors ${
-                        isCopied ? 'text-green-600' : 'text-gray-400 hover:text-gray-700'
+                        isCopied ? 'text-green-600' : 'text-muted-foreground hover:text-foreground'
                       }`}
                       title={isCopied ? 'Copied!' : 'Copy'}
                     >
@@ -226,7 +226,7 @@ export default function SafetyDashboardPage() {
                     </button>
                   </div>
                   {type === 'private' && (
-                    <p className="text-[10px] text-gray-400 mt-1">
+                    <p className="text-[10px] text-muted-foreground mt-1">
                       Never share your private key. It grants full API access.
                     </p>
                   )}
@@ -243,7 +243,7 @@ export default function SafetyDashboardPage() {
           </CardHeader>
           <CardContent>
             {requests.length === 0 ? (
-              <p className="text-sm text-gray-500">No pending requests.</p>
+              <p className="text-sm text-muted-foreground">No pending requests.</p>
             ) : (
               <div className="space-y-3">
                 {requests.map((req) => (
@@ -251,20 +251,20 @@ export default function SafetyDashboardPage() {
                     key={req.id}
                     className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
                       req.status === 'approved'
-                        ? 'bg-green-50 border-green-200'
+                        ? 'bg-green-500/10 border-green-500/30'
                         : req.status === 'rejected'
-                        ? 'bg-red-50 border-red-200'
-                        : 'bg-gray-50 border-gray-200'
+                        ? 'bg-red-500/10 border-red-500/30'
+                        : 'bg-muted/40 border-border'
                     }`}
                   >
                     {/* Avatar */}
-                    <div className="w-9 h-9 rounded-full bg-purple-200 text-purple-700 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                    <div className="w-9 h-9 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-bold flex-shrink-0">
                       {req.name.split(' ').map(w => w[0]).join('').slice(0,2)}
                     </div>
                     {/* Info */}
                     <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-gray-900 truncate">{req.name}</p>
-                      <p className="text-xs text-gray-500 truncate">{req.email}</p>
+                      <p className="text-sm font-semibold text-foreground truncate">{req.name}</p>
+                      <p className="text-xs text-muted-foreground truncate">{req.email}</p>
                     </div>
                     {/* Actions */}
                     {req.status === 'pending' ? (

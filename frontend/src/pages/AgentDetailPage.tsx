@@ -86,7 +86,7 @@ function StatusBadge({ status }: { status: string }) {
       label: 'Running',
     },
   };
-  const s = map[status] ?? { cls: 'bg-gray-100 text-gray-500', icon: <Clock className="h-3 w-3" />, label: status };
+  const s = map[status] ?? { cls: 'bg-muted text-muted-foreground', icon: <Clock className="h-3 w-3" />, label: status };
   return (
     <span className={`inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full font-medium ${s.cls}`}>
       {s.icon}
@@ -205,27 +205,28 @@ export default function AgentDetailPage() {
   if (isLoading && !isNew) {
     return (
       <div className="flex items-center justify-center min-h-screen">
-        <Loader2 className="h-10 w-10 animate-spin text-purple-400" />
+        <Loader2 className="h-10 w-10 animate-spin text-primary/60" />
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* Top Bar */}
-      <div className="bg-white border-b border-gray-200 px-6 py-3 flex items-center justify-between sticky top-0 z-30">
+      <div className="bg-card border-b border-border px-6 py-3 flex items-center justify-between sticky top-0 z-30">
         <div className="flex items-center gap-4">
-          <Link to="/agents" className="text-gray-400 hover:text-gray-700 transition-colors">
+          <Link to="/agents" className="text-muted-foreground hover:text-foreground transition-colors">
             <ArrowLeft className="h-5 w-5" />
           </Link>
           <div className="flex items-center gap-2">
-            <div className="h-7 w-7 bg-gradient-to-br from-purple-100 to-indigo-100 rounded-lg flex items-center justify-center">
-              <Bot className="h-4 w-4 text-purple-600" />
+            <div
+              className="h-7 w-7 bg-gradient-to-br from-primary/20 to-secondary/20 rounded-lg flex items-center justify-center">
+              <Bot className="h-4 w-4 text-primary" />
             </div>
             {form.name ? (
-              <span className="font-semibold text-gray-900">{form.name}</span>
+              <span className="font-semibold text-foreground">{form.name}</span>
             ) : (
-              <span className="text-gray-400 italic text-sm">Unnamed agent</span>
+              <span className="text-muted-foreground italic text-sm">Unnamed agent</span>
             )}
           </div>
 
@@ -235,16 +236,16 @@ export default function AgentDetailPage() {
               <div
                 onClick={() => patch('isActive', !form.isActive)}
                 className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
-                  form.isActive ? 'bg-purple-600' : 'bg-gray-300'
+                  form.isActive ? 'bg-primary' : 'bg-border'
                 }`}
               >
                 <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-white shadow transition-transform ${
+                  className={`inline-block h-4 w-4 transform rounded-full bg-card shadow transition-transform ${
                     form.isActive ? 'translate-x-4' : 'translate-x-0.5'
                   }`}
                 />
               </div>
-              <span className="text-xs text-gray-500">{form.isActive ? 'Active' : 'Inactive'}</span>
+              <span className="text-xs text-muted-foreground">{form.isActive ? 'Active' : 'Inactive'}</span>
             </label>
           )}
         </div>
@@ -281,17 +282,17 @@ export default function AgentDetailPage() {
       <div className="flex max-w-7xl mx-auto gap-0 min-h-[calc(100vh-57px)]">
         {/* ── LEFT: Activity ── */}
         {!isNew && (
-          <div className="w-80 flex-shrink-0 border-r border-gray-200 bg-white flex flex-col">
-            <div className="p-4 border-b border-gray-100">
-              <p className="text-sm font-semibold text-gray-700">Activity</p>
-              <p className="text-xs text-gray-400 mt-0.5">Recent agent runs</p>
+          <div className="w-80 flex-shrink-0 border-r border-border bg-card flex flex-col">
+            <div className="p-4 border-b border-border">
+              <p className="text-sm font-semibold text-foreground">Activity</p>
+              <p className="text-xs text-muted-foreground mt-0.5">Recent agent runs</p>
             </div>
 
             {/* Run input */}
             {showRunPanel && (
-              <div className="p-4 border-b border-gray-100 bg-purple-50/50">
+              <div className="p-4 border-b border-border bg-primary/5">
                 <textarea
-                  className="w-full border border-gray-200 rounded-xl p-3 text-sm text-gray-800 resize-none focus:outline-none focus:ring-2 focus:ring-purple-300 min-h-[80px] bg-white"
+                  className="w-full border border-border rounded-xl p-3 text-sm text-foreground resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 min-h-[80px] bg-background"
                   placeholder="Describe the task for this agent…"
                   value={runTask}
                   onChange={(e) => setRunTask(e.target.value)}
@@ -315,7 +316,7 @@ export default function AgentDetailPage() {
             {/* Execution list */}
             <div className="flex-1 overflow-y-auto divide-y divide-gray-100">
               {executions.length === 0 ? (
-                <div className="flex flex-col items-center justify-center py-16 text-gray-400">
+                <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
                   <Clock className="h-8 w-8 mb-3 opacity-40" />
                   <p className="text-xs">No runs yet</p>
                   <Button
@@ -329,16 +330,16 @@ export default function AgentDetailPage() {
                 </div>
               ) : (
                 executions.map((exec: any) => (
-                  <div key={exec.id} className="p-4 hover:bg-gray-50 cursor-pointer">
+                  <div key={exec.id} className="p-4 hover:bg-accent/50 cursor-pointer">
                     <div className="flex items-center justify-between mb-1">
                       <StatusBadge status={exec.status} />
-                      <span className="text-xs text-gray-400">
+                      <span className="text-xs text-muted-foreground">
                         {new Date(exec.startedAt).toLocaleString()}
                       </span>
                     </div>
-                    <p className="text-xs text-gray-500 truncate mt-1">{exec.input}</p>
+                    <p className="text-xs text-muted-foreground truncate mt-1">{exec.input}</p>
                     {exec.output && (
-                      <p className="text-xs text-gray-700 mt-1 line-clamp-2">{exec.output}</p>
+                      <p className="text-xs text-foreground mt-1 line-clamp-2">{exec.output}</p>
                     )}
                   </div>
                 ))
@@ -353,13 +354,13 @@ export default function AgentDetailPage() {
 
             {/* Name */}
             <section>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">
+              <label className="block text-sm font-semibold text-foreground mb-1">
                 Agent name <span className="text-red-400">*</span>
               </label>
               <input
                 type="text"
                 placeholder="e.g. Sales Outreach Agent"
-                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-300"
+                className="w-full border border-border rounded-xl px-4 py-2.5 text-sm text-foreground bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
                 value={form.name}
                 onChange={(e) => patch('name', e.target.value)}
               />
@@ -367,13 +368,13 @@ export default function AgentDetailPage() {
 
             {/* Description */}
             <section>
-              <label className="block text-sm font-semibold text-gray-700 mb-1">
+              <label className="block text-sm font-semibold text-foreground mb-1">
                 Description
               </label>
               <input
                 type="text"
                 placeholder="What does this agent do?"
-                className="w-full border border-gray-200 rounded-xl px-4 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-300"
+                className="w-full border border-border rounded-xl px-4 py-2.5 text-sm text-foreground bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
                 value={form.description}
                 onChange={(e) => patch('description', e.target.value)}
               />
@@ -382,8 +383,8 @@ export default function AgentDetailPage() {
             {/* Trigger */}
             <section>
               <div className="flex items-center justify-between mb-2">
-                <label className="text-sm font-semibold text-gray-700">Trigger</label>
-                <span className="text-xs text-gray-400">How will this agent start?</span>
+                <label className="text-sm font-semibold text-foreground">Trigger</label>
+                <span className="text-xs text-muted-foreground">How will this agent start?</span>
               </div>
               <div className="grid grid-cols-3 gap-2">
                 {(['manual', 'schedule', 'webhook'] as TriggerType[]).map((t) => (
@@ -392,8 +393,8 @@ export default function AgentDetailPage() {
                     onClick={() => patch('triggerType', t)}
                     className={`px-3 py-2.5 rounded-xl border text-xs font-medium transition-all ${
                       form.triggerType === t
-                        ? 'border-purple-400 bg-purple-50 text-purple-700 shadow-sm'
-                        : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                        ? 'border-primary bg-primary/5 text-primary shadow-sm'
+                        : 'border-border text-muted-foreground hover:border-primary/40'
                     }`}
                   >
                     <span className="block text-base mb-1">
@@ -403,18 +404,18 @@ export default function AgentDetailPage() {
                   </button>
                 ))}
               </div>
-              <p className="text-xs text-gray-400 mt-2">{TRIGGER_LABELS[form.triggerType]}</p>
+              <p className="text-xs text-muted-foreground mt-2">{TRIGGER_LABELS[form.triggerType]}</p>
             </section>
 
             {/* Instructions */}
             <section>
               <div className="flex items-center justify-between mb-2">
-                <label className="text-sm font-semibold text-gray-700">
+                <label className="text-sm font-semibold text-foreground">
                   Instructions <span className="text-red-400">*</span>
                 </label>
                 <button
                   onClick={() => setExpanded(!expanded)}
-                  className="text-xs text-gray-400 hover:text-gray-600 flex items-center gap-1"
+                  className="text-xs text-muted-foreground hover:text-foreground flex items-center gap-1"
                 >
                   <Expand className="h-3 w-3" />
                   {expanded ? 'Collapse' : 'Expand'}
@@ -422,13 +423,13 @@ export default function AgentDetailPage() {
               </div>
               <textarea
                 placeholder={`Tell the agent what to do, how to behave, and what constraints to follow.\n\nExample:\n- Always address the customer by name\n- Keep emails under 150 words\n- Never promise specific delivery dates`}
-                className={`w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-900 resize-none focus:outline-none focus:ring-2 focus:ring-purple-300 leading-relaxed ${
+                className={`w-full border border-border rounded-xl px-4 py-3 text-sm text-foreground bg-background resize-none focus:outline-none focus:ring-2 focus:ring-primary/30 leading-relaxed ${
                   expanded ? 'min-h-[400px]' : 'min-h-[160px]'
                 }`}
                 value={form.systemPrompt}
                 onChange={(e) => patch('systemPrompt', e.target.value)}
               />
-              <p className="text-xs text-gray-400 mt-1.5">
+              <p className="text-xs text-muted-foreground mt-1.5">
                 Use plain language. Be specific about decisions, tone, and constraints.
               </p>
             </section>
@@ -436,17 +437,17 @@ export default function AgentDetailPage() {
             {/* Tools */}
             <section>
               <div className="flex items-center justify-between mb-2">
-                <label className="text-sm font-semibold text-gray-700">
+                <label className="text-sm font-semibold text-foreground">
                   Tools this agent can use
                 </label>
-                <span className="text-xs text-gray-400">{form.tools.length} selected</span>
+                <span className="text-xs text-muted-foreground">{form.tools.length} selected</span>
               </div>
-              <div className="border border-gray-200 rounded-xl overflow-hidden">
+              <div className="border border-border rounded-xl overflow-hidden">
                 <div className="p-3 flex flex-wrap gap-2 min-h-[60px]">
                   {form.tools.map((tool, i) => (
                     <span
                       key={i}
-                      className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 bg-blue-50 text-blue-700 rounded-lg font-medium"
+                      className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 bg-blue-500/10 text-blue-500 rounded-lg font-medium"
                     >
                       {tool.name.replace(/_/g, ' ')}
                       <button
@@ -458,11 +459,11 @@ export default function AgentDetailPage() {
                     </span>
                   ))}
                   {form.tools.length === 0 && (
-                    <span className="text-xs text-gray-400 py-1">No tools selected — add from the list below</span>
+                    <span className="text-xs text-muted-foreground py-1">No tools selected — add from the list below</span>
                   )}
                 </div>
-                <div className="border-t border-gray-100 p-3 bg-gray-50">
-                  <p className="text-xs font-medium text-gray-500 mb-2">Available tools</p>
+                <div className="border-t border-border p-3 bg-muted/50">
+                  <p className="text-xs font-medium text-muted-foreground mb-2">Available tools</p>
                   <div className="flex flex-wrap gap-1.5">
                     {DEFAULT_TOOLS.filter(
                       (t) => !form.tools.some((ft) => ft.name === t)
@@ -472,7 +473,7 @@ export default function AgentDetailPage() {
                         onClick={() =>
                           patch('tools', [...form.tools, { name: t, type: 'builtin' }])
                         }
-                        className="inline-flex items-center gap-1 text-xs px-2 py-1 bg-white border border-gray-200 text-gray-600 rounded-lg hover:border-purple-300 hover:text-purple-600 transition-all"
+                        className="inline-flex items-center gap-1 text-xs px-2 py-1 bg-card border border-border text-muted-foreground rounded-lg hover:border-primary/40 hover:text-primary transition-all"
                       >
                         <Plus className="h-3 w-3" />
                         {t.replace(/_/g, ' ')}
@@ -484,7 +485,7 @@ export default function AgentDetailPage() {
                     <input
                       type="text"
                       placeholder="Add custom tool…"
-                      className="flex-1 border border-gray-200 rounded-lg px-3 py-1.5 text-xs focus:outline-none focus:ring-2 focus:ring-purple-200"
+                      className="flex-1 border border-border rounded-lg px-3 py-1.5 text-xs bg-background focus:outline-none focus:ring-2 focus:ring-primary/20"
                       value={customTool}
                       onChange={(e) => setCustomTool(e.target.value)}
                       onKeyDown={(e) => {
@@ -521,14 +522,14 @@ export default function AgentDetailPage() {
 
             {/* Model config */}
             <section>
-              <label className="block text-sm font-semibold text-gray-700 mb-3">Model</label>
+              <label className="block text-sm font-semibold text-foreground mb-3">Model</label>
               <div className="grid grid-cols-2 gap-3">
                 {/* Provider */}
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">Provider</label>
+                  <label className="block text-xs text-muted-foreground mb-1">Provider</label>
                   <div className="relative">
                     <select
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-300 appearance-none bg-white pr-8"
+                      className="w-full border border-border rounded-xl px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 appearance-none bg-background pr-8"
                       value={form.llmProvider}
                       onChange={(e) => {
                         const p = e.target.value as LLMProvider;
@@ -540,17 +541,17 @@ export default function AgentDetailPage() {
                         <option key={p} value={p}>{p}</option>
                       ))}
                     </select>
-                    <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                    <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                   </div>
                 </div>
 
                 {/* Model */}
                 <div>
-                  <label className="block text-xs text-gray-500 mb-1">Model</label>
+                  <label className="block text-xs text-muted-foreground mb-1">Model</label>
                   {MODEL_OPTIONS[form.llmProvider].length > 0 ? (
                     <div className="relative">
                       <select
-                        className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-300 appearance-none bg-white pr-8"
+                        className="w-full border border-border rounded-xl px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/30 appearance-none bg-background pr-8"
                         value={form.llmModel}
                         onChange={(e) => patch('llmModel', e.target.value)}
                       >
@@ -558,13 +559,13 @@ export default function AgentDetailPage() {
                           <option key={m} value={m}>{m}</option>
                         ))}
                       </select>
-                      <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400 pointer-events-none" />
+                      <ChevronDown className="absolute right-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground pointer-events-none" />
                     </div>
                   ) : (
                     <input
                       type="text"
                       placeholder="Enter model name"
-                      className="w-full border border-gray-200 rounded-xl px-3 py-2.5 text-sm text-gray-900 focus:outline-none focus:ring-2 focus:ring-purple-300"
+                      className="w-full border border-border rounded-xl px-3 py-2.5 text-sm text-foreground bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
                       value={form.llmModel}
                       onChange={(e) => patch('llmModel', e.target.value)}
                     />
@@ -574,8 +575,8 @@ export default function AgentDetailPage() {
 
               {/* Max iterations */}
               <div className="mt-3">
-                <label className="block text-xs text-gray-500 mb-1">
-                  Max reasoning steps: <span className="font-semibold text-gray-700">{form.maxIterations}</span>
+                <label className="block text-xs text-muted-foreground mb-1">
+                  Max reasoning steps: <span className="font-semibold text-foreground">{form.maxIterations}</span>
                 </label>
                 <input
                   type="range"
@@ -583,9 +584,9 @@ export default function AgentDetailPage() {
                   max={20}
                   value={form.maxIterations}
                   onChange={(e) => patch('maxIterations', parseInt(e.target.value))}
-                  className="w-full accent-purple-600"
+                  className="w-full accent-primary"
                 />
-                <div className="flex justify-between text-xs text-gray-400 mt-0.5">
+                <div className="flex justify-between text-xs text-muted-foreground mt-0.5">
                   <span>1 (fast)</span>
                   <span>20 (thorough)</span>
                 </div>
@@ -596,7 +597,7 @@ export default function AgentDetailPage() {
             {!isNew && (
               <section className="border border-red-100 rounded-xl p-4">
                 <p className="text-sm font-semibold text-red-600 mb-1">Danger zone</p>
-                <p className="text-xs text-gray-500 mb-3">
+                <p className="text-xs text-muted-foreground mb-3">
                   Deleting this agent will also remove all execution history.
                 </p>
                 <Button

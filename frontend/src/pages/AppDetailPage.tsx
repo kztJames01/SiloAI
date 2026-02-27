@@ -234,7 +234,7 @@ export default function AppDetailPage() {
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50">
+      <div className="flex items-center justify-center min-h-screen bg-background">
         <div className="animate-spin h-10 w-10 rounded-full border-4 border-primary border-t-transparent" />
       </div>
     );
@@ -243,7 +243,7 @@ export default function AppDetailPage() {
   if (!details) {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen gap-4">
-        <p className="text-gray-500">Integration not found.</p>
+        <p className="text-muted-foreground">Integration not found.</p>
         <Button onClick={() => navigate('/integrations')}>Back to Explorer</Button>
       </div>
     );
@@ -262,24 +262,24 @@ export default function AppDetailPage() {
   ] as const;
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       {/* Top bar */}
-      <div className="bg-white border-b border-gray-200 sticky top-0 z-30">
+      <div className="bg-card border-b border-border sticky top-0 z-30">
         <div className="max-w-6xl mx-auto px-6 h-14 flex items-center gap-4">
           <button
             onClick={() => navigate('/integrations')}
-            className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-800 transition-colors"
+            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
             <span>All Apps</span>
           </button>
-          <ChevronRight className="h-4 w-4 text-gray-300" />
-          <span className="text-sm font-medium text-gray-800">{meta.name}</span>
+          <ChevronRight className="h-4 w-4 text-muted-foreground/50" />
+          <span className="text-sm font-medium text-foreground">{meta.name}</span>
         </div>
       </div>
 
       {/* Hero */}
-      <div className="bg-white border-b border-gray-200">
+      <div className="bg-card border-b border-border">
         <div className="max-w-6xl mx-auto px-6 py-12">
           <div className="flex flex-col sm:flex-row items-start sm:items-center gap-6">
             {/* Logo */}
@@ -297,29 +297,29 @@ export default function AppDetailPage() {
             {/* Info */}
             <div className="flex-1 min-w-0">
               <div className="flex flex-wrap items-center gap-2 mb-1">
-                <h1 className="text-3xl font-extrabold text-gray-900">{meta.name}</h1>
+                <h1 className="text-3xl font-extrabold text-foreground">{meta.name}</h1>
                 {hasConnections && (
-                  <span className="flex items-center gap-1 text-xs font-semibold text-green-600 bg-green-100 px-2.5 py-1 rounded-full">
+                  <span className="flex items-center gap-1 text-xs font-semibold text-green-600 bg-green-500/10 px-2.5 py-1 rounded-full">
                     <Check className="h-3.5 w-3.5" />
                     Connected
                   </span>
                 )}
                 {meta.comingSoon && (
-                  <span className="text-xs font-semibold text-gray-500 bg-gray-100 px-2.5 py-1 rounded-full">
+                  <span className="text-xs font-semibold text-muted-foreground bg-muted px-2.5 py-1 rounded-full">
                     Coming Soon
                   </span>
                 )}
               </div>
-              <p className="text-gray-500 text-base mb-3 max-w-2xl">{meta.description}</p>
+              <p className="text-muted-foreground text-base mb-3 max-w-2xl">{meta.description}</p>
               <div className="flex flex-wrap items-center gap-3">
-                <span className="flex items-center gap-1.5 text-xs font-medium text-gray-500 bg-gray-100 px-2.5 py-1.5 rounded-lg capitalize">
+                <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground bg-muted px-2.5 py-1.5 rounded-lg capitalize">
                   <span>{meta.category}</span>
                 </span>
-                <span className="flex items-center gap-1.5 text-xs font-medium text-gray-500 bg-gray-100 px-2.5 py-1.5 rounded-lg">
+                <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground bg-muted px-2.5 py-1.5 rounded-lg">
                   {authInfo.icon}
                   {authInfo.label}
                 </span>
-                <span className="flex items-center gap-1.5 text-xs font-medium text-gray-500 bg-gray-100 px-2.5 py-1.5 rounded-lg">
+                <span className="flex items-center gap-1.5 text-xs font-medium text-muted-foreground bg-muted px-2.5 py-1.5 rounded-lg">
                   <Zap className="h-3.5 w-3.5" />
                   {details.actions.length} Actions
                 </span>
@@ -362,7 +362,7 @@ export default function AppDetailPage() {
 
         {/* Tabs */}
         <div className="max-w-6xl mx-auto px-6">
-          <div className="flex gap-0 border-b border-gray-200 -mb-px">
+          <div className="flex gap-0 border-b border-border -mb-px">
             {tabs.map((tab) => (
               <button
                 key={tab.id}
@@ -370,7 +370,7 @@ export default function AppDetailPage() {
                 className={`px-5 py-3 text-sm font-medium whitespace-nowrap border-b-2 transition-all ${
                   activeTab === tab.id
                     ? 'border-primary text-primary'
-                    : 'border-transparent text-gray-500 hover:text-gray-700 hover:border-gray-300'
+                    : 'border-transparent text-muted-foreground hover:text-foreground hover:border-border'
                 }`}
               >
                 {tab.label}
@@ -387,8 +387,8 @@ export default function AppDetailPage() {
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
             {/* Use cases */}
             <div className="lg:col-span-2 space-y-6">
-              <div className="bg-white border border-gray-200 rounded-2xl p-6">
-                <h2 className="text-lg font-semibold text-gray-800 mb-5 flex items-center gap-2">
+              <div className="bg-card border border-border rounded-2xl p-6">
+                <h2 className="text-lg font-semibold text-foreground mb-5 flex items-center gap-2">
                   <Star className="h-5 w-5 text-amber-400 fill-amber-400" />
                   Popular Use Cases
                 </h2>
@@ -396,16 +396,16 @@ export default function AppDetailPage() {
                   {useCases.map((uc, i) => (
                     <div
                       key={i}
-                      className="flex items-start gap-4 p-4 rounded-xl bg-gray-50 hover:bg-gray-100 transition-colors cursor-default"
+                      className="flex items-start gap-4 p-4 rounded-xl bg-muted/50 hover:bg-muted transition-colors cursor-default"
                     >
-                      <div className="text-2xl w-10 h-10 flex items-center justify-center bg-white rounded-xl shadow-sm flex-shrink-0">
+                      <div className="text-2xl w-10 h-10 flex items-center justify-center bg-card rounded-xl shadow-sm flex-shrink-0">
                         {uc.icon}
                       </div>
                       <div>
-                        <p className="font-semibold text-gray-800 text-sm">{uc.title}</p>
-                        <p className="text-gray-500 text-xs mt-0.5">{uc.description}</p>
+                        <p className="font-semibold text-foreground text-sm">{uc.title}</p>
+                        <p className="text-muted-foreground text-xs mt-0.5">{uc.description}</p>
                       </div>
-                      <ChevronRight className="h-4 w-4 text-gray-300 ml-auto mt-0.5 flex-shrink-0" />
+                      <ChevronRight className="h-4 w-4 text-muted-foreground/50 ml-auto mt-0.5 flex-shrink-0" />
                     </div>
                   ))}
                 </div>
@@ -413,9 +413,9 @@ export default function AppDetailPage() {
 
               {/* Available actions preview */}
               {details.actions.length > 0 && (
-                <div className="bg-white border border-gray-200 rounded-2xl p-6">
+                <div className="bg-card border border-border rounded-2xl p-6">
                   <div className="flex items-center justify-between mb-5">
-                    <h2 className="text-lg font-semibold text-gray-800 flex items-center gap-2">
+                    <h2 className="text-lg font-semibold text-foreground flex items-center gap-2">
                       <Play className="h-5 w-5 text-primary" />
                       Available Actions
                     </h2>
@@ -430,17 +430,17 @@ export default function AppDetailPage() {
                     {details.actions.slice(0, 4).map((action) => (
                       <div
                         key={action.id}
-                        className="flex items-center gap-3 px-4 py-3 bg-gray-50 rounded-xl"
+                        className="flex items-center gap-3 px-4 py-3 bg-muted/50 rounded-xl"
                       >
                         <div
                           className="w-2 h-2 rounded-full flex-shrink-0"
                           style={{ backgroundColor: accentColor }}
                         />
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-800">{action.name}</p>
-                          <p className="text-xs text-gray-400 truncate">{action.description}</p>
+                          <p className="text-sm font-medium text-foreground">{action.name}</p>
+                          <p className="text-xs text-muted-foreground truncate">{action.description}</p>
                         </div>
-                        <span className="text-[10px] font-medium text-gray-400 bg-gray-200 px-2 py-0.5 rounded-full flex-shrink-0">
+                        <span className="text-[10px] font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full flex-shrink-0">
                           {action.parameters.filter((p) => p.required).length} params
                         </span>
                       </div>
@@ -453,8 +453,8 @@ export default function AppDetailPage() {
             {/* Side panel */}
             <div className="space-y-4">
               {/* Connection status card */}
-              <div className="bg-white border border-gray-200 rounded-2xl p-5">
-                <h3 className="text-sm font-semibold text-gray-700 mb-4">Connection Status</h3>
+              <div className="bg-card border border-border rounded-2xl p-5">
+                <h3 className="text-sm font-semibold text-foreground mb-4">Connection Status</h3>
                 {hasConnections ? (
                   <div className="space-y-3">
                     {connections.map((conn) => (
@@ -464,7 +464,7 @@ export default function AppDetailPage() {
                             conn.status === 'ACTIVE' ? 'bg-green-500' : conn.status === 'ERROR' ? 'bg-red-500' : 'bg-orange-400'
                           }`}
                         />
-                        <span className="text-sm font-medium text-gray-700 flex-1 truncate">{conn.name}</span>
+                        <span className="text-sm font-medium text-foreground flex-1 truncate">{conn.name}</span>
                         <span
                           className={`text-xs capitalize ${
                             conn.status === 'ACTIVE' ? 'text-green-600' : conn.status === 'ERROR' ? 'text-red-500' : 'text-orange-500'
@@ -484,7 +484,7 @@ export default function AppDetailPage() {
                 ) : (
                   <div className="text-center py-4">
                     <div className="text-3xl mb-2">🔌</div>
-                    <p className="text-sm text-gray-500 mb-3">Not connected yet</p>
+                    <p className="text-sm text-muted-foreground mb-3">Not connected yet</p>
                     {!meta.comingSoon && meta.enabled && (
                       <Button size="sm" onClick={handleConnect} disabled={connecting} className="w-full gap-1.5">
                         <Zap className="h-3.5 w-3.5" />
@@ -496,12 +496,12 @@ export default function AppDetailPage() {
               </div>
 
               {/* Info card */}
-              <div className="bg-white border border-gray-200 rounded-2xl p-5 space-y-3">
-                <h3 className="text-sm font-semibold text-gray-700">Details</h3>
-                <InfoRow icon={<Shield className="h-4 w-4 text-gray-400" />} label="Auth" value={authInfo.label} />
-                <InfoRow icon={<Zap className="h-4 w-4 text-gray-400" />} label="Actions" value={`${details.actions.length} available`} />
-                <InfoRow icon={<Clock className="h-4 w-4 text-gray-400" />} label="Triggers" value={`${details.triggers.length} available`} />
-                <InfoRow icon={<Globe className="h-4 w-4 text-gray-400" />} label="Category" value={<span className="capitalize">{meta.category}</span>} />
+              <div className="bg-card border border-border rounded-2xl p-5 space-y-3">
+                <h3 className="text-sm font-semibold text-foreground">Details</h3>
+                <InfoRow icon={<Shield className="h-4 w-4 text-muted-foreground" />} label="Auth" value={authInfo.label} />
+                <InfoRow icon={<Zap className="h-4 w-4 text-muted-foreground" />} label="Actions" value={`${details.actions.length} available`} />
+                <InfoRow icon={<Clock className="h-4 w-4 text-muted-foreground" />} label="Triggers" value={`${details.triggers.length} available`} />
+                <InfoRow icon={<Globe className="h-4 w-4 text-muted-foreground" />} label="Category" value={<span className="capitalize">{meta.category}</span>} />
               </div>
             </div>
           </div>
@@ -511,13 +511,13 @@ export default function AppDetailPage() {
         {activeTab === 'actions' && (
           <div className="space-y-4">
             {details.actions.length === 0 ? (
-              <div className="text-center py-16 bg-white border border-gray-200 rounded-2xl">
+              <div className="text-center py-16 bg-card border border-border rounded-2xl">
                 <div className="text-4xl mb-3">⚡</div>
-                <p className="text-gray-500">No actions available yet</p>
+                <p className="text-muted-foreground">No actions available yet</p>
               </div>
             ) : (
               details.actions.map((action) => (
-                <div key={action.id} className="bg-white border border-gray-200 rounded-2xl p-6">
+                <div key={action.id} className="bg-card border border-border rounded-2xl p-6">
                   <div className="flex items-start gap-4">
                     <div
                       className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
@@ -526,12 +526,12 @@ export default function AppDetailPage() {
                       <Play className="h-4 w-4" />
                     </div>
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-semibold text-gray-800 mb-1">{action.name}</h3>
-                      <p className="text-sm text-gray-500 mb-4">{action.description}</p>
+                      <h3 className="font-semibold text-foreground mb-1">{action.name}</h3>
+                      <p className="text-sm text-muted-foreground mb-4">{action.description}</p>
 
                       {action.parameters.length > 0 && (
                         <div>
-                          <p className="text-xs font-semibold uppercase tracking-wider text-gray-400 mb-2">
+                          <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2">
                             Parameters
                           </p>
                           <div className="flex flex-wrap gap-2">
@@ -541,7 +541,7 @@ export default function AppDetailPage() {
                                 className={`text-xs px-2.5 py-1 rounded-lg font-mono ${
                                   param.required
                                     ? 'bg-primary/10 text-primary'
-                                    : 'bg-gray-100 text-gray-500'
+                                    : 'bg-muted text-muted-foreground'
                                 }`}
                               >
                                 {param.name}
@@ -563,7 +563,7 @@ export default function AppDetailPage() {
         {activeTab === 'connections' && (
           <div className="space-y-4">
             <div className="flex items-center justify-between">
-              <h2 className="text-lg font-semibold text-gray-800">Your Connections</h2>
+              <h2 className="text-lg font-semibold text-foreground">Your Connections</h2>
               {!meta.comingSoon && meta.enabled && (
                 <Button onClick={handleConnect} disabled={connecting} size="sm" className="gap-1.5">
                   <Plus className="h-4 w-4" />
@@ -573,10 +573,10 @@ export default function AppDetailPage() {
             </div>
 
             {connections.length === 0 ? (
-              <div className="text-center py-16 bg-white border border-gray-200 rounded-2xl">
+              <div className="text-center py-16 bg-card border border-border rounded-2xl">
                 <div className="text-4xl mb-3">🔌</div>
-                <p className="text-lg font-semibold text-gray-700 mb-2">No connections yet</p>
-                <p className="text-gray-400 text-sm mb-6">
+                <p className="text-lg font-semibold text-foreground mb-2">No connections yet</p>
+                <p className="text-muted-foreground text-sm mb-6">
                   Connect {meta.name} to start using it in your workflows
                 </p>
                 {!meta.comingSoon && meta.enabled && (
@@ -590,7 +590,7 @@ export default function AppDetailPage() {
               connections.map((conn) => (
                 <div
                   key={conn.id}
-                  className="bg-white border border-gray-200 rounded-2xl p-5 flex items-center gap-4"
+                  className="bg-card border border-border rounded-2xl p-5 flex items-center gap-4"
                 >
                   <div
                     className="w-10 h-10 rounded-xl flex items-center justify-center text-white font-bold text-sm flex-shrink-0"
@@ -599,7 +599,7 @@ export default function AppDetailPage() {
                     {meta.name.charAt(0)}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <p className="font-semibold text-gray-800">{conn.name}</p>
+                    <p className="font-semibold text-foreground">{conn.name}</p>
                     <div className="flex items-center gap-3 mt-1">
                       <span
                         className={`flex items-center gap-1 text-xs font-medium ${
@@ -618,12 +618,12 @@ export default function AppDetailPage() {
                         {conn.status.charAt(0) + conn.status.slice(1).toLowerCase()}
                       </span>
                       {conn.lastUsed && (
-                        <span className="text-xs text-gray-400">
+                        <span className="text-xs text-muted-foreground">
                           Last used {new Date(conn.lastUsed).toLocaleDateString()}
                         </span>
                       )}
                       {conn.lastTested && (
-                        <span className="text-xs text-gray-400">
+                        <span className="text-xs text-muted-foreground">
                           Tested {new Date(conn.lastTested).toLocaleDateString()}
                         </span>
                       )}
@@ -667,7 +667,7 @@ export default function AppDetailPage() {
           onClick={() => !connecting && setShowApiKeyModal(false)}
         >
           <div
-            className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6"
+            className="bg-card rounded-2xl shadow-2xl max-w-md w-full p-6"
             onClick={(e) => e.stopPropagation()}
           >
             <div className="flex items-center gap-3 mb-6">
@@ -678,14 +678,14 @@ export default function AppDetailPage() {
                 {meta.name.charAt(0)}
               </div>
               <div>
-                <h2 className="text-lg font-bold text-gray-900">Connect {meta.name}</h2>
-                <p className="text-sm text-gray-400">Enter your API credentials below</p>
+                <h2 className="text-lg font-bold text-foreground">Connect {meta.name}</h2>
+                <p className="text-sm text-muted-foreground">Enter your API credentials below</p>
               </div>
             </div>
 
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label className="block text-sm font-medium text-muted-foreground mb-1.5">
                   Connection Name
                 </label>
                 <Input
@@ -695,7 +695,7 @@ export default function AppDetailPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                <label className="block text-sm font-medium text-muted-foreground mb-1.5">
                   API Key <span className="text-red-400">*</span>
                 </label>
                 <Input
@@ -756,8 +756,8 @@ function InfoRow({
   return (
     <div className="flex items-center gap-2.5">
       {icon}
-      <span className="text-xs text-gray-400 w-16">{label}</span>
-      <span className="text-xs font-medium text-gray-700">{value}</span>
+      <span className="text-xs text-muted-foreground w-16">{label}</span>
+      <span className="text-xs font-medium text-foreground">{value}</span>
     </div>
   );
 }

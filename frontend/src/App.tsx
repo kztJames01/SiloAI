@@ -43,11 +43,17 @@ function RoleGate({
 
 function App() {
   const { checkAuth, isLoading } = useAuthStore();
-  const { role } = useUiStore();
+  const { role, isDark } = useUiStore();
 
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
+
+  // Keep <html> class in sync with persisted dark preference
+  useEffect(() => {
+    if (isDark) document.documentElement.classList.add('dark');
+    else document.documentElement.classList.remove('dark');
+  }, [isDark]);
 
   if (isLoading) {
     return (

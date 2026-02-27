@@ -43,14 +43,14 @@ interface DbConnection {
 const ENGINE_META: Record<DbEngine, { label: string; color: string; bg: string; icon: string; defaultPort: number; description: string }> = {
   postgresql: { label: 'PostgreSQL', color: 'text-blue-700', bg: 'bg-blue-50 border-blue-200', icon: '🐘', defaultPort: 5432, description: 'Advanced open-source relational DB' },
   mysql:       { label: 'MySQL',      color: 'text-orange-700', bg: 'bg-orange-50 border-orange-200', icon: '🐬', defaultPort: 3306, description: 'Most popular open-source SQL DB' },
-  sqlite:      { label: 'SQLite',     color: 'text-gray-700', bg: 'bg-gray-50 border-gray-200', icon: '📦', defaultPort: 0, description: 'Lightweight file-based database' },
+  sqlite:      { label: 'SQLite',     color: 'text-muted-foreground', bg: 'bg-muted/50 border-border', icon: '📦', defaultPort: 0, description: 'Lightweight file-based database' },
   mongodb:     { label: 'MongoDB',    color: 'text-green-700', bg: 'bg-green-50 border-green-200', icon: '🍃', defaultPort: 27017, description: 'Flexible document database' },
   redis:       { label: 'Redis',      color: 'text-red-700', bg: 'bg-red-50 border-red-200', icon: '⚡', defaultPort: 6379, description: 'In-memory key-value store' },
 };
 
 const STATUS_META: Record<DbStatus, { label: string; color: string; dot: string }> = {
   connected:    { label: 'Connected',    color: 'text-green-700 bg-green-100',  dot: 'bg-green-500' },
-  disconnected: { label: 'Disconnected', color: 'text-gray-500 bg-gray-100',    dot: 'bg-gray-400' },
+  disconnected: { label: 'Disconnected', color: 'text-muted-foreground bg-muted',    dot: 'bg-muted-foreground/50' },
   error:        { label: 'Error',        color: 'text-red-700 bg-red-100',      dot: 'bg-red-500 animate-pulse' },
   provisioning: { label: 'Provisioning', color: 'text-amber-700 bg-amber-100',  dot: 'bg-amber-400 animate-pulse' },
 };
@@ -150,30 +150,30 @@ function DbModal({ mode, onClose, onSave }: CreateModalProps) {
   return (
     <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={onClose}>
       <div
-        className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+        className="bg-card rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
-        <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+        <div className="flex items-center justify-between px-6 py-4 border-b border-border">
           <div>
-            <h2 className="text-lg font-bold text-gray-900">
+            <h2 className="text-lg font-bold text-foreground">
               {mode === 'create' ? 'Provision new database' : 'Connect existing database'}
             </h2>
-            <p className="text-xs text-gray-500 mt-0.5">
+            <p className="text-xs text-muted-foreground mt-0.5">
               {mode === 'create'
                 ? 'Silo will spin up a local database for you'
                 : 'Connect to your existing local or remote database'}
             </p>
           </div>
-          <button onClick={onClose} className="p-1.5 hover:bg-gray-100 rounded-lg">
-            <X className="h-4 w-4 text-gray-500" />
+          <button onClick={onClose} className="p-1.5 hover:bg-accent rounded-lg">
+            <X className="h-4 w-4 text-muted-foreground" />
           </button>
         </div>
 
         <div className="p-6 space-y-5">
           {/* Engine picker */}
           <div>
-            <label className="block text-xs font-semibold text-gray-700 mb-2">Database Engine</label>
+            <label className="block text-xs font-semibold text-muted-foreground mb-2">Database Engine</label>
             <div className="grid grid-cols-5 gap-2">
               {(Object.keys(ENGINE_META) as DbEngine[]).map(eng => {
                 const m = ENGINE_META[eng];
@@ -183,22 +183,22 @@ function DbModal({ mode, onClose, onSave }: CreateModalProps) {
                     onClick={() => handleEngineChange(eng)}
                     className={`flex flex-col items-center gap-1 p-2 rounded-xl border-2 transition-all text-center ${
                       engine === eng
-                        ? `border-purple-500 ${m.bg}`
-                        : 'border-gray-200 hover:border-gray-300'
+                        ? `border-primary ${m.bg}`
+                        : 'border-border hover:border-primary/50'
                     }`}
                   >
                     <span className="text-xl">{m.icon}</span>
-                    <span className="text-[9px] font-semibold text-gray-700 leading-tight">{m.label}</span>
+                    <span className="text-[9px] font-semibold text-foreground leading-tight">{m.label}</span>
                   </button>
                 );
               })}
             </div>
-            <p className="text-[10px] text-gray-400 mt-1.5">{meta.description}</p>
+            <p className="text-[10px] text-muted-foreground mt-1.5">{meta.description}</p>
           </div>
 
           {/* Name */}
           <div>
-            <label className="block text-xs font-semibold text-gray-700 mb-1.5">Connection Name</label>
+            <label className="block text-xs font-semibold text-muted-foreground mb-1.5">Connection Name</label>
             <Input
               placeholder="e.g. My Production DB"
               value={name}
@@ -209,7 +209,7 @@ function DbModal({ mode, onClose, onSave }: CreateModalProps) {
           {/* SQLite — just file path */}
           {engine === 'sqlite' ? (
             <div>
-              <label className="block text-xs font-semibold text-gray-700 mb-1.5">Database File Path</label>
+              <label className="block text-xs font-semibold text-muted-foreground mb-1.5">Database File Path</label>
               <Input
                 placeholder="./data/app.db"
                 value={database}
@@ -220,11 +220,11 @@ function DbModal({ mode, onClose, onSave }: CreateModalProps) {
             <>
               <div className="grid grid-cols-3 gap-3">
                 <div className="col-span-2">
-                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">Host</label>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5">Host</label>
                   <Input placeholder="127.0.0.1" value={host} onChange={e => setHost(e.target.value)} />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">Port</label>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5">Port</label>
                   <Input
                     type="number"
                     value={port}
@@ -233,16 +233,16 @@ function DbModal({ mode, onClose, onSave }: CreateModalProps) {
                 </div>
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-700 mb-1.5">Database Name</label>
+                <label className="block text-xs font-semibold text-muted-foreground mb-1.5">Database Name</label>
                 <Input placeholder="my_database" value={database} onChange={e => setDatabase(e.target.value)} />
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">Username</label>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5">Username</label>
                   <Input placeholder="root" value={username} onChange={e => setUsername(e.target.value)} />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-700 mb-1.5">Password</label>
+                  <label className="block text-xs font-semibold text-muted-foreground mb-1.5">Password</label>
                   <div className="relative">
                     <Input
                       type={showPass ? 'text' : 'password'}
@@ -253,7 +253,7 @@ function DbModal({ mode, onClose, onSave }: CreateModalProps) {
                     <button
                       type="button"
                       onClick={() => setShowPass(v => !v)}
-                      className="absolute right-2 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600 text-xs"
+                      className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground text-xs"
                     >
                       {showPass ? 'Hide' : 'Show'}
                     </button>
@@ -269,7 +269,7 @@ function DbModal({ mode, onClose, onSave }: CreateModalProps) {
               <button
                 onClick={testConnection}
                 disabled={isTesting}
-                className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-50"
+                className="flex items-center gap-1.5 px-3 py-2 text-xs font-semibold border border-border rounded-lg hover:bg-accent transition-colors disabled:opacity-50"
               >
                 <RefreshCw className={`h-3.5 w-3.5 ${isTesting ? 'animate-spin' : ''}`} />
                 {isTesting ? 'Testing…' : 'Test connection'}
@@ -289,9 +289,9 @@ function DbModal({ mode, onClose, onSave }: CreateModalProps) {
         </div>
 
         {/* Footer */}
-        <div className="px-6 py-4 border-t border-gray-100 flex justify-end gap-2">
+        <div className="px-6 py-4 border-t border-border flex justify-end gap-2">
           <Button variant="outline" onClick={onClose}>Cancel</Button>
-          <Button onClick={handleSubmit} className="bg-purple-600 hover:bg-purple-700 text-white">
+          <Button onClick={handleSubmit}>
             {mode === 'create' ? 'Provision database' : 'Add connection'}
           </Button>
         </div>
@@ -333,21 +333,21 @@ function ConnectionCard({ conn, onDelete, onToggle, onCopyDsn, copiedId }: Conne
           {/* Main info */}
           <div className="flex-1 min-w-0">
             <div className="flex items-center gap-2 flex-wrap">
-              <p className="text-sm font-semibold text-gray-900 truncate">{conn.name}</p>
+              <p className="text-sm font-semibold text-foreground truncate">{conn.name}</p>
               {conn.isLocal && (
-                <span className="text-[9px] font-bold bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded-full">LOCAL</span>
+                <span className="text-[9px] font-bold bg-muted text-muted-foreground px-1.5 py-0.5 rounded-full">LOCAL</span>
               )}
               <span className={`flex items-center gap-1 text-[10px] font-semibold px-2 py-0.5 rounded-full ${statusMeta.color}`}>
                 <span className={`w-1.5 h-1.5 rounded-full ${statusMeta.dot}`} />
                 {statusMeta.label}
               </span>
-              {size && <span className="text-[10px] text-gray-400">{size}</span>}
+              {size && <span className="text-[10px] text-muted-foreground">{size}</span>}
             </div>
-            <p className="text-xs text-gray-500 mt-0.5 font-mono truncate">
+            <p className="text-xs text-muted-foreground mt-0.5 font-mono truncate">
               {conn.engine === 'sqlite' ? conn.database : `${conn.host}:${conn.port}/${conn.database}`}
             </p>
             {conn.lastUsed && (
-              <p className="text-[10px] text-gray-400 mt-0.5">
+              <p className="text-[10px] text-muted-foreground mt-0.5">
                 Last used {conn.lastUsed.toLocaleDateString()}
               </p>
             )}
@@ -358,7 +358,7 @@ function ConnectionCard({ conn, onDelete, onToggle, onCopyDsn, copiedId }: Conne
             <button
               onClick={() => onCopyDsn(conn.id)}
               title="Copy connection string"
-              className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
             >
               {copiedId === conn.id
                 ? <Check className="h-3.5 w-3.5 text-green-600" />
@@ -367,7 +367,7 @@ function ConnectionCard({ conn, onDelete, onToggle, onCopyDsn, copiedId }: Conne
             <button
               onClick={() => onToggle(conn.id)}
               title={conn.status === 'connected' ? 'Disconnect' : 'Connect'}
-              className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
             >
               {conn.status === 'connected'
                 ? <WifiOff className="h-3.5 w-3.5" />
@@ -375,13 +375,13 @@ function ConnectionCard({ conn, onDelete, onToggle, onCopyDsn, copiedId }: Conne
             </button>
             <button
               onClick={() => setExpanded(v => !v)}
-              className="p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors"
+              className="p-1.5 text-muted-foreground hover:text-foreground hover:bg-accent rounded-lg transition-colors"
             >
               {expanded ? <ChevronDown className="h-3.5 w-3.5" /> : <ChevronRight className="h-3.5 w-3.5" />}
             </button>
             <button
               onClick={() => onDelete(conn.id)}
-              className="p-1.5 text-gray-400 hover:text-red-600 hover:bg-red-50 rounded-lg transition-colors"
+              className="p-1.5 text-muted-foreground hover:text-red-600 hover:bg-red-500/10 rounded-lg transition-colors"
             >
               <Trash2 className="h-3.5 w-3.5" />
             </button>
@@ -390,9 +390,9 @@ function ConnectionCard({ conn, onDelete, onToggle, onCopyDsn, copiedId }: Conne
 
         {/* Expanded DSN */}
         {expanded && (
-          <div className="mt-3 p-3 bg-gray-50 rounded-xl border border-gray-200">
-            <p className="text-[10px] font-semibold text-gray-500 mb-1 uppercase tracking-wide">Connection String</p>
-            <code className="text-[11px] font-mono text-gray-700 break-all select-all">{dsn}</code>
+          <div className="mt-3 p-3 bg-muted/50 rounded-xl border border-border">
+            <p className="text-[10px] font-semibold text-muted-foreground mb-1 uppercase tracking-wide">Connection String</p>
+            <code className="text-[11px] font-mono text-foreground break-all select-all">{dsn}</code>
           </div>
         )}
       </CardContent>
@@ -457,8 +457,8 @@ export default function DataStoragePage() {
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Data Storage</h1>
-          <p className="text-gray-500 mt-1 text-sm">
+          <h1 className="text-3xl font-bold text-foreground">Data Storage</h1>
+          <p className="text-muted-foreground mt-1 text-sm">
             Host local databases or connect existing ones — use them directly inside your workflows.
           </p>
         </div>
@@ -473,7 +473,7 @@ export default function DataStoragePage() {
           </Button>
           <Button
             onClick={() => setModal('create')}
-            className="gap-2 bg-purple-600 hover:bg-purple-700 text-white"
+            className="gap-2"
           >
             <Plus className="h-4 w-4" />
             New database
@@ -484,10 +484,10 @@ export default function DataStoragePage() {
       {/* Stats strip */}
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
         {[
-          { icon: Database, label: 'Total connections', value: connections.length, color: 'text-purple-600', bg: 'bg-purple-50' },
-          { icon: Wifi, label: 'Connected', value: connected, color: 'text-green-600', bg: 'bg-green-50' },
-          { icon: Server, label: 'Local instances', value: connections.filter(c => c.isLocal).length, color: 'text-blue-600', bg: 'bg-blue-50' },
-          { icon: HardDrive, label: 'DB engines', value: new Set(connections.map(c => c.engine)).size, color: 'text-gray-600', bg: 'bg-gray-100' },
+          { icon: Database, label: 'Total connections', value: connections.length, color: 'text-primary', bg: 'bg-primary/10' },
+          { icon: Wifi, label: 'Connected', value: connected, color: 'text-green-600', bg: 'bg-green-500/10' },
+          { icon: Server, label: 'Local instances', value: connections.filter(c => c.isLocal).length, color: 'text-blue-600', bg: 'bg-blue-500/10' },
+          { icon: HardDrive, label: 'DB engines', value: new Set(connections.map(c => c.engine)).size, color: 'text-muted-foreground', bg: 'bg-muted' },
         ].map(stat => (
           <Card key={stat.label}>
             <CardContent className="p-4 flex items-center gap-3">
@@ -495,8 +495,8 @@ export default function DataStoragePage() {
                 <stat.icon className={`h-4.5 w-4.5 h-[18px] w-[18px] ${stat.color}`} />
               </div>
               <div>
-                <p className="text-xl font-bold text-gray-900">{stat.value}</p>
-                <p className="text-[10px] text-gray-500">{stat.label}</p>
+                <p className="text-xl font-bold text-foreground">{stat.value}</p>
+                <p className="text-[10px] text-muted-foreground">{stat.label}</p>
               </div>
             </CardContent>
           </Card>
@@ -518,8 +518,8 @@ export default function DataStoragePage() {
               >
                 <span className="text-2xl">{m.icon}</span>
                 <span className={`text-xs font-semibold ${m.color}`}>{m.label}</span>
-                <span className="text-[9px] text-gray-400 text-center leading-tight">{m.description}</span>
-                <span className="text-[9px] font-bold text-purple-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                <span className="text-[9px] text-muted-foreground text-center leading-tight">{m.description}</span>
+                <span className="text-[9px] font-bold text-primary opacity-0 group-hover:opacity-100 transition-opacity">
                   + Provision
                 </span>
               </button>
@@ -531,23 +531,23 @@ export default function DataStoragePage() {
       {/* Connections list */}
       <div>
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-bold text-gray-900">
+          <h2 className="text-lg font-bold text-foreground">
             Your Connections
-            <span className="ml-2 text-sm font-normal text-gray-400">({connections.length})</span>
+            <span className="ml-2 text-sm font-normal text-muted-foreground">({connections.length})</span>
           </h2>
         </div>
 
         {connections.length === 0 ? (
           <Card>
             <CardContent className="py-16 text-center">
-              <Database className="h-12 w-12 text-gray-200 mx-auto mb-4" />
-              <h3 className="text-base font-medium text-gray-700 mb-2">No databases yet</h3>
-              <p className="text-sm text-gray-400 mb-6">
+              <Database className="h-12 w-12 text-muted-foreground/30 mx-auto mb-4" />
+              <h3 className="text-base font-medium text-foreground mb-2">No databases yet</h3>
+              <p className="text-sm text-muted-foreground mb-6">
                 Provision a new local database or connect an existing one to use it in your workflows.
               </p>
               <div className="flex gap-2 justify-center">
                 <Button variant="outline" onClick={() => setModal('connect')}>Connect existing</Button>
-                <Button onClick={() => setModal('create')} className="bg-purple-600 hover:bg-purple-700 text-white">
+                <Button onClick={() => setModal('create')}>
                   New database
                 </Button>
               </div>
@@ -570,14 +570,14 @@ export default function DataStoragePage() {
       </div>
 
       {/* How to use in workflows callout */}
-      <Card className="bg-gradient-to-r from-purple-50 to-violet-50 border-purple-200">
+      <Card className="bg-gradient-to-r from-primary/5 to-secondary/5 border-primary/20">
         <CardContent className="p-5 flex gap-4 items-start">
-          <div className="w-10 h-10 rounded-xl bg-purple-600 flex items-center justify-center flex-shrink-0">
+          <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center flex-shrink-0">
             <Play className="h-5 w-5 text-white" />
           </div>
           <div>
-            <p className="text-sm font-bold text-gray-900 mb-1">Use in Workflows</p>
-            <p className="text-xs text-gray-600 leading-relaxed">
+            <p className="text-sm font-bold text-foreground mb-1">Use in Workflows</p>
+            <p className="text-xs text-muted-foreground leading-relaxed">
               Every connected database is available as a data source inside the Workflow Editor.
               Add a <strong>Database Query</strong> or <strong>Database Write</strong> node and select your connection from the dropdown.
               No cloud credentials needed — everything stays local.

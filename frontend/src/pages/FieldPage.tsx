@@ -58,8 +58,8 @@ export default function FieldPage() {
       <div className="space-y-6">
         <div className="flex items-center justify-between gap-3">
         <div>
-          <h1 className="text-3xl font-bold text-gray-900">Field Actions</h1>
-          <p className="text-gray-600 mt-1">Tap one button to run a workflow</p>
+          <h1 className="text-3xl font-bold text-foreground">Field Actions</h1>
+          <p className="text-muted-foreground mt-1">Tap one button to run a workflow</p>
         </div>
         <span className={`inline-flex items-center gap-2 px-3 py-1 rounded-full text-sm font-medium ${syncClass}`}>
           {syncState === 'online' ? <Wifi className="h-4 w-4" /> : syncState === 'syncing' ? <Loader2 className="h-4 w-4 animate-spin" /> : <WifiOff className="h-4 w-4" />}
@@ -88,7 +88,7 @@ export default function FieldPage() {
             <CardContent>
               <div className="space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Notes</label>
+                  <label className="block text-sm font-medium text-foreground mb-1">Notes</label>
                   <textarea
                     value={notes}
                     onChange={(event) => setNotes(event.target.value)}
@@ -123,7 +123,7 @@ export default function FieldPage() {
                 </div>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Type</label>
+                  <label className="block text-sm font-medium text-foreground mb-1">Type</label>
                   <select
                     value={jobType}
                     onChange={(event) => setJobType(event.target.value)}

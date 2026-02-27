@@ -166,14 +166,14 @@ export default function IntegrationsPage() {
   return (
     <div className="container mx-auto px-6 py-8 max-w-7xl">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-900 mb-2">App Integrations</h1>
-        <p className="text-gray-600">Connect your favorite apps and services to Silo</p>
+        <h1 className="text-3xl font-bold text-foreground mb-2">App Integrations</h1>
+        <p className="text-muted-foreground">Connect your favorite apps and services to Silo</p>
       </div>
 
       {/* Search and Filters */}
       <div className="mb-6 flex flex-col sm:flex-row gap-4">
         <div className="flex-1 relative">
-          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-gray-400" />
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-5 w-5 text-muted-foreground" />
           <Input
             placeholder="Search integrations..."
             value={searchQuery}
@@ -188,8 +188,8 @@ export default function IntegrationsPage() {
               onClick={() => setSelectedCategory(category)}
               className={`px-4 py-2 rounded-lg text-sm font-medium whitespace-nowrap transition-colors ${
                 selectedCategory === category
-                  ? 'bg-primary text-white'
-                  : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  ? 'bg-primary text-primary-foreground'
+                  : 'bg-muted text-muted-foreground hover:bg-accent hover:text-accent-foreground'
               }`}
             >
               {category.charAt(0).toUpperCase() + category.slice(1)}
@@ -209,7 +209,7 @@ export default function IntegrationsPage() {
               {connections.map((connection) => (
                 <div
                   key={connection.id}
-                  className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors"
+                  className="flex items-center justify-between p-4 border border-border rounded-lg hover:bg-accent/50 transition-colors"
                 >
                   <div className="flex items-center gap-4">
                     {connection.integration.logo ? (
@@ -223,8 +223,8 @@ export default function IntegrationsPage() {
                       </div>
                     )}
                     <div>
-                      <div className="font-medium text-gray-900">{connection.name}</div>
-                      <div className="text-sm text-gray-500">
+                      <div className="font-medium text-foreground">{connection.name}</div>
+                      <div className="text-sm text-muted-foreground">
                         {connection.status === 'ACTIVE' && (
                           <span className="text-green-600">● Connected</span>
                         )}
@@ -283,8 +283,8 @@ export default function IntegrationsPage() {
                       </div>
                     )}
                     <div>
-                      <h3 className="font-semibold text-gray-900">{integration.name}</h3>
-                      <span className="text-xs text-gray-500">{integration.category}</span>
+                      <h3 className="font-semibold text-foreground">{integration.name}</h3>
+                      <span className="text-xs text-muted-foreground">{integration.category}</span>
                     </div>
                   </div>
                   {connected && (
@@ -294,13 +294,13 @@ export default function IntegrationsPage() {
                     </div>
                   )}
                   {integration.comingSoon && (
-                    <div className="bg-gray-100 text-gray-600 px-2 py-1 rounded text-xs font-medium">
+                    <div className="bg-muted text-muted-foreground px-2 py-1 rounded text-xs font-medium">
                       Coming Soon
                     </div>
                   )}
                 </div>
 
-                <p className="text-sm text-gray-600 mb-4 h-10 line-clamp-2">
+                <p className="text-sm text-muted-foreground mb-4 h-10 line-clamp-2">
                   {integration.description}
                 </p>
 
@@ -346,13 +346,13 @@ export default function IntegrationsPage() {
           onClick={() => setShowConnectModal(null)}
         >
           <div
-            className="bg-white rounded-lg shadow-xl max-w-md w-full p-6"
+            className="bg-card rounded-lg shadow-xl max-w-md w-full p-6"
             onClick={(e) => e.stopPropagation()}
           >
-            <h2 className="text-xl font-bold mb-4">Connect {showConnectModal.name}</h2>
+            <h2 className="text-xl font-bold text-foreground mb-4">Connect {showConnectModal.name}</h2>
             <div className="space-y-4">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-muted-foreground mb-2">
                   Connection Name
                 </label>
                 <Input
@@ -362,7 +362,7 @@ export default function IntegrationsPage() {
                 />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-muted-foreground mb-2">
                   API Key
                 </label>
                 <Input

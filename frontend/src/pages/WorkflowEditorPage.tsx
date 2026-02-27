@@ -1,5 +1,5 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { workflowApi, nodeApi } from '../lib/api';
 import { Button } from '../components/ui/Button';
@@ -46,6 +46,225 @@ interface TriggerConfig {
   };
 }
 
+// ─── Template step definitions ────────────────────────────────────────────────
+type TemplateStep = { type: string; label: string; prompt: string; config: Record<string, any> };
+interface TemplateDef { name: string; triggerType: TriggerConfig['type']; triggerConfig?: TriggerConfig['config']; steps: TemplateStep[] }
+
+const TEMPLATE_DATA: Record<string, TemplateDef> = {
+  // ── Healthcare ──────────────────────────────────────────────────────────────
+  'healthcare-intake': {
+    name: 'Patient Intake Follow-up',
+    triggerType: 'webhook',
+    steps: [
+      { type: 'patientIntake',   label: 'Patient Intake Form',   prompt: 'Collect and validate patient intake information including demographics, insurance, and chief complaint.', config: {} },
+      { type: 'dataTransform',   label: 'Validate & Format',     prompt: 'Validate required fields and normalise date formats.', config: { mapping: { fullName: 'patient.name', dob: 'patient.dateOfBirth' } } },
+      { type: 'if',              label: 'Form Complete?',         prompt: 'Check whether all required fields are present.',      config: { condition: 'data.isComplete === true' } },
+      { type: 'httpRequest',     label: 'Notify Care Staff',      prompt: 'POST notification to care-team Slack channel.',        config: { method: 'POST', url: 'https://hooks.slack.com/services/YOUR_WEBHOOK' } },
+    ],
+  },
+  'appointment-scheduler': {
+    name: 'Appointment Scheduler',
+    triggerType: 'webhook',
+    steps: [
+      { type: 'appointmentScheduler', label: 'Book Appointment',   prompt: 'Create the patient appointment and persist it.', config: {} },
+      { type: 'dataTransform',        label: 'Build Reminder',    prompt: 'Build email + SMS reminder payload.', config: {} },
+      { type: 'httpRequest',          label: 'Send Email Reminder', prompt: 'Send appointment reminder email via SendGrid.', config: { method: 'POST', url: 'https://api.sendgrid.com/v3/mail/send' } },
+      { type: 'httpRequest',          label: 'Send SMS Reminder',  prompt: 'Send SMS via Twilio.', config: { method: 'POST', url: 'https://api.twilio.com/2010-04-01/Accounts/ACXXXX/Messages.json' } },
+    ],
+  },
+  // ── Field Service ───────────────────────────────────────────────────────────
+  'field-hazard': {
+    name: 'Hazard Report Escalation',
+    triggerType: 'webhook',
+    steps: [
+      { type: 'hazardReport',  label: 'Capture Hazard Report',  prompt: 'Capture hazard details, GPS location, and photo evidence.', config: {} },
+      { type: 'if',            label: 'Severity Check',          prompt: 'Route critical incidents to supervisor immediately.', config: { condition: 'data.severity === "high"' } },
+      { type: 'httpRequest',   label: 'Notify Supervisor',       prompt: 'Send urgent push notification to on-duty supervisor.', config: { method: 'POST', url: 'https://api.notifications.com/alert' } },
+      { type: 'dataTransform', label: 'Log to Safety System',    prompt: 'Format and write incident record to the safety management system.', config: {} },
+    ],
+  },
+  'inventory-check': {
+    name: 'Daily Inventory Check',
+    triggerType: 'schedule',
+    triggerConfig: { cronExpression: '0 8 * * *', timezone: 'UTC' },
+    steps: [
+      { type: 'schedule',       label: 'Morning Trigger',       prompt: 'Runs every day at 08:00 UTC.', config: { cronExpression: '0 8 * * *' } },
+      { type: 'inventoryCheck', label: 'Check Stock Levels',    prompt: 'Pull current stock levels from the warehouse system.', config: {} },
+      { type: 'if',             label: 'Below Reorder Point?',  prompt: 'Flag items whose quantity is below the reorder threshold.', config: { condition: 'data.belowThreshold === true' } },
+      { type: 'httpRequest',    label: 'Send Low-Stock Alert',  prompt: 'POST low-stock list to procurement Slack channel.', config: { method: 'POST', url: 'https://hooks.slack.com/services/YOUR_WEBHOOK' } },
+    ],
+  },
+  'maintenance-request': {
+    name: 'Maintenance Request Handler',
+    triggerType: 'webhook',
+    steps: [
+      { type: 'webhook',       label: 'Receive Request',        prompt: 'Accept inbound maintenance request from the mobile app.', config: {} },
+      { type: 'workOrder',     label: 'Create Work Order',      prompt: 'Generate a work order and assign to available technician.', config: {} },
+      { type: 'if',            label: 'Urgent?',                prompt: 'Escalate if priority is marked urgent.', config: { condition: 'data.priority === "urgent"' } },
+      { type: 'httpRequest',   label: 'Notify Technician',      prompt: 'Send work-order details to assigned technician via email.', config: { method: 'POST', url: 'https://api.sendgrid.com/v3/mail/send' } },
+    ],
+  },
+  // ── Invoicing / Finance ─────────────────────────────────────────────────────
+  'invoice-approval': {
+    name: 'Invoice Approval Workflow',
+    triggerType: 'webhook',
+    steps: [
+      { type: 'webhook',       label: 'Receive Invoice',        prompt: 'Accept invoice submission via webhook.', config: {} },
+      { type: 'dataTransform', label: 'Extract Line Items',     prompt: 'Parse invoice PDF and extract totals and vendor details.', config: {} },
+      { type: 'if',            label: 'Exceeds Threshold?',     prompt: 'Route invoices over $5 000 for manager sign-off.', config: { condition: 'data.total > 5000' } },
+      { type: 'httpRequest',   label: 'Post to Accounting',     prompt: 'Create approved invoice record in QuickBooks/Xero via REST.', config: { method: 'POST', url: 'https://api.accounting.com/invoices' } },
+    ],
+  },
+  'expense-approval': {
+    name: 'Expense Report Approval',
+    triggerType: 'webhook',
+    steps: [
+      { type: 'webhook',       label: 'Receive Expense Report', prompt: 'Accept expense submission from the employee portal.', config: {} },
+      { type: 'dataTransform', label: 'Validate Policy',        prompt: 'Check each line item against company expense policy.', config: {} },
+      { type: 'if',            label: 'Policy Violation?',      prompt: 'Flag reports that breach spending limits.', config: { condition: 'data.hasViolation === true' } },
+      { type: 'httpRequest',   label: 'Sync to Accounting',    prompt: 'Write approved expense record to Xero.', config: { method: 'POST', url: 'https://api.xero.com/api.xro/2.0/Receipts' } },
+    ],
+  },
+  // ── HR / Data Collection ────────────────────────────────────────────────────
+  'onboarding': {
+    name: 'Employee Onboarding',
+    triggerType: 'webhook',
+    steps: [
+      { type: 'webhook',       label: 'New Hire Signal',        prompt: 'Trigger when a new hire record is created in the HRIS.', config: {} },
+      { type: 'dataTransform', label: 'Provision Accounts',     prompt: 'Build payload to create accounts in Google Workspace, Slack, and Jira.', config: {} },
+      { type: 'httpRequest',   label: 'Create Google Account',  prompt: 'POST to Google Directory API to provision email.', config: { method: 'POST', url: 'https://admin.googleapis.com/admin/directory/v1/users' } },
+      { type: 'httpRequest',   label: 'Send Welcome Email',     prompt: 'Dispatch welcome and orientation schedule via SendGrid.', config: { method: 'POST', url: 'https://api.sendgrid.com/v3/mail/send' } },
+    ],
+  },
+  // ── Students ────────────────────────────────────────────────────────────────
+  'student-research-assistant': {
+    name: 'AI Research Assistant',
+    triggerType: 'webhook',
+    steps: [
+      { type: 'webhook',        label: 'Receive Research Query',   prompt: 'Accept a research topic from the student portal.', config: {} },
+      { type: 'promptTemplate', label: 'Build Research Prompt',    prompt: 'Format the student topic into a structured research prompt.', config: { template: 'Research the following topic in depth: {{topic}}. Provide key findings, notable authors, and suggested reading.' } },
+      { type: 'llmCompletion',  label: 'Generate Research Summary', prompt: 'Use the LLM to produce a comprehensive research summary.', config: { model: 'claude-3-5-sonnet-20241022', maxTokens: 1500 } },
+      { type: 'dataTransform',  label: 'Format Output',            prompt: 'Structure the summary with headings and a citation list.', config: {} },
+    ],
+  },
+  'student-essay-feedback': {
+    name: 'Essay Feedback Bot',
+    triggerType: 'webhook',
+    steps: [
+      { type: 'webhook',        label: 'Receive Essay',            prompt: 'Accept essay text via the student submission form.', config: {} },
+      { type: 'promptTemplate', label: 'Build Feedback Prompt',    prompt: 'Construct a detailed feedback prompt from the essay.', config: { template: 'Review the following essay and provide constructive feedback on structure, argument clarity, grammar, and citations:\n\n{{essay}}' } },
+      { type: 'llmCompletion',  label: 'Generate Feedback',        prompt: 'Produce actionable writing feedback.', config: { model: 'claude-3-5-sonnet-20241022', maxTokens: 1000 } },
+      { type: 'httpRequest',    label: 'Return Feedback',          prompt: 'POST formatted feedback back to the student portal.', config: { method: 'POST', url: '{{callbackUrl}}' } },
+    ],
+  },
+  'student-study-scheduler': {
+    name: 'Smart Study Planner',
+    triggerType: 'webhook',
+    steps: [
+      { type: 'webhook',        label: 'Receive Syllabus',         prompt: 'Accept course syllabus and exam dates from the student.', config: {} },
+      { type: 'dataTransform',  label: 'Parse Deadlines',          prompt: 'Extract key deadlines and topic weights from the syllabus.', config: {} },
+      { type: 'llmCompletion',  label: 'Generate Study Plan',      prompt: 'Create a week-by-week study schedule optimised for the exam dates.', config: { model: 'claude-3-5-sonnet-20241022', maxTokens: 800 } },
+      { type: 'httpRequest',    label: 'Add to Google Calendar',   prompt: 'Create calendar events for each study block via Google Calendar API.', config: { method: 'POST', url: 'https://www.googleapis.com/calendar/v3/calendars/primary/events' } },
+    ],
+  },
+  'student-citation-formatter': {
+    name: 'Citation & Bibliography Builder',
+    triggerType: 'webhook',
+    steps: [
+      { type: 'webhook',        label: 'Receive Source List',      prompt: 'Accept list of raw source references from the student.', config: {} },
+      { type: 'promptTemplate', label: 'Build Formatting Prompt',  prompt: 'Construct a prompt to reformat sources.', config: { template: 'Format the following references in APA 7th edition style:\n\n{{sources}}' } },
+      { type: 'llmCompletion',  label: 'Format Citations',         prompt: 'Produce a correctly formatted bibliography.', config: { model: 'claude-3-5-sonnet-20241022', maxTokens: 600 } },
+      { type: 'dataTransform',  label: 'Sort Alphabetically',      prompt: 'Sort entries alphabetically by author surname.', config: {} },
+    ],
+  },
+  // ── SMB Owners ──────────────────────────────────────────────────────────────
+  'smb-lead-capture': {
+    name: 'Lead Capture & CRM Sync',
+    triggerType: 'webhook',
+    steps: [
+      { type: 'webhook',          label: 'Capture Lead',           prompt: 'Accept inbound lead from website contact form.', config: {} },
+      { type: 'entityExtraction', label: 'Extract Contact Info',   prompt: 'Extract name, email, company, and intent from the lead payload.', config: {} },
+      { type: 'dataTransform',    label: 'Enrich & Score Lead',    prompt: 'Assign a lead score based on company size and intent signals.', config: {} },
+      { type: 'httpRequest',      label: 'Create CRM Contact',     prompt: 'POST new contact to HubSpot CRM.', config: { method: 'POST', url: 'https://api.hubapi.com/crm/v3/objects/contacts' } },
+    ],
+  },
+  'smb-customer-support': {
+    name: 'Customer Support Triage',
+    triggerType: 'webhook',
+    steps: [
+      { type: 'webhook',            label: 'Receive Support Ticket', prompt: 'Accept inbound support ticket from the help-desk widget.', config: {} },
+      { type: 'textClassification', label: 'Classify Intent',        prompt: 'Classify the ticket into: billing, technical, general, or refund.', config: {} },
+      { type: 'if',                 label: 'High Priority?',         prompt: 'Escalate billing and refund tickets immediately.', config: { condition: 'data.category === "billing" || data.category === "refund"' } },
+      { type: 'conversation',       label: 'Draft AI Response',      prompt: 'Generate a helpful, on-brand first response for the ticket.', config: { tone: 'professional', language: 'en' } },
+    ],
+  },
+  'smb-invoice-reminder': {
+    name: 'Invoice Payment Reminders',
+    triggerType: 'schedule',
+    triggerConfig: { cronExpression: '0 9 * * 1', timezone: 'UTC' },
+    steps: [
+      { type: 'schedule',      label: 'Weekly Monday Trigger',  prompt: 'Runs every Monday at 09:00.', config: { cronExpression: '0 9 * * 1' } },
+      { type: 'httpRequest',   label: 'Fetch Overdue Invoices', prompt: 'GET all invoices with status=overdue from accounting system.', config: { method: 'GET', url: 'https://api.xero.com/api.xro/2.0/Invoices?where=Status%3D%22OVERDUE%22' } },
+      { type: 'if',            label: 'Any Overdue?',           prompt: 'Skip if no overdue invoices found.', config: { condition: 'data.invoices.length > 0' } },
+      { type: 'httpRequest',   label: 'Send Reminder Emails',   prompt: 'Send payment reminders to each overdue customer via SendGrid.', config: { method: 'POST', url: 'https://api.sendgrid.com/v3/mail/send' } },
+    ],
+  },
+  'smb-review-request': {
+    name: 'Post-Purchase Review Request',
+    triggerType: 'webhook',
+    steps: [
+      { type: 'webhook',        label: 'Order Fulfilled',        prompt: 'Trigger when an order is marked fulfilled in the e-commerce system.', config: {} },
+      { type: 'schedule',       label: 'Wait 3 Days',            prompt: 'Delay the message by 3 days for better timing.', config: { delayDays: 3 } },
+      { type: 'promptTemplate', label: 'Build Review Request',   prompt: 'Create a personalised review request message.', config: { template: 'Hi {{customerName}}, thanks for your order of {{productName}}! We\'d love a review: {{reviewLink}}' } },
+      { type: 'httpRequest',    label: 'Send Email',             prompt: 'Dispatch review request email via SendGrid.', config: { method: 'POST', url: 'https://api.sendgrid.com/v3/mail/send' } },
+    ],
+  },
+  // ── Startups ────────────────────────────────────────────────────────────────
+  'startup-user-feedback': {
+    name: 'User Feedback Analyzer',
+    triggerType: 'webhook',
+    steps: [
+      { type: 'webhook',          label: 'Receive Feedback',        prompt: 'Accept user feedback from the in-app survey widget.', config: {} },
+      { type: 'sentimentAnalysis', label: 'Analyse Sentiment',      prompt: 'Score the feedback as positive, neutral, or negative.', config: {} },
+      { type: 'if',               label: 'Negative Feedback?',      prompt: 'Route negative responses to customer success immediately.', config: { condition: 'data.sentiment === "negative"' } },
+      { type: 'httpRequest',      label: 'Log to Product Board',    prompt: 'POST feedback item to ProductBoard / Linear.', config: { method: 'POST', url: 'https://api.productboard.com/notes' } },
+    ],
+  },
+  'startup-onboarding-email': {
+    name: 'User Onboarding Email Series',
+    triggerType: 'webhook',
+    steps: [
+      { type: 'webhook',        label: 'User Signed Up',           prompt: 'Trigger on new user registration event.', config: {} },
+      { type: 'promptTemplate', label: 'Build Welcome Email',      prompt: 'Generate a personalised welcome message.', config: { template: 'Welcome to {{appName}}, {{firstName}}! Here\'s how to get started: {{onboardingSteps}}' } },
+      { type: 'llmCompletion',  label: 'Personalise Content',      prompt: 'Tailor the onboarding copy to the user\'s role and use case.', config: { model: 'claude-3-5-sonnet-20241022', maxTokens: 500 } },
+      { type: 'httpRequest',    label: 'Send via Customer.io',     prompt: 'Dispatch the welcome email through Customer.io transactional API.', config: { method: 'POST', url: 'https://api.customer.io/v1/send/email' } },
+    ],
+  },
+  'startup-metrics-report': {
+    name: 'Weekly Metrics Digest',
+    triggerType: 'schedule',
+    triggerConfig: { cronExpression: '0 7 * * 5', timezone: 'UTC' },
+    steps: [
+      { type: 'schedule',       label: 'Friday 07:00 Trigger',    prompt: 'Runs every Friday morning.', config: { cronExpression: '0 7 * * 5' } },
+      { type: 'httpRequest',    label: 'Fetch KPIs',              prompt: 'GET weekly metrics from your analytics API.', config: { method: 'GET', url: 'https://api.mixpanel.com/data/export' } },
+      { type: 'aiDataTransform', label: 'Summarise Metrics',      prompt: 'Use AI to write a plain-English summary of the week\'s KPIs, trends, and anomalies.', config: {} },
+      { type: 'httpRequest',    label: 'Post to Slack',           prompt: 'Send the digest to the #metrics Slack channel.', config: { method: 'POST', url: 'https://hooks.slack.com/services/YOUR_WEBHOOK' } },
+    ],
+  },
+  'startup-ab-test': {
+    name: 'A/B Test Result Processor',
+    triggerType: 'schedule',
+    triggerConfig: { cronExpression: '0 9 * * 1', timezone: 'UTC' },
+    steps: [
+      { type: 'schedule',       label: 'Weekly Trigger',          prompt: 'Evaluate A/B tests every Monday.', config: { cronExpression: '0 9 * * 1' } },
+      { type: 'httpRequest',    label: 'Fetch Experiment Data',   prompt: 'GET current A/B test results from LaunchDarkly / Statsig.', config: { method: 'GET', url: 'https://api.launchdarkly.com/api/v2/flags/default' } },
+      { type: 'aiDataTransform', label: 'Analyse Statistical Significance', prompt: 'Determine winning variant and confidence level.', config: {} },
+      { type: 'httpRequest',    label: 'Notify Product Team',     prompt: 'POST results summary to product Slack channel.', config: { method: 'POST', url: 'https://hooks.slack.com/services/YOUR_WEBHOOK' } },
+    ],
+  },
+};
+// ───────────────────────────────────────────────────────────────────────────────
+
 const getIconComponent = (nodeType: string) => {
   const iconMap: Record<string, any> = {
     httpRequest: Zap,
@@ -77,6 +296,8 @@ const createStep = (type: StepType, yPosition: number, nodeDef?: NodeDefinition)
 export default function WorkflowEditorPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const templateId = searchParams.get('template');
   const queryClient = useQueryClient();
   const isNewWorkflow = !id;
 
@@ -157,6 +378,33 @@ export default function WorkflowEditorPage() {
 
   useEffect(() => {
     if (!workflow && isNewWorkflow) {
+      const tmpl = templateId ? TEMPLATE_DATA[templateId] : undefined;
+
+      if (tmpl) {
+        // Load pre-built template steps
+        setName(tmpl.name);
+        if (tmpl.triggerType !== 'manual') {
+          setTriggerConfig({ type: tmpl.triggerType, config: tmpl.triggerConfig || {} });
+        }
+        const baseSteps: WorkflowStep[] = tmpl.steps.map((s, i) => ({
+          id: `step-${Date.now()}-${i}`,
+          type: s.type,
+          label: s.label,
+          prompt: s.prompt,
+          config: s.config,
+          position: { x: 400, y: 100 + i * 220 },
+          retryConfig: { enabled: false, maxRetries: 3, retryDelay: 1000 },
+        }));
+        setSteps(baseSteps);
+        setSelectedStepId(baseSteps[0]?.id || null);
+        setHistory([{ timestamp: Date.now(), steps: baseSteps }]);
+        setHistoryIndex(0);
+        setShowRightPanel(true);
+        toast.success(`Template "${tmpl.name}" loaded — customise and save!`);
+        return;
+      }
+
+      // Blank new workflow — seed with a single Start node
       const firstNode = availableNodes.find((n: NodeDefinition) => n.type === 'start') || availableNodes[0];
       const baseSteps = firstNode ? [createStep(firstNode.type, 100, firstNode)] : [];
 
@@ -430,17 +678,18 @@ export default function WorkflowEditorPage() {
   const sortedSteps = [...steps].sort((a, b) => a.position.y - b.position.y);
 
   return (
-    <div className="h-screen flex flex-col overflow-hidden bg-white">
+    <div className="h-screen flex flex-col overflow-hidden bg-background">
       {/* Top Bar */}
-      <div className="h-16 border-b border-gray-200 flex items-center justify-between px-6 bg-white z-30">
+      <div className="h-16 border-b border-border flex items-center justify-between px-6 bg-card z-30">
         <div className="flex items-center gap-4">
           <Button
             variant="ghost"
             size="sm"
             onClick={() => navigate('/workflows')}
-            className="text-gray-600"
+            className="text-muted-foreground"
           >
-            ← Back
+            <ChevronLeft className="h-4 w-4 mr-1" />
+            Back
           </Button>
 
           {isEditingName ? (
@@ -457,12 +706,12 @@ export default function WorkflowEditorPage() {
                   setName(name);
                 }
               }}
-              className="text-lg font-semibold px-2 py-1 border border-primary rounded focus:outline-none focus:ring-2 focus:ring-primary"
+              className="text-lg font-semibold px-2 py-1 border border-primary rounded focus:outline-none focus:ring-1 focus:ring-foreground bg-background"
             />
           ) : (
             <h1
               onClick={() => setIsEditingName(true)}
-              className="text-lg font-semibold cursor-pointer hover:text-primary px-2 py-1 rounded hover:bg-gray-50"
+              className="text-lg font-semibold cursor-pointer hover:text-primary px-2 py-1 rounded hover:bg-accent"
             >
               {name}
             </h1>
@@ -492,16 +741,16 @@ export default function WorkflowEditorPage() {
             variant="ghost"
             size="sm"
             onClick={() => setShowTriggerPanel(true)}
-            className="text-gray-600"
+            className="text-muted-foreground"
           >
             <Settings className="h-4 w-4 mr-2" />
             Trigger: {triggerConfig.type}
           </Button>
-          <div className="h-6 w-px bg-gray-300 mx-2" />
+          <div className="h-6 w-px bg-border mx-2" />
 
           {/* Last-saved indicator */}
           {lastSavedAt && !hasUnsavedChanges && (
-            <span className="text-xs text-gray-400 hidden sm:block whitespace-nowrap">
+            <span className="text-xs text-muted-foreground hidden sm:block whitespace-nowrap">
               Saved {lastSavedAt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
             </span>
           )}
@@ -521,8 +770,8 @@ export default function WorkflowEditorPage() {
             title={autoSaveEnabled ? 'Auto-save ON (every 10 min) — click to disable' : 'Auto-save OFF — click to enable'}
             className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold border transition-all ${
               autoSaveEnabled
-                ? 'bg-purple-50 border-purple-300 text-purple-700 hover:bg-purple-100'
-                : 'bg-gray-50 border-gray-200 text-gray-400 hover:bg-gray-100'
+                ? 'bg-primary/5 border-primary/30 text-primary hover:bg-primary/10'
+                : 'bg-muted border-border text-muted-foreground hover:bg-accent'
             }`}
           >
             {autoSaveEnabled ? <Cloud className="h-3.5 w-3.5" /> : <CloudOff className="h-3.5 w-3.5" />}
@@ -539,11 +788,11 @@ export default function WorkflowEditorPage() {
             className={`gap-1.5 ${
               hasUnsavedChanges
                 ? 'border-amber-400 text-amber-700 hover:bg-amber-50'
-                : 'bg-white'
+                : 'bg-card'
             }`}
           >
-            <Save className="h-3.5 w-3.5" />
-            {saveMutation.isPending ? 'Saving…' : 'Save'}
+            <Save className="h-4 w-4" />
+            Save
           </Button>
 
           {/* Publish */}
@@ -555,8 +804,9 @@ export default function WorkflowEditorPage() {
               toast.success('Workflow published');
             }}
             disabled={saveMutation.isPending}
-            className="bg-white"
+            className="bg-card"
           >
+            <Zap className="h-4 w-4 mr-1" />
             Publish
           </Button>
 
@@ -596,7 +846,7 @@ export default function WorkflowEditorPage() {
 
           return (
             <aside
-              className={`fixed left-4 top-20 bottom-4 z-50 flex transition-all duration-300 ${isPaletteOpen ? 'w-[350px]' : 'w-16'
+              className={`fixed left-4 top-20 bottom-4 z-50 flex bg-card  transition-all duration-300 ${isPaletteOpen ? 'w-[350px]' : 'w-16'
                 }`}
             >
               {/* Narrow icon strip (always visible) */}
@@ -614,13 +864,13 @@ export default function WorkflowEditorPage() {
                       title={tab.label}
                       className={`relative w-10 h-10 mt-2 rounded-lg flex flex-col items-center justify-center gap-0.5 transition-all group ${isActive
                           ? 'bg-white/15 text-white'
-                          : 'text-gray-400 hover:text-white hover:bg-white/10'
+                          : 'text-muted-foreground/60 hover:text-white hover:bg-white/10'
                         }`}
                     >
                       <Icon className="h-4 w-4" />
                       <span className="text-[9px] font-medium leading-none">{tab.label}</span>
                       {isActive && (
-                        <span className="absolute left-0 top-2 bottom-2 w-0.5 bg-purple-400 rounded-r" />
+                        <span className="absolute left-0 top-2 bottom-2 w-0.5 bg-primary rounded-r" />
                       )}
                     </button>
                   );
@@ -630,7 +880,7 @@ export default function WorkflowEditorPage() {
                 <button
                   onClick={() => setIsPaletteOpen(!isPaletteOpen)}
                   title={isPaletteOpen ? 'Collapse' : 'Expand'}
-                  className="mt-auto w-10 h-10 rounded-lg flex items-center justify-center text-gray-400 hover:text-white hover:bg-white/10 transition-all"
+                  className="mt-auto w-10 h-10 rounded-lg flex items-center justify-center text-muted-foreground/60 hover:text-white hover:bg-white/10 transition-all"
                 >
                   {isPaletteOpen ? (
                     <ChevronLeft className="h-4 w-4" />
@@ -642,26 +892,26 @@ export default function WorkflowEditorPage() {
 
               {/* Content panel */}
               {isPaletteOpen && (
-                <div className="flex-1 bg-white rounded-r-xl shadow-xl border border-l-0 border-gray-200 flex flex-col overflow-hidden">
+                <div className="flex-1  rounded-r-xl shadow-xl border border-l-0 border-border flex flex-col overflow-hidden">
 
                   {/* ── NODES TAB ── */}
                   {activeTab === 'nodes' && (
                     <div className="flex flex-col h-full">
                       {/* Search */}
-                      <div className="p-3 border-b border-gray-100">
+                      <div className="p-3 border-b border-border">
                         <div className="relative">
-                          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-gray-400 pointer-events-none" />
+                          <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 h-3.5 w-3.5 text-muted-foreground pointer-events-none" />
                           <input
                             type="text"
                             value={nodeSearch}
                             onChange={(e) => setNodeSearch(e.target.value)}
                             placeholder="Search apps or modules"
-                            className="w-full pl-8 pr-3 py-1.5 text-xs border border-purple-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500 bg-white"
+                            className="w-full pl-8 pr-3 py-1.5 text-xs border border-primary/30 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary bg-background text-foreground"
                           />
                         </div>
                       </div>
                       {/* Category pills */}
-                      <div className="flex items-center gap-1 px-3 py-2 border-b border-gray-100 overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
+                      <div className="flex items-center gap-1 px-3 py-2 border-b border-border overflow-x-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                         {([
                           { id: 'all', label: 'All', icon: Boxes },
                           { id: 'built-in', label: 'Built-in', icon: Wrench },
@@ -674,8 +924,8 @@ export default function WorkflowEditorPage() {
                               key={cat.id}
                               onClick={() => setNodeCategory(cat.id)}
                               className={`flex items-center gap-1 px-2.5 py-1 rounded-full text-[10px] font-semibold whitespace-nowrap transition-all ${nodeCategory === cat.id
-                                  ? 'bg-purple-600 text-white'
-                                  : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                                  ? 'bg-primary text-white'
+                                  : 'bg-muted text-muted-foreground hover:bg-accent'
                                 }`}
                             >
                               <CatIcon className="h-3 w-3" />
@@ -688,20 +938,20 @@ export default function WorkflowEditorPage() {
                       <div className="flex-1 overflow-y-auto p-3 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                         {nodeCategory === 'productivity' ? (
                           <div className="flex flex-col items-center justify-center h-full text-center gap-3 py-8">
-                            <AppWindow className="h-10 w-10 text-gray-300" />
-                            <p className="text-xs font-medium text-gray-500">Connect apps & services</p>
-                            <p className="text-[10px] text-gray-400">Integration nodes coming soon</p>
+                            <AppWindow className="h-10 w-10 text-muted-foreground/40" />
+                            <p className="text-xs font-medium text-muted-foreground">Connect apps &amp; services</p>
+                            <p className="text-[10px] text-muted-foreground/70">Integration nodes coming soon</p>
                             <button
                               onClick={() => window.open('/integrations', '_blank')}
-                              className="text-[10px] text-purple-600 hover:text-purple-700 font-semibold underline"
+                              className="text-[10px] text-primary hover:text-primary/80 font-semibold underline"
                             >
                               Browse integrations
                             </button>
                           </div>
                         ) : filteredNodes.length === 0 ? (
                           <div className="flex flex-col items-center justify-center h-full py-8 text-center">
-                            <Search className="h-8 w-8 text-gray-200 mb-2" />
-                            <p className="text-xs text-gray-400">No matching nodes</p>
+                            <Search className="h-8 w-8 text-muted-foreground/20 mb-2" />
+                            <p className="text-xs text-muted-foreground">No matching nodes</p>
                           </div>
                         ) : (
                           <div className="grid grid-cols-2 gap-2">
@@ -711,7 +961,7 @@ export default function WorkflowEditorPage() {
                                 <button
                                   key={node.type}
                                   onClick={() => addStepToCanvas(node.type)}
-                                  className="flex flex-col items-center justify-center p-2 rounded-xl hover:bg-gray-50 transition-colors border border-gray-100 hover:border-purple-300 hover:shadow-sm group"
+                                  className="flex flex-col items-center justify-center p-2 rounded-xl hover:bg-accent transition-colors border border-border hover:border-primary/30 hover:shadow-sm group"
                                   title={node.name}
                                 >
                                   <div
@@ -723,7 +973,7 @@ export default function WorkflowEditorPage() {
                                   >
                                     <Icon className="h-4.5 w-4.5 h-[18px] w-[18px]" />
                                   </div>
-                                  <span className="text-[10px] text-gray-700 text-center leading-tight font-medium group-hover:text-purple-700">
+                                  <span className="text-[10px] text-foreground text-center leading-tight font-medium group-hover:text-primary">
                                     {node.name}
                                   </span>
                                 </button>
@@ -738,20 +988,20 @@ export default function WorkflowEditorPage() {
                   {/* ── VERSIONS TAB ── */}
                   {activeTab === 'versions' && (
                     <div className="flex flex-col h-full">
-                      <div className="px-4 py-3 border-b border-gray-100 flex items-center justify-between">
-                        <h3 className="text-sm font-semibold text-gray-900">Versions</h3>
+                      <div className="px-4 py-3 border-b border-border flex items-center justify-between">
+                        <h3 className="text-sm font-semibold text-foreground">Versions</h3>
                         <button
                           onClick={() => saveVersion()}
                           disabled={saveMutation.isPending || !hasUnsavedChanges}
-                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-purple-600 text-white text-[10px] font-semibold hover:bg-purple-700 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
+                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-primary text-white text-[10px] font-semibold hover:bg-primary/90 disabled:opacity-40 disabled:cursor-not-allowed transition-all"
                         >
                           <Save className="h-3 w-3" /> Save now
                         </button>
                       </div>
 
                       {/* Auto-save status strip */}
-                      <div className={`px-4 py-2 flex items-center gap-2 text-[10px] border-b border-gray-100 ${
-                        autoSaveEnabled ? 'bg-purple-50 text-purple-700' : 'bg-gray-50 text-gray-400'
+                      <div className={`px-4 py-2 flex items-center gap-2 text-[10px] border-b border-border ${
+                        autoSaveEnabled ? 'bg-primary/5 text-primary' : 'bg-muted text-muted-foreground'
                       }`}>
                         {autoSaveEnabled
                           ? <><Cloud className="h-3 w-3" /> Auto-saves every 10 min</>
@@ -767,9 +1017,9 @@ export default function WorkflowEditorPage() {
                       <div className="flex-1 overflow-y-auto p-3 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
                         {savedVersions.length === 0 ? (
                           <div className="flex flex-col items-center justify-center h-full py-10 text-center gap-3">
-                            <History className="h-10 w-10 text-gray-200" />
-                            <p className="text-xs text-gray-400">No saved versions yet.</p>
-                            <p className="text-[10px] text-gray-400">Hit "Save" or wait for auto-save.</p>
+                            <History className="h-10 w-10 text-muted-foreground/20" />
+                            <p className="text-xs text-muted-foreground">No saved versions yet.</p>
+                            <p className="text-[10px] text-muted-foreground/70">Hit "Save" or wait for auto-save.</p>
                           </div>
                         ) : (
                           <div className="space-y-2">
@@ -783,21 +1033,21 @@ export default function WorkflowEditorPage() {
                                   key={snap.timestamp}
                                   className={`rounded-xl border p-3 transition-all ${
                                     isLatest
-                                      ? 'border-purple-400 bg-purple-50'
-                                      : 'border-gray-200 hover:border-purple-200 hover:bg-gray-50'
+                                      ? 'border-primary bg-primary/5'
+                                      : 'border-border hover:border-primary/30 hover:bg-accent/50'
                                   }`}
                                 >
                                   <div className="flex items-start gap-2.5">
-                                    <div className="w-8 h-8 rounded-full bg-purple-200 text-purple-700 flex items-center justify-center text-xs font-bold flex-shrink-0">
+                                    <div className="w-8 h-8 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-bold flex-shrink-0">
                                       KT
                                     </div>
                                     <div className="flex-1 min-w-0">
-                                      <p className="text-xs font-semibold text-gray-900 truncate">{snap.label}</p>
-                                      <p className="text-[10px] text-gray-500">{dateStr} · {timeStr}</p>
-                                      <p className="text-[10px] text-gray-400">{snap.steps.length} node{snap.steps.length !== 1 ? 's' : ''}</p>
+                                      <p className="text-xs font-semibold text-foreground truncate">{snap.label}</p>
+                                      <p className="text-[10px] text-muted-foreground">{dateStr} · {timeStr}</p>
+                                      <p className="text-[10px] text-muted-foreground/70">{snap.steps.length} node{snap.steps.length !== 1 ? 's' : ''}</p>
                                     </div>
                                     {isLatest && (
-                                      <span className="text-[9px] font-bold text-purple-600 bg-purple-100 px-1.5 py-0.5 rounded-full flex-shrink-0">
+                                      <span className="text-[9px] font-bold text-primary bg-primary/10 px-1.5 py-0.5 rounded-full flex-shrink-0">
                                         Latest
                                       </span>
                                     )}
@@ -810,7 +1060,7 @@ export default function WorkflowEditorPage() {
                                         setHasUnsavedChanges(true);
                                         toast('Restored to ' + snap.label);
                                       }}
-                                      className="mt-2 w-full text-[10px] font-semibold text-purple-600 hover:text-purple-800 text-center py-1 rounded-lg hover:bg-purple-50 transition-colors"
+                                      className="mt-2 w-full text-[10px] font-semibold text-primary hover:text-primary/80 text-center py-1 rounded-lg hover:bg-primary/5 transition-colors"
                                     >
                                       Restore this version
                                     </button>
@@ -827,22 +1077,22 @@ export default function WorkflowEditorPage() {
                   {/* ── LINKED ASSETS TAB ── */}
                   {activeTab === 'assets' && (
                     <div className="flex flex-col h-full">
-                      <div className="px-4 py-3 border-b border-gray-100">
-                        <h3 className="text-sm font-semibold text-gray-900">Linked assets</h3>
-                        <p className="text-[10px] text-gray-500 mt-0.5">Assets referenced in this workflow.</p>
+                      <div className="px-4 py-3 border-b border-border">
+                        <h3 className="text-sm font-semibold text-foreground">Linked assets</h3>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">Assets referenced in this workflow.</p>
                       </div>
-                      <div className="p-3 border-b border-gray-100 flex gap-2">
-                        <button className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 rounded-lg text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
+                      <div className="p-3 border-b border-border flex gap-2">
+                        <button className="flex items-center gap-1.5 px-3 py-1.5 border border-border rounded-lg text-xs font-semibold text-foreground hover:bg-accent transition-colors">
                           <span className="text-orange-500">⊞</span> Import APIs
                         </button>
-                        <button className="flex items-center gap-1.5 px-3 py-1.5 border border-gray-300 rounded-lg text-xs font-semibold text-gray-700 hover:bg-gray-50 transition-colors">
+                        <button className="flex items-center gap-1.5 px-3 py-1.5 border border-border rounded-lg text-xs font-semibold text-foreground hover:bg-accent transition-colors">
                           <span className="text-red-500">□</span> Upload Files
                         </button>
                       </div>
                       <div className="flex-1 flex flex-col items-center justify-center p-4 text-center">
-                        <div className="w-full bg-gray-50 rounded-xl p-6 border border-gray-100">
-                          <Link2 className="h-8 w-8 text-gray-300 mx-auto mb-2" />
-                          <p className="text-xs text-gray-500 leading-relaxed">
+                        <div className="w-full bg-muted/50 rounded-xl p-6 border border-border">
+                          <Link2 className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />
+                          <p className="text-xs text-muted-foreground leading-relaxed">
                             APIs and Files used in this workflow will be displayed here.
                           </p>
                         </div>
@@ -856,9 +1106,9 @@ export default function WorkflowEditorPage() {
 
                       {/* ── TOP HALF: Notes ── */}
                       <div className="flex flex-col" style={{ flex: '0 0 50%', minHeight: 0 }}>
-                        <div className="px-4 py-2.5 border-b border-gray-100 flex items-center justify-between">
+                        <div className="px-4 py-2.5 border-b border-border flex items-center justify-between">
 
-                          <h3 className="text-sm font-semibold text-gray-900">Notes</h3>
+                          <h3 className="text-sm font-semibold text-foreground">Notes</h3>
 
                           <button
                             onClick={() => {
@@ -868,7 +1118,7 @@ export default function WorkflowEditorPage() {
                             }}
                             className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${notesSaved
                                 ? 'bg-green-100 text-green-700'
-                                : 'bg-purple-600 text-white hover:bg-purple-700'
+                                : 'bg-primary text-white hover:bg-primary/90'
                               }`}
                           >
                             {notesSaved ? (
@@ -883,23 +1133,23 @@ export default function WorkflowEditorPage() {
                             value={workflowNotes}
                             onChange={(e) => { setWorkflowNotes(e.target.value); setNotesSaved(false); }}
                             placeholder="Write notes about this workflow, e.g. purpose, owner, edge cases..."
-                            className="w-full h-full resize-none text-xs border border-gray-200 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-purple-500 text-gray-700 placeholder-gray-400 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
+                            className="w-full h-full resize-none text-xs border border-border rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-primary bg-background text-foreground placeholder:text-muted-foreground [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]"
                           />
                         </div>
                       </div>
 
                       {/* Divider */}
-                      <div className="border-t border-gray-200" />
+                      <div className="border-t border-border" />
 
                       <div className="flex flex-col" style={{ flex: '0 0 50%', minHeight: 0 }}>
-                        <div className="px-4 py-2.5 border-b border-gray-100">
-                          <h3 className="text-sm font-semibold text-gray-900">AI Tools</h3>
-                          <p className="text-[10px] text-gray-500">Analyse and tidy your workflow.</p>
+                        <div className="px-4 py-2.5 border-b border-border">
+                          <h3 className="text-sm font-semibold text-foreground">AI Tools</h3>
+                          <p className="text-[10px] text-muted-foreground">Analyse and tidy your workflow.</p>
                         </div>
                         <div className="flex-1 overflow-y-auto p-3 space-y-3 [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
 
                           {/* Summarize with AI */}
-                          <div className="rounded-xl border border-gray-200 overflow-hidden">
+                          <div className="rounded-xl border border-border overflow-hidden">
                             <button
                               onClick={async () => {
                                 if (isAiSummarizing) return;
@@ -915,22 +1165,22 @@ export default function WorkflowEditorPage() {
                                 );
                                 setIsAiSummarizing(false);
                               }}
-                              className="w-full flex items-center gap-2 px-3 py-2.5 bg-gradient-to-r from-purple-50 to-violet-50 hover:from-purple-100 hover:to-violet-100 transition-colors text-left"
+                              className="w-full flex items-center gap-2 px-3 py-2.5 bg-gradient-to-r from-primary/5 to-secondary/5 hover:from-primary/10 hover:to-secondary/10 transition-colors text-left"
                             >
-                              <div className="w-7 h-7 rounded-lg bg-purple-600 flex items-center justify-center flex-shrink-0">
+                              <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
                                 <Sparkles className="h-3.5 w-3.5 text-white" />
                               </div>
                               <div className="flex-1 min-w-0">
-                                <p className="text-xs font-semibold text-gray-900">Summarise with AI</p>
-                                <p className="text-[10px] text-gray-500">Generate a plain-English description</p>
+                                <p className="text-xs font-semibold text-foreground">Summarise with AI</p>
+                                <p className="text-[10px] text-muted-foreground">Generate a plain-English description</p>
                               </div>
                               {isAiSummarizing && (
-                                <div className="w-4 h-4 border-2 border-purple-400 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+                                <div className="w-4 h-4 border-2 border-primary border-t-transparent rounded-full animate-spin flex-shrink-0" />
                               )}
                             </button>
                             {aiSummary && (
-                              <div className="px-3 py-2.5 bg-white border-t border-gray-100">
-                                <p className="text-[11px] text-gray-700 leading-relaxed">{aiSummary}</p>
+                              <div className="px-3 py-2.5 bg-card border-t border-border">
+                                <p className="text-[11px] text-foreground leading-relaxed">{aiSummary}</p>
                               </div>
                             )}
                           </div>
@@ -948,14 +1198,14 @@ export default function WorkflowEditorPage() {
                               pushHistory(aligned);
                               toast.success('Boxes aligned');
                             }}
-                            className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl border border-gray-200 hover:border-purple-300 hover:bg-purple-50 transition-all text-left group"
+                            className="w-full flex items-center gap-2 px-3 py-2.5 rounded-xl border border-border hover:border-primary/30 hover:bg-accent transition-all text-left group"
                           >
-                            <div className="w-7 h-7 rounded-lg bg-gray-100 group-hover:bg-purple-100 flex items-center justify-center flex-shrink-0 transition-colors">
-                              <LayoutGrid className="h-3.5 w-3.5 text-gray-600 group-hover:text-purple-600" />
+                            <div className="w-7 h-7 rounded-lg bg-muted group-hover:bg-primary/10 flex items-center justify-center flex-shrink-0 transition-colors">
+                              <LayoutGrid className="h-3.5 w-3.5 text-muted-foreground group-hover:text-primary" />
                             </div>
                             <div>
-                              <p className="text-xs font-semibold text-gray-900 group-hover:text-purple-700">Auto Align Boxes</p>
-                              <p className="text-[10px] text-gray-500">Tidy nodes into a vertical layout</p>
+                              <p className="text-xs font-semibold text-foreground group-hover:text-primary">Auto Align Boxes</p>
+                              <p className="text-[10px] text-muted-foreground">Tidy nodes into a vertical layout</p>
                             </div>
                           </button>
 
@@ -974,7 +1224,7 @@ export default function WorkflowEditorPage() {
         {/* Canvas */}
         <div
           ref={canvasRef}
-          className="flex-1 overflow-auto relative bg-gray-50"
+          className="flex-1 overflow-auto relative bg-muted/30"
           style={{ cursor: isPanning ? 'grabbing' : draggingStep ? 'move' : 'default' }}
           onMouseDown={handleCanvasMouseDown}
           onMouseMove={handleCanvasMouseMove}
@@ -983,24 +1233,24 @@ export default function WorkflowEditorPage() {
           onWheel={handleWheel}
         >
           {/* Zoom Controls */}
-          <div className="absolute bottom-6 right-6 z-20 bg-white rounded-lg shadow-lg border border-gray-200 p-2 flex flex-col gap-1" style={{ marginRight: '24px' }}>
+          <div className="absolute bottom-6 right-6 z-20 bg-card rounded-lg shadow-lg border border-border p-2 flex flex-col gap-1" style={{ marginRight: '24px' }}>
             <button
               onClick={zoomIn}
-              className="w-10 h-10 flex items-center justify-center rounded hover:bg-gray-100 transition-colors"
+              className="w-10 h-10 flex items-center justify-center rounded hover:bg-accent transition-colors"
               title="Zoom In"
             >
               <span className="text-xl font-bold">+</span>
             </button>
             <button
               onClick={resetZoom}
-              className="w-10 h-10 flex items-center justify-center rounded hover:bg-gray-100 transition-colors text-xs font-semibold"
+              className="w-10 h-10 flex items-center justify-center rounded hover:bg-accent transition-colors text-xs font-semibold"
               title={`${Math.round(zoom * 100)}%`}
             >
               {Math.round(zoom * 100)}%
             </button>
             <button
               onClick={zoomOut}
-              className="w-10 h-10 flex items-center justify-center rounded hover:bg-gray-100 transition-colors"
+              className="w-10 h-10 flex items-center justify-center rounded hover:bg-accent transition-colors"
               title="Zoom Out"
             >
               <span className="text-xl font-bold">−</span>
@@ -1085,7 +1335,7 @@ export default function WorkflowEditorPage() {
               return (
                 <div
                   key={step.id}
-                  className={`step-card absolute w-[300px] bg-white rounded-lg shadow-sm border-2 cursor-move transition-all ${isSelected ? 'border-primary shadow-md' : 'border-gray-200 hover:border-gray-300'
+                  className={`step-card absolute w-[300px] bg-card rounded-lg shadow-sm border-2 cursor-move transition-all ${isSelected ? 'border-primary shadow-md' : 'border-border hover:border-border/80'
                     }`}
                   onMouseDown={(e) => {
                     e.stopPropagation();
@@ -1108,7 +1358,7 @@ export default function WorkflowEditorPage() {
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center gap-2">
-                        <p className="text-sm font-semibold text-gray-900 truncate">
+                        <p className="text-sm font-semibold text-foreground truncate">
                           {nodeDef?.name || step.type}
                         </p>
                         {step.retryConfig?.enabled && (
@@ -1117,7 +1367,7 @@ export default function WorkflowEditorPage() {
                           </span>
                         )}
                       </div>
-                      <p className="text-xs text-gray-600 truncate mt-0.5">
+                      <p className="text-xs text-muted-foreground truncate mt-0.5">
                         {index + 1}. {step.label}
                       </p>
                     </div>
@@ -1125,9 +1375,9 @@ export default function WorkflowEditorPage() {
                       onClick={(e) => {
                         e.stopPropagation();
                       }}
-                      className="p-1 hover:bg-gray-100 rounded"
+                      className="p-1 hover:bg-accent rounded"
                     >
-                      <MoreVertical className="h-4 w-4 text-gray-400" />
+                      <MoreVertical className="h-4 w-4 text-muted-foreground" />
                     </button>
                   </div>
                 </div>
@@ -1138,8 +1388,8 @@ export default function WorkflowEditorPage() {
 
         {/* Right Configuration Panel */}
         {showRightPanel && selectedStep && (
-          <div className="w-[420px] bg-white border-l border-gray-200 flex flex-col z-20 shadow-lg">
-            <div className="h-16 px-6 flex items-center justify-between border-b border-gray-200">
+          <div className="w-[420px] bg-card border-l border-border flex flex-col z-20 shadow-lg">
+            <div className="h-16 px-6 flex items-center justify-between border-b border-border">
               <div className="flex items-center gap-3">
                 <div
                   className="w-8 h-8 rounded flex items-center justify-center"
@@ -1154,26 +1404,26 @@ export default function WorkflowEditorPage() {
                   })()}
                 </div>
                 <div>
-                  <p className="text-sm font-semibold text-gray-900">
+                  <p className="text-sm font-semibold text-foreground">
                     {sortedSteps.findIndex(s => s.id === selectedStep.id) + 1}. {selectedStep.label}
                   </p>
                 </div>
               </div>
               <button
                 onClick={() => setShowRightPanel(false)}
-                className="p-1.5 hover:bg-gray-100 rounded-lg"
+                className="p-1.5 hover:bg-accent rounded-lg"
               >
-                <X className="h-4 w-4 text-gray-500" />
+                <X className="h-4 w-4 text-muted-foreground" />
               </button>
             </div>
 
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   Node Type <span className="text-red-500">*</span>
                 </label>
-                <button className="w-full px-4 py-2.5 text-left border border-gray-300 rounded-lg hover:bg-gray-50 flex items-center justify-between">
-                  <span className="text-sm text-gray-900">
+                <button className="w-full px-4 py-2.5 text-left border border-border rounded-lg hover:bg-accent flex items-center justify-between">
+                  <span className="text-sm text-foreground">
                     {getNodeDef(selectedStep.type)?.name || selectedStep.type}
                   </span>
                   <span className="text-blue-600 text-xs font-medium">Change</span>
@@ -1181,13 +1431,13 @@ export default function WorkflowEditorPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   Select Node Type
                 </label>
                 <select
                   value={selectedStep.type}
                   onChange={(e) => updateSelectedStep({ type: e.target.value as StepType })}
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+                  className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm bg-background text-foreground"
                 >
                   <option value="">Choose a node...</option>
                   {availableNodes.filter((n: NodeDefinition) => n.category !== 'Triggers' && n.category !== 'Logic').map((node: NodeDefinition) => (
@@ -1199,7 +1449,7 @@ export default function WorkflowEditorPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
+                <label className="block text-sm font-medium text-foreground mb-2">
                   Step Instructions
                 </label>
                 <textarea
@@ -1207,14 +1457,14 @@ export default function WorkflowEditorPage() {
                   onChange={(e) => updateSelectedStep({ prompt: e.target.value })}
                   rows={4}
                   placeholder="Describe what you want this step to do..."
-                  className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm resize-none"
+                  className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm resize-none bg-background text-foreground"
                 />
               </div>
 
               {/* Conditional Logic for Code nodes */}
               {selectedStep.type === 'code' && (
-                <div className="pt-4 border-t border-gray-200">
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                <div className="pt-4 border-t border-border">
+                  <label className="block text-sm font-medium text-foreground mb-2">
                     Execution Logic
                   </label>
                   <select
@@ -1222,7 +1472,7 @@ export default function WorkflowEditorPage() {
                     onChange={(e) => updateSelectedStep({
                       config: { ...selectedStep.config, executionType: e.target.value }
                     })}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+                    className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm bg-background text-foreground"
                   >
                     <option value="sequential">Sequential</option>
                     <option value="if-else">If/Else Conditional</option>
@@ -1232,7 +1482,7 @@ export default function WorkflowEditorPage() {
                   {selectedStep.config.executionType === 'if-else' && (
                     <div className="mt-3 space-y-3">
                       <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">Condition</label>
+                        <label className="block text-xs font-medium text-muted-foreground mb-1">Condition</label>
                         <Input
                           placeholder="e.g., data.value > 10"
                           value={selectedStep.config.condition || ''}
@@ -1242,7 +1492,7 @@ export default function WorkflowEditorPage() {
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">True Branch</label>
+                        <label className="block text-xs font-medium text-muted-foreground mb-1">True Branch</label>
                         <textarea
                           placeholder="Code to execute if true..."
                           value={selectedStep.config.trueBranch || ''}
@@ -1250,11 +1500,11 @@ export default function WorkflowEditorPage() {
                             config: { ...selectedStep.config, trueBranch: e.target.value }
                           })}
                           rows={3}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm resize-none"
+                          className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm resize-none bg-background text-foreground"
                         />
                       </div>
                       <div>
-                        <label className="block text-xs font-medium text-gray-600 mb-1">False Branch</label>
+                        <label className="block text-xs font-medium text-muted-foreground mb-1">False Branch</label>
                         <textarea
                           placeholder="Code to execute if false..."
                           value={selectedStep.config.falseBranch || ''}
@@ -1262,7 +1512,7 @@ export default function WorkflowEditorPage() {
                             config: { ...selectedStep.config, falseBranch: e.target.value }
                           })}
                           rows={3}
-                          className="w-full px-3 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm resize-none"
+                          className="w-full px-3 py-2 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm resize-none bg-background text-foreground"
                         />
                       </div>
                     </div>
@@ -1270,7 +1520,7 @@ export default function WorkflowEditorPage() {
 
                   {selectedStep.config.executionType === 'switch' && (
                     <div className="mt-3">
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Switch Variable</label>
+                      <label className="block text-xs font-medium text-muted-foreground mb-1">Switch Variable</label>
                       <Input
                         placeholder="e.g., data.status"
                         value={selectedStep.config.switchVar || ''}
@@ -1278,14 +1528,14 @@ export default function WorkflowEditorPage() {
                           config: { ...selectedStep.config, switchVar: e.target.value }
                         })}
                       />
-                      <p className="mt-2 text-xs text-gray-500">Define cases in your code using switch statement</p>
+                      <p className="mt-2 text-xs text-muted-foreground">Define cases in your code using switch statement</p>
                     </div>
                   )}
                 </div>
               )}
 
               {/* Retry Configuration */}
-              <div className="pt-4 border-t border-gray-200">
+              <div className="pt-4 border-t border-border">
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
@@ -1298,15 +1548,15 @@ export default function WorkflowEditorPage() {
                         retryDelay: selectedStep.retryConfig?.retryDelay || 1000,
                       }
                     })}
-                    className="rounded border-gray-300"
+                    className="rounded border-border"
                   />
-                  <span className="text-sm font-medium text-gray-700">Enable Retry on Failure</span>
+                  <span className="text-sm font-medium text-foreground">Enable Retry on Failure</span>
                 </label>
 
                 {selectedStep.retryConfig?.enabled && (
                   <div className="mt-3 space-y-3 pl-6">
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Max Retries</label>
+                      <label className="block text-xs font-medium text-muted-foreground mb-1">Max Retries</label>
                       <Input
                         type="number"
                         min="1"
@@ -1321,7 +1571,7 @@ export default function WorkflowEditorPage() {
                       />
                     </div>
                     <div>
-                      <label className="block text-xs font-medium text-gray-600 mb-1">Retry Delay (ms)</label>
+                      <label className="block text-xs font-medium text-muted-foreground mb-1">Retry Delay (ms)</label>
                       <Input
                         type="number"
                         min="100"
@@ -1339,10 +1589,10 @@ export default function WorkflowEditorPage() {
                 )}
               </div>
 
-              <div className="pt-4 border-t border-gray-200">
+              <div className="pt-4 border-t border-border">
                 <Button
                   variant="ghost"
-                  className="w-full text-red-600 hover:bg-red-50"
+                  className="w-full text-red-600 hover:bg-red-500/10"
                   onClick={() => {
                     deleteStep(selectedStep.id);
                     setShowRightPanel(false);
@@ -1358,21 +1608,21 @@ export default function WorkflowEditorPage() {
         {/* Trigger Configuration Panel */}
         {showTriggerPanel && (
           <div className="absolute inset-0 z-50 bg-black/50 flex items-center justify-center" onClick={() => setShowTriggerPanel(false)}>
-            <div className="bg-white rounded-lg shadow-xl w-full max-w-md m-4" onClick={(e) => e.stopPropagation()}>
-              <div className="px-6 py-4 border-b border-gray-200 flex items-center justify-between">
+            <div className="bg-card rounded-lg shadow-xl w-full max-w-md m-4" onClick={(e) => e.stopPropagation()}>
+              <div className="px-6 py-4 border-b border-border flex items-center justify-between">
                 <h2 className="text-lg font-semibold">Workflow Trigger</h2>
-                <button onClick={() => setShowTriggerPanel(false)} className="p-1 hover:bg-gray-100 rounded">
-                  <X className="h-5 w-5 text-gray-500" />
+                <button onClick={() => setShowTriggerPanel(false)} className="p-1 hover:bg-accent rounded">
+                  <X className="h-5 w-5 text-muted-foreground" />
                 </button>
               </div>
 
               <div className="p-6 space-y-4">
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Trigger Type</label>
+                  <label className="block text-sm font-medium text-foreground mb-2">Trigger Type</label>
                   <select
                     value={triggerConfig.type}
                     onChange={(e) => setTriggerConfig({ type: e.target.value as any, config: {} })}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+                    className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm bg-background text-foreground"
                   >
                     <option value="manual">Manual</option>
                     <option value="webhook">Webhook</option>
@@ -1382,14 +1632,14 @@ export default function WorkflowEditorPage() {
 
                 {triggerConfig.type === 'webhook' && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-2">HTTP Method</label>
+                    <label className="block text-sm font-medium text-foreground mb-2">HTTP Method</label>
                     <select
                       value={triggerConfig.config.method || 'POST'}
                       onChange={(e) => setTriggerConfig({
                         ...triggerConfig,
                         config: { ...triggerConfig.config, method: e.target.value }
                       })}
-                      className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm"
+                      className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm bg-background text-foreground"
                     >
                       <option>GET</option>
                       <option>POST</option>
@@ -1402,7 +1652,7 @@ export default function WorkflowEditorPage() {
                 {triggerConfig.type === 'schedule' && (
                   <>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Cron Expression</label>
+                      <label className="block text-sm font-medium text-foreground mb-2">Cron Expression</label>
                       <Input
                         value={triggerConfig.config.cronExpression || ''}
                         onChange={(e) => setTriggerConfig({
@@ -1411,10 +1661,10 @@ export default function WorkflowEditorPage() {
                         })}
                         placeholder="0 0 * * *"
                       />
-                      <p className="mt-1 text-xs text-gray-500">e.g., 0 0 * * * = Daily at midnight</p>
+                      <p className="mt-1 text-xs text-muted-foreground">e.g., 0 0 * * * = Daily at midnight</p>
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">Timezone</label>
+                      <label className="block text-sm font-medium text-foreground mb-2">Timezone</label>
                       <Input
                         value={triggerConfig.config.timezone || 'UTC'}
                         onChange={(e) => setTriggerConfig({
@@ -1428,7 +1678,7 @@ export default function WorkflowEditorPage() {
                 )}
               </div>
 
-              <div className="px-6 py-4 border-t border-gray-200 bg-gray-50 flex justify-end gap-2">
+              <div className="px-6 py-4 border-t border-border bg-muted/50 flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setShowTriggerPanel(false)}>
                   Cancel
                 </Button>

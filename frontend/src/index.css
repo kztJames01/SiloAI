@@ -3,49 +3,85 @@
 @tailwind utilities;
 
 @layer base {
+  /* ── Silo Design System — Light Mode ───────────────────────────────────── */
   :root {
-    --background: 0 0% 100%;
-    --foreground: 222.2 84% 4.9%;
-    --card: 0 0% 100%;
-    --card-foreground: 222.2 84% 4.9%;
+    /* shadcn/ui tokens mapped to Silo palette */
+    --background: 210 40% 98%;          /* #F8FAFC  Slate 50  */
+    --foreground: 222.2 47.4% 11.2%;   /* #0F172A  Slate 900 */
+    --card: 0 0% 100%;                  /* #FFFFFF            */
+    --card-foreground: 222.2 47.4% 11.2%;
     --popover: 0 0% 100%;
-    --popover-foreground: 222.2 84% 4.9%;
-    --primary: 221.2 83.2% 53.3%;
-    --primary-foreground: 210 40% 98%;
-    --secondary: 210 40% 96.1%;
-    --secondary-foreground: 222.2 47.4% 11.2%;
-    --muted: 210 40% 96.1%;
-    --muted-foreground: 215.4 16.3% 46.9%;
-    --accent: 210 40% 96.1%;
+    --popover-foreground: 222.2 47.4% 11.2%;
+    --primary: 224.3 71.4% 40%;        /* #1E40AF  Royal Blue */
+    --primary-foreground: 210 40% 98%; /* #F8FAFC             */
+    --secondary: 160.9 93.5% 30.2%;   /* #059669  Emerald    */
+    --secondary-foreground: 0 0% 100%;
+    --muted: 210 40% 96.1%;            /* #F1F5F9  Slate 100  */
+    --muted-foreground: 215.4 16.3% 46.9%; /* #64748B          */
+    --accent: 210 40% 96.1%;           /* #F1F5F9  Surface Elevated */
     --accent-foreground: 222.2 47.4% 11.2%;
-    --destructive: 0 84.2% 60.2%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 214.3 31.8% 91.4%;
+    --destructive: 0 84.2% 60.2%;      /* #EF4444  Red        */
+    --destructive-foreground: 0 0% 100%;
+    --border: 214.3 31.8% 91.4%;       /* #E2E8F0  Slate 200  */
     --input: 214.3 31.8% 91.4%;
-    --ring: 221.2 83.2% 53.3%;
+    --ring: 224.3 71.4% 40%;           /* #1E40AF             */
     --radius: 0.5rem;
+
+    /* Silo-specific semantic tokens */
+    --tertiary: 37.7 92.1% 44.3%;      /* #D97706  Amber      */
+    --tertiary-foreground: 0 0% 100%;
+    --surface: 0 0% 100%;              /* #FFFFFF             */
+    --surface-elevated: 210 40% 96.1%; /* #F1F5F9             */
+    --text-secondary: 215.4 19.7% 34.5%;  /* #475569           */
+    --text-tertiary: 215.4 16.3% 46.9%;   /* #64748B           */
+    --success: 160.9 84.1% 39.4%;      /* #10B981             */
+    --success-foreground: 0 0% 100%;
+    --warning: 37.7 92.1% 50%;         /* #F59E0B             */
+    --warning-foreground: 222.2 47.4% 11.2%;
+    --error: 0 84.2% 60.2%;            /* #EF4444             */
+    --error-foreground: 0 0% 100%;
+    --info: 217.2 91.2% 59.8%;         /* #3B82F6             */
+    --info-foreground: 0 0% 100%;
   }
 
+  /* ── Silo Design System — Dark Mode ────────────────────────────────────── */
   .dark {
-    --background: 222.2 84% 4.9%;
-    --foreground: 210 40% 98%;
-    --card: 222.2 84% 4.9%;
+    /* shadcn/ui tokens */
+    --background: 222.2 47.4% 11.2%;   /* #0F172A  Slate 900 */
+    --foreground: 210 40% 98%;         /* #F8FAFC            */
+    --card: 217.2 32.6% 17.5%;         /* #1E293B  Slate 800 */
     --card-foreground: 210 40% 98%;
-    --popover: 222.2 84% 4.9%;
+    --popover: 217.2 32.6% 17.5%;
     --popover-foreground: 210 40% 98%;
-    --primary: 217.2 91.2% 59.8%;
+    --primary: 213.1 93.5% 68%;        /* #60A5FA  Sky Blue  */
     --primary-foreground: 222.2 47.4% 11.2%;
-    --secondary: 217.2 32.6% 17.5%;
-    --secondary-foreground: 210 40% 98%;
-    --muted: 217.2 32.6% 17.5%;
-    --muted-foreground: 215 20.2% 65.1%;
-    --accent: 217.2 32.6% 17.5%;
+    --secondary: 160.9 60.7% 52.2%;    /* #34D399  Mint      */
+    --secondary-foreground: 222.2 47.4% 11.2%;
+    --muted: 215.3 25.1% 26.7%;        /* #334155  Slate 700 */
+    --muted-foreground: 215 20.2% 65.1%; /* #94A3B8           */
+    --accent: 215.3 25.1% 26.7%;
     --accent-foreground: 210 40% 98%;
-    --destructive: 0 62.8% 30.6%;
-    --destructive-foreground: 210 40% 98%;
-    --border: 217.2 32.6% 17.5%;
-    --input: 217.2 32.6% 17.5%;
-    --ring: 224.3 76.3% 48%;
+    --destructive: 0 91.3% 71.6%;      /* #F87171            */
+    --destructive-foreground: 222.2 47.4% 11.2%;
+    --border: 215.4 19.7% 34.5%;       /* #475569  Slate 600 */
+    --input: 215.4 19.7% 34.5%;
+    --ring: 213.1 93.5% 68%;           /* #60A5FA            */
+
+    /* Silo-specific semantic tokens */
+    --tertiary: 42.6 95.5% 56.1%;      /* #FBBF24  Amber     */
+    --tertiary-foreground: 222.2 47.4% 11.2%;
+    --surface: 217.2 32.6% 17.5%;      /* #1E293B            */
+    --surface-elevated: 215.3 25.1% 26.7%; /* #334155         */
+    --text-secondary: 215 20.2% 65.1%; /* #94A3B8            */
+    --text-tertiary: 215.4 16.3% 46.9%;/* #64748B            */
+    --success: 141.7 70.5% 58.4%;      /* #4ADE80            */
+    --success-foreground: 222.2 47.4% 11.2%;
+    --warning: 42.6 95.5% 56.1%;       /* #FBBF24            */
+    --warning-foreground: 222.2 47.4% 11.2%;
+    --error: 0 91.3% 71.6%;            /* #F87171            */
+    --error-foreground: 222.2 47.4% 11.2%;
+    --info: 213.1 93.5% 68%;           /* #60A5FA            */
+    --info-foreground: 222.2 47.4% 11.2%;
   }
 }
 

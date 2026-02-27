@@ -30,14 +30,14 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-blue-50 to-indigo-100 px-4">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted dark:from-slate-900 dark:to-slate-800 px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
           <div className="inline-flex items-center justify-center h-16 w-16 bg-primary rounded-2xl mb-4">
-            <Zap className="h-8 w-8 text-white" />
+            <Zap className="h-8 w-8 text-primary-foreground" />
           </div>
-          <h1 className="text-3xl font-bold text-gray-900">Welcome to Silo</h1>
-          <p className="text-gray-600 mt-2">Sign in to your account</p>
+          <h1 className="text-3xl font-bold text-foreground">Welcome to Silo</h1>
+          <p className="text-muted-foreground mt-2">Sign in to your account</p>
         </div>
 
         <Card>
@@ -69,7 +69,7 @@ export default function LoginPage() {
             </form>
 
             <div className="mt-4 text-center text-sm">
-              <span className="text-gray-600">Don't have an account? </span>
+              <span className="text-muted-foreground">Don't have an account? </span>
               <Link to="/register" className="text-primary hover:underline font-medium">
                 Sign up
               </Link>

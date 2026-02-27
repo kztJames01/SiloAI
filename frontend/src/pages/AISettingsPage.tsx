@@ -57,22 +57,22 @@ export function AISettingsPage() {
   return (
     <div className="container mx-auto p-6">
       <div className="mb-6">
-        <h1 className="text-3xl font-bold mb-2">AI Settings</h1>
-        <p className="text-gray-600">
+        <h1 className="text-3xl font-bold text-foreground mb-2">AI Settings</h1>
+        <p className="text-muted-foreground">
           Configure AI providers, monitor usage, and manage prompt templates
         </p>
       </div>
 
       {/* Tabs */}
-      <div className="flex space-x-2 mb-6 border-b">
+      <div className="flex space-x-2 mb-6 border-b border-border">
         {tabs.map((tab) => (
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
             className={`px-4 py-2 font-medium transition-colors ${
               activeTab === tab.id
-                ? 'border-b-2 border-blue-500 text-blue-600'
-                : 'text-gray-600 hover:text-gray-900'
+                ? 'border-b-2 border-primary text-primary'
+                : 'text-muted-foreground hover:text-foreground'
             }`}
           >
             <span className="mr-2">{tab.icon}</span>
@@ -108,7 +108,7 @@ export function AISettingsPage() {
 
                 {templates.length === 0 ? (
                   <Card>
-                    <CardContent className="py-8 text-center text-gray-600">
+                    <CardContent className="py-8 text-center text-muted-foreground">
                       No templates yet. Create your first one!
                     </CardContent>
                   </Card>
@@ -120,10 +120,10 @@ export function AISettingsPage() {
                           <CardTitle className="text-base">{template.name}</CardTitle>
                         </CardHeader>
                         <CardContent>
-                          <p className="text-sm text-gray-600 mb-3">
+                          <p className="text-sm text-muted-foreground mb-3">
                             {template.description || 'No description'}
                           </p>
-                          <div className="text-xs text-gray-500 mb-3">
+                          <div className="text-xs text-muted-foreground mb-3">
                             {template.variables?.length || 0} variables
                           </div>
                           <Button

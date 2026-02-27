@@ -59,7 +59,7 @@ export default function ExecutionDetailPage() {
   if (!data) {
     return (
       <div className="text-center py-12">
-        <p className="text-gray-600">Execution not found</p>
+        <p className="text-muted-foreground">Execution not found</p>
         <Link to="/executions">
           <Button variant="outline" className="mt-4">
             Back to Executions
@@ -89,8 +89,8 @@ export default function ExecutionDetailPage() {
           </Button>
         </Link>
         <div className="flex-1">
-          <h1 className="text-3xl font-bold text-gray-900">Execution Details</h1>
-          <p className="text-gray-600 mt-1">
+          <h1 className="text-3xl font-bold text-foreground">Execution Details</h1>
+          <p className="text-muted-foreground mt-1">
             Workflow: <Link to={`/workflows/${execution.workflow.id}`} className="text-primary hover:underline">{execution.workflow.name}</Link>
           </p>
         </div>
@@ -104,7 +104,7 @@ export default function ExecutionDetailPage() {
         <CardContent>
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <div>
-              <p className="text-sm text-gray-600">Status</p>
+              <p className="text-sm text-muted-foreground">Status</p>
               <p className="mt-1">
                 <span className={`px-2 py-1 rounded-full text-xs font-medium ${getStatusColor(execution.status)}`}>
                   {execution.status}
@@ -112,17 +112,17 @@ export default function ExecutionDetailPage() {
               </p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Started</p>
+              <p className="text-sm text-muted-foreground">Started</p>
               <p className="mt-1 text-sm font-medium">{formatDate(execution.startedAt)}</p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Finished</p>
+              <p className="text-sm text-muted-foreground">Finished</p>
               <p className="mt-1 text-sm font-medium">
                 {execution.finishedAt ? formatDate(execution.finishedAt) : '-'}
               </p>
             </div>
             <div>
-              <p className="text-sm text-gray-600">Duration</p>
+              <p className="text-sm text-muted-foreground">Duration</p>
               <p className="mt-1 text-sm font-medium">{duration ? `${duration}s` : '-'}</p>
             </div>
           </div>
@@ -139,7 +139,7 @@ export default function ExecutionDetailPage() {
             {maskedExecution.logs.map((log: any) => (
               <div
                 key={log.id}
-                className="flex items-start space-x-3 p-3 rounded-lg bg-gray-50 hover:bg-gray-100"
+                className="flex items-start space-x-3 p-3 rounded-lg bg-muted/50 hover:bg-muted"
               >
                 <div className="flex-shrink-0 mt-1">
                   {log.level === 'ERROR' ? (
@@ -147,23 +147,23 @@ export default function ExecutionDetailPage() {
                   ) : log.level === 'INFO' ? (
                     <CheckCircle2 className="h-4 w-4 text-blue-600" />
                   ) : (
-                    <Clock className="h-4 w-4 text-gray-600" />
+                    <Clock className="h-4 w-4 text-muted-foreground" />
                   )}
                 </div>
                 <div className="flex-1 min-w-0">
                   <div className="flex items-center justify-between">
-                    <p className="text-sm font-medium text-gray-900">{log.nodeName}</p>
-                    <p className="text-xs text-gray-500">
+                    <p className="text-sm font-medium text-foreground">{log.nodeName}</p>
+                    <p className="text-xs text-muted-foreground">
                       {new Date(log.timestamp).toLocaleTimeString()}
                     </p>
                   </div>
-                  <p className="text-sm text-gray-600 mt-1">{log.message}</p>
+                  <p className="text-sm text-muted-foreground mt-1">{log.message}</p>
                   {log.data && (
                     <details className="mt-2">
-                      <summary className="text-xs text-gray-500 cursor-pointer hover:text-gray-700">
+                      <summary className="text-xs text-muted-foreground cursor-pointer hover:text-foreground">
                         View data
                       </summary>
-                      <pre className="mt-2 text-xs bg-gray-800 text-gray-100 p-3 rounded overflow-x-auto">
+                      <pre className="mt-2 text-xs bg-zinc-900 text-zinc-100 p-3 rounded overflow-x-auto">
                         {JSON.stringify(log.data, null, 2)}
                       </pre>
                     </details>
@@ -182,7 +182,7 @@ export default function ExecutionDetailPage() {
             <CardTitle>Output Data</CardTitle>
           </CardHeader>
           <CardContent>
-            <pre className="bg-gray-800 text-gray-100 p-4 rounded overflow-x-auto text-sm">
+            <pre className="bg-zinc-900 text-zinc-100 p-4 rounded overflow-x-auto text-sm">
               {JSON.stringify(maskedExecution.output, null, 2)}
             </pre>
           </CardContent>

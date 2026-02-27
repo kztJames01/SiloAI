@@ -24,7 +24,7 @@ interface StatCardProps {
   linkIcon?: boolean;
 }
 
-function StatCard({ icon, label, value, subValue, badge, color = 'bg-purple-100', linkIcon }: StatCardProps) {
+function StatCard({ icon, label, value, subValue, badge, color = 'bg-primary/10', linkIcon }: StatCardProps) {
   return (
     <Card className="hover:shadow-md transition-shadow">
       <CardContent className="p-6">
@@ -33,21 +33,19 @@ function StatCard({ icon, label, value, subValue, badge, color = 'bg-purple-100'
             {icon}
           </div>
           {linkIcon && (
-            <ExternalLink className="h-4 w-4 text-gray-400 cursor-pointer hover:text-gray-600" />
+            <ExternalLink className="h-4 w-4 text-muted-foreground cursor-pointer hover:text-foreground" />
           )}
         </div>
-        <div className="space-y-1">
-          <p className="text-sm text-gray-500">{label}</p>
-          <div className="flex items-baseline gap-2">
-            <p className="text-3xl font-bold text-gray-900">{value}</p>
-            {subValue && <span className="text-sm text-gray-400">{subValue}</span>}
+        <div className="text-sm text-muted-foreground">
+            <p className="text-xl font-bold text-foreground">{value}</p>
+            <p className="text-sm text-muted-foreground mt-0.5">{label}</p>
+            {subValue && <span className="text-sm text-muted-foreground">{subValue}</span>}
             {badge && (
-              <span className="inline-flex items-center gap-1 text-xs font-medium text-gray-500 bg-gray-100 px-2 py-0.5 rounded-full">
+              <span className="inline-flex items-center gap-1 text-xs font-medium text-muted-foreground bg-muted px-2 py-0.5 rounded-full">
                 {badge}
               </span>
             )}
           </div>
-        </div>
       </CardContent>
     </Card>
   );
@@ -156,15 +154,15 @@ export default function OrganizationDashboardPage() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-background">
       <div className="max-w-7xl mx-auto px-6 py-8">
         {/* Header */}
         <div className="mb-8">
-          <div className="flex items-center gap-2 text-sm text-gray-500 mb-2">
-            <span className="text-purple-600 font-medium">Organization</span>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground mb-2">
+            <span className="text-primary font-medium">Organization</span>
           </div>
           <div className="flex items-center justify-between">
-            <h1 className="text-3xl font-bold text-gray-900">My Organization</h1>
+            <h1 className="text-3xl font-bold text-foreground">My Organization</h1>
             <Button variant="outline" size="sm" className="gap-2">
               <Settings className="h-4 w-4" />
               Organization settings
@@ -175,39 +173,39 @@ export default function OrganizationDashboardPage() {
         {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
           <StatCard
-            icon={<Zap className="h-6 w-6 text-purple-600" />}
+            icon={<Zap className="h-6 w-6 text-primary" />}
             label="Average daily usage"
             value={stats.averageDailyUsage}
             badge={`${stats.percentageUsage}%`}
-            color="bg-purple-100"
+            color="bg-primary/10"
             linkIcon
           />
           <StatCard
-            icon={<Sparkles className="h-6 w-6 text-purple-600" />}
+            icon={<Sparkles className="h-6 w-6 text-primary" />}
             label="Credits left"
             value={stats.creditsLeft.toLocaleString()}
             subValue={`/ ${stats.totalCredits.toLocaleString()}`}
-            color="bg-purple-100"
+            color="bg-primary/10"
             linkIcon
           />
           <StatCard
-            icon={<Calendar className="h-6 w-6 text-purple-600" />}
+            icon={<Calendar className="h-6 w-6 text-primary" />}
             label="Usage reset in"
             value={`${stats.resetDays} days`}
             subValue={stats.resetDate}
-            color="bg-purple-100"
+            color="bg-primary/10"
           />
           <StatCard
-            icon={<Play className="h-6 w-6 text-purple-600" />}
+            icon={<Play className="h-6 w-6 text-primary" />}
             label="Active Workflows"
             value={stats.activeWorkflows}
             subValue={`/ ${stats.totalWorkflows}`}
-            color="bg-purple-100"
+            color="bg-primary/10"
           />
         </div>
 
         {/* Webinar Promotion Banner */}
-        <Card className="mb-8 bg-gradient-to-r from-purple-50 to-pink-50 border-purple-200 overflow-hidden">
+        <Card className="mb-8 bg-gradient-to-r from-primary/10 to-secondary/10 border-primary/20 overflow-hidden">
           <CardContent className="p-6">
             <div className="flex items-center gap-6">
               {/* Illustration placeholder */}
@@ -218,14 +216,14 @@ export default function OrganizationDashboardPage() {
               </div>
               {/* Content */}
               <div className="flex-1">
-                <h3 className="text-xl font-bold text-gray-900 mb-2">
+                <h3 className="text-xl font-bold text-foreground mb-2">
                   Go from zero to your first automation in 45 mins
                 </h3>
-                <p className="text-gray-600 text-sm mb-4">
+                <p className="text-muted-foreground text-sm mb-4">
                   Join our live webinar and learn to connect apps, map data, integrate AI, and master
                   filters live. Includes a Q&amp;A session to answer your questions.
                 </p>
-                <Button className="gap-2 bg-purple-600 hover:bg-purple-700">
+                <Button className="gap-2 bg-primary hover:bg-primary/90">
                   Save my spot
                   <ArrowRight className="h-4 w-4" />
                 </Button>
@@ -238,12 +236,12 @@ export default function OrganizationDashboardPage() {
         <div className="mb-8">
           <div className="flex items-center justify-between mb-6">
             <div>
-              <h2 className="text-xl font-bold text-gray-900 mb-1">Suggested apps</h2>
-              <p className="text-sm text-gray-500">Choose an app to explore more resources and start automating!</p>
+              <h2 className="text-xl font-bold text-foreground mb-1">Suggested apps</h2>
+              <p className="text-sm text-muted-foreground">Choose an app to explore more resources and start automating!</p>
             </div>
             <Link
               to="/integrations"
-              className="flex items-center gap-1 text-sm font-medium text-purple-600 hover:text-purple-700 hover:underline"
+              className="flex items-center gap-1 text-sm font-medium text-primary hover:text-primary/80 hover:underline"
             >
               More resources
               <ArrowRight className="h-4 w-4" />
@@ -254,10 +252,10 @@ export default function OrganizationDashboardPage() {
               <Link
                 key={app.name}
                 to={`/integrations/${app.name.toLowerCase().replace(/\s+/g, '-')}`}
-                className="group bg-white border border-gray-200 rounded-xl p-4 flex flex-col items-center gap-3 hover:shadow-md hover:border-purple-300 transition-all cursor-pointer"
+                className="group bg-card border border-border rounded-xl p-4 flex flex-col items-center gap-3 hover:shadow-md hover:border-primary/40 transition-all cursor-pointer"
               >
                 <AppIcon name={app.name} icon={app.icon} color={app.color} size="md" />
-                <span className="text-xs font-medium text-center text-gray-700 group-hover:text-purple-600">
+                  <span className="text-xs font-medium text-center text-muted-foreground group-hover:text-primary">
                   {app.name}
                 </span>
               </Link>
@@ -269,12 +267,12 @@ export default function OrganizationDashboardPage() {
         <div>
           <div className="flex items-center justify-between mb-6">
             <div className="flex items-center gap-2">
-              <TrendingUp className="h-5 w-5 text-purple-600" />
-              <h2 className="text-xl font-bold text-gray-900">Trending Agents</h2>
+              <TrendingUp className="h-5 w-5 text-primary" />
+              <h2 className="text-xl font-bold text-foreground">Trending Agents</h2>
             </div>
             <Link
               to="/agents"
-              className="flex items-center gap-1 text-sm font-medium text-purple-600 hover:text-purple-700 hover:underline"
+              className="flex items-center gap-1 text-sm font-medium text-primary hover:text-primary/80 hover:underline"
             >
               Explore library of agents
               <ArrowRight className="h-4 w-4" />
@@ -284,7 +282,7 @@ export default function OrganizationDashboardPage() {
             {TRENDING_AGENTS.map((agent, idx) => (
               <Card
                 key={idx}
-                className="group hover:shadow-lg hover:border-purple-300 transition-all cursor-pointer"
+                className="group hover:shadow-lg hover:border-primary/30 transition-all cursor-pointer"
               >
                 <CardContent className="p-5">
                   {/* App Icons */}
@@ -302,13 +300,13 @@ export default function OrganizationDashboardPage() {
                       </div>
                     ))}
                     {agent.count && (
-                      <div className="ml-2 w-8 h-8 rounded-full bg-gray-100 flex items-center justify-center text-xs font-semibold text-gray-600">
+                      <div className="ml-2 w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-semibold text-muted-foreground">
                         +{agent.count}
                       </div>
                     )}
                   </div>
                   {/* Agent Name */}
-                  <h3 className="text-sm font-semibold text-gray-800 text-center group-hover:text-purple-600 transition-colors">
+                  <h3 className="text-sm font-semibold text-foreground text-center group-hover:text-primary transition-colors">
                     {agent.name}
                   </h3>
                 </CardContent>
@@ -318,17 +316,17 @@ export default function OrganizationDashboardPage() {
         </div>
 
         {/* Info Footer */}
-        <div className="mt-12 flex items-start gap-3 p-4 bg-blue-50 border border-blue-200 rounded-xl">
-          <Info className="h-5 w-5 text-blue-600 flex-shrink-0 mt-0.5" />
-          <div className="text-sm text-gray-700">
+          <div className="mt-12 flex items-start gap-3 p-4 bg-info/10 border border-info/20 rounded-xl">
+          <Info className="h-5 w-5 text-info flex-shrink-0 mt-0.5" />
+          <div className="text-sm text-foreground">
             <p className="font-medium mb-1">Need help getting started?</p>
-            <p className="text-gray-600">
+            <p className="text-muted-foreground">
               Check out our{' '}
-              <a href="#" className="text-purple-600 hover:underline font-medium">
+              <a href="#" className="text-primary hover:underline font-medium">
                 documentation
               </a>{' '}
               and{' '}
-              <a href="#" className="text-purple-600 hover:underline font-medium">
+              <a href="#" className="text-primary hover:underline font-medium">
                 video tutorials
               </a>{' '}
               to learn more about building workflows and connecting apps.

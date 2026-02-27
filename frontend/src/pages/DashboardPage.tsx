@@ -76,8 +76,8 @@ export default function DashboardPage() {
           {/* Hero Section with AI Prompt */}
           <section className="text-center space-y-6">
             <div>
-              <h1 className="text-4xl font-bold text-gray-900 mb-2">What would you like to automate?</h1>
-              <p className="text-gray-600">Describe your workflow in plain English</p>
+              <h1 className="text-4xl font-bold text-foreground mb-2">What would you like to automate?</h1>
+              <p className="text-muted-foreground">Describe your workflow in plain English</p>
             </div>
             
             <form onSubmit={handleAiPromptSubmit} className="max-w-2xl mx-auto">
@@ -91,7 +91,7 @@ export default function DashboardPage() {
                   value={aiPrompt}
                   onChange={(e) => setAiPrompt(e.target.value)}
                   placeholder="Enter an idea or app name to get started"
-                  className="w-full pl-32 pr-24 py-4 text-base border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className="w-full pl-32 pr-24 py-4 text-base border border-border rounded-lg bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
                 <button
                   type="submit"
@@ -118,8 +118,8 @@ export default function DashboardPage() {
           {/* Start from Scratch - Template Gallery */}
           <section id="template-gallery" className="space-y-6 scroll-mt-8">
             <div>
-              <h2 className="text-2xl font-semibold text-gray-900 mb-2">Start from scratch</h2>
-              <p className="text-gray-600 text-sm">Choose a template to get started quickly</p>
+              <h2 className="text-2xl font-semibold text-foreground mb-2">Start from scratch</h2>
+              <p className="text-muted-foreground text-sm">Choose a template to get started quickly</p>
             </div>
             <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
               {templates.map((template) => (
@@ -131,8 +131,8 @@ export default function DashboardPage() {
                   <Card className="text-center hover:shadow-md transition-shadow cursor-pointer border-2 hover:border-primary/50">
                     <CardContent className="pt-6 pb-4">
                       <div className="text-4xl mb-3">{template.icon}</div>
-                      <h3 className="font-semibold text-gray-900 mb-1">{template.category}</h3>
-                      <p className="text-xs text-gray-600">{template.description.split('.')[0]}</p>
+                      <h3 className="font-semibold text-foreground mb-1">{template.category}</h3>
+                      <p className="text-xs text-muted-foreground">{template.description.split('.')[0]}</p>
                     </CardContent>
                   </Card>
                 </Link>
@@ -144,8 +144,8 @@ export default function DashboardPage() {
           <section className="space-y-4">
             <div className="flex justify-between items-center">
               <div>
-                <h2 className="text-2xl font-semibold text-gray-900">Your Workflows</h2>
-                <p className="text-sm text-gray-600 mt-1">Manage and monitor your automations</p>
+                <h2 className="text-2xl font-semibold text-foreground">Your Workflows</h2>
+                <p className="text-sm text-muted-foreground mt-1">Manage and monitor your automations</p>
               </div>
               <Link to="/workflows/new">
                 <Button size="sm">
@@ -159,11 +159,11 @@ export default function DashboardPage() {
               <Card>
                 <CardContent className="py-12 text-center">
                   <div className="flex flex-col items-center">
-                    <div className="h-20 w-20 bg-gray-100 rounded-full flex items-center justify-center mb-4">
-                      <Zap className="h-10 w-10 text-gray-400" />
+                    <div className="h-20 w-20 bg-muted rounded-full flex items-center justify-center mb-4">
+                      <Zap className="h-10 w-10 text-muted-foreground" />
                     </div>
-                    <h3 className="text-lg font-medium text-gray-900 mb-2">No workflows yet</h3>
-                    <p className="text-gray-600 mb-6 text-sm">Get started by creating your first automation</p>
+                    <h3 className="text-lg font-medium text-foreground mb-2">No workflows yet</h3>
+                    <p className="text-muted-foreground mb-6 text-sm">Get started by creating your first automation</p>
                     <Link to="/workflows/new">
                       <Button>
                         <Plus className="h-4 w-4 mr-2" />
@@ -184,19 +184,19 @@ export default function DashboardPage() {
                           <div
                             className={`px-2 py-0.5 rounded-full text-xs font-medium flex-shrink-0 ${
                               workflow.isActive
-                                ? 'bg-green-100 text-green-700'
-                                : 'bg-gray-100 text-gray-600'
+                                ? 'bg-green-100 dark:bg-green-900/20 text-green-700 dark:text-green-400'
+                                : 'bg-muted text-muted-foreground'
                             }`}
                           >
                             {workflow.isActive ? 'Active' : 'Inactive'}
                           </div>
                         </div>
                         {workflow.description && (
-                          <p className="text-sm text-gray-600 line-clamp-2 mt-1">{workflow.description}</p>
+                          <p className="text-sm text-muted-foreground line-clamp-2 mt-1">{workflow.description}</p>
                         )}
                       </CardHeader>
                       <CardContent>
-                        <div className="space-y-2 text-xs text-gray-600">
+                        <div className="space-y-2 text-xs text-muted-foreground">
                           <div className="flex items-center gap-2">
                             <Clock className="h-3.5 w-3.5" />
                             <span>Updated {formatDate(workflow.updatedAt)}</span>
@@ -229,13 +229,13 @@ export default function DashboardPage() {
           {/* Discover Applications */}
           <section id="discover-apps" className="space-y-4 scroll-mt-8">
             <div>
-              <h2 className="text-2xl font-semibold text-gray-900">Discover Applications</h2>
-              <p className="text-sm text-gray-600 mt-1">Connect apps to power your workflows</p>
+              <h2 className="text-2xl font-semibold text-foreground">Discover Applications</h2>
+              <p className="text-sm text-muted-foreground mt-1">Connect apps to power your workflows</p>
             </div>
             {integrations.length === 0 ? (
               <Card>
                 <CardContent className="py-8 text-center">
-                  <p className="text-sm text-gray-600">No applications found yet.</p>
+                  <p className="text-sm text-muted-foreground">No applications found yet.</p>
                 </CardContent>
               </Card>
             ) : (
@@ -243,14 +243,14 @@ export default function DashboardPage() {
                 {integrations.slice(0, 8).map((integration: any) => (
                   <Card key={integration.id} className="hover:shadow-md hover:border-primary/30 transition-all cursor-pointer">
                     <CardContent className="p-4 text-center">
-                      <div className="w-12 h-12 mx-auto mb-2 bg-gray-100 rounded-lg flex items-center justify-center">
+                      <div className="w-12 h-12 mx-auto mb-2 bg-muted rounded-lg flex items-center justify-center">
                         {integration.iconUrl ? (
                           <img src={integration.iconUrl} alt={integration.displayName} className="w-8 h-8" />
                         ) : (
-                          <Globe className="w-6 h-6 text-gray-400" />
+                          <Globe className="w-6 h-6 text-muted-foreground" />
                         )}
                       </div>
-                      <h3 className="text-sm font-medium text-gray-900 truncate">
+                      <h3 className="text-sm font-medium text-foreground truncate">
                         {integration.displayName || integration.name}
                       </h3>
                     </CardContent>
