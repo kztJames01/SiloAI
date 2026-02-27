@@ -138,7 +138,7 @@ export function LLMConfigPanel({ config, onChange }: LLMConfigProps) {
             onChange={(e) => setTemperature(parseFloat(e.target.value))}
             className="w-full"
           />
-          <div className="flex justify-between text-xs text-gray-500">
+          <div className="flex justify-between text-xs text-muted-foreground">
             <span>Precise</span>
             <span>Balanced</span>
             <span>Creative</span>
@@ -162,9 +162,9 @@ export function LLMConfigPanel({ config, onChange }: LLMConfigProps) {
         </Button>
 
         {/* Info Box */}
-        <div className="p-3 bg-blue-50 border border-blue-200 rounded-md text-sm">
+        <div className="p-3 bg-info/10 border border-info/20 rounded-md text-sm">
           <p className="font-semibold mb-1">💡 Data Privacy</p>
-          <p className="text-gray-700">
+          <p className="text-foreground">
             {provider === 'ollama'
               ? 'Using Ollama means your data stays on your own server. No external API calls.'
               : provider === 'custom'

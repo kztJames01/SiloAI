@@ -138,7 +138,7 @@ export function PromptTemplateEditor({
               {variables.map((variable, index) => (
                 <div
                   key={index}
-                  className="flex items-center gap-2 p-2 bg-gray-50 rounded"
+                  className="flex items-center gap-2 p-2 bg-muted rounded"
                 >
                   <span className="font-mono text-sm flex-1">
                     {'{{ ' + variable.name + ' }}'}
@@ -199,9 +199,9 @@ export function PromptTemplateEditor({
         </div>
 
         {/* Example */}
-        <div className="p-3 bg-blue-50 border border-blue-200 rounded-md text-sm">
+        <div className="p-3 bg-info/10 border border-info/20 rounded-md text-sm">
           <p className="font-semibold mb-1">📝 Example</p>
-          <pre className="text-xs font-mono bg-white p-2 rounded border">
+          <pre className="text-xs font-mono bg-muted/50 p-2 rounded border border-border">
             {`Template: "Summarize {{ text }} in {{ length }} sentences"
 Variables: text (string), length (number)
 Result: "Summarize [user input] in 3 sentences"`}

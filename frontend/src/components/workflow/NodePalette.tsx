@@ -18,7 +18,7 @@ export function NodePalette({ nodes, onAddNode }: NodePaletteProps) {
         <div className="space-y-4">
           {categories.map((category) => (
             <div key={category}>
-              <h3 className="text-xs font-semibold text-gray-700 mb-2">{category}</h3>
+              <h3 className="text-xs font-semibold text-muted-foreground mb-2">{category}</h3>
               <div className="space-y-1">
                 {nodes
                   .filter((node) => node.category === category)
@@ -26,7 +26,7 @@ export function NodePalette({ nodes, onAddNode }: NodePaletteProps) {
                     <button
                       key={node.type}
                       onClick={() => onAddNode(node)}
-                      className="w-full flex items-center space-x-2 px-3 py-2 text-sm rounded-md hover:bg-gray-100 transition-colors text-left"
+                      className="w-full flex items-center space-x-2 px-3 py-2 text-sm rounded-md hover:bg-accent transition-colors text-left"
                       style={{ borderLeft: `3px solid ${node.color}` }}
                     >
                       <Plus className="h-3 w-3 flex-shrink-0" />

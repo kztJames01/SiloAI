@@ -15,7 +15,7 @@ export function NodeConfigPanel({ node, onUpdate, onDelete }: NodeConfigPanelPro
     return (
       <Card className="h-full">
         <CardContent className="flex items-center justify-center h-full">
-          <p className="text-sm text-gray-500">Select a node to configure</p>
+          <p className="text-sm text-muted-foreground">Select a node to configure</p>
         </CardContent>
       </Card>
     );
@@ -59,13 +59,13 @@ export function NodeConfigPanel({ node, onUpdate, onDelete }: NodeConfigPanelPro
                 placeholder="https://api.example.com"
               />
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
                   Method
                 </label>
                 <select
                   value={node.data.method || 'GET'}
                   onChange={(e) => handleInputChange('method', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary"
+                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-background text-foreground"
                 >
                   <option value="GET">GET</option>
                   <option value="POST">POST</option>
@@ -75,13 +75,13 @@ export function NodeConfigPanel({ node, onUpdate, onDelete }: NodeConfigPanelPro
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
                   Headers (JSON)
                 </label>
                 <textarea
                   value={node.data.headers || '{}'}
                   onChange={(e) => handleInputChange('headers', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary font-mono text-sm"
+                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary font-mono text-sm bg-background text-foreground"
                   rows={3}
                   placeholder='{"Content-Type": "application/json"}'
                 />
@@ -92,13 +92,13 @@ export function NodeConfigPanel({ node, onUpdate, onDelete }: NodeConfigPanelPro
           {/* Code Node */}
           {node.data.nodeType === 'code' && (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">
+              <label className="block text-sm font-medium text-foreground mb-1">
                 JavaScript Code
               </label>
               <textarea
                 value={node.data.code || ''}
                 onChange={(e) => handleInputChange('code', e.target.value)}
-                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary font-mono text-sm"
+                className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary font-mono text-sm bg-background text-foreground"
                 rows={6}
                 placeholder="return data.map(item => item.name);"
               />
@@ -109,13 +109,13 @@ export function NodeConfigPanel({ node, onUpdate, onDelete }: NodeConfigPanelPro
           {node.data.nodeType === 'if' && (
             <>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">
+                <label className="block text-sm font-medium text-foreground mb-1">
                   Condition (JavaScript)
                 </label>
                 <textarea
                   value={node.data.condition || ''}
                   onChange={(e) => handleInputChange('condition', e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-primary font-mono text-sm"
+                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary font-mono text-sm bg-background text-foreground"
                   rows={2}
                   placeholder="data.value > 100"
                 />
@@ -124,8 +124,8 @@ export function NodeConfigPanel({ node, onUpdate, onDelete }: NodeConfigPanelPro
           )}
 
           <div className="pt-4 border-t">
-            <p className="text-xs text-gray-500">Node ID: {node.id}</p>
-            <p className="text-xs text-gray-500">Type: {node.data.nodeType}</p>
+            <p className="text-xs text-muted-foreground">Node ID: {node.id}</p>
+            <p className="text-xs text-muted-foreground">Type: {node.data.nodeType}</p>
           </div>
         </div>
       </CardContent>

@@ -36,7 +36,7 @@ export function TokenUsageDashboard() {
       <Card>
         <CardContent className="py-8 text-center">
           <div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto"></div>
-          <p className="mt-2 text-gray-600">Loading token usage...</p>
+          <p className="mt-2 text-muted-foreground">Loading token usage...</p>
         </CardContent>
       </Card>
     );
@@ -45,7 +45,7 @@ export function TokenUsageDashboard() {
   if (!stats) {
     return (
       <Card>
-        <CardContent className="py-8 text-center text-gray-600">
+        <CardContent className="py-8 text-center text-muted-foreground">
           No token usage data available
         </CardContent>
       </Card>
@@ -90,7 +90,7 @@ export function TokenUsageDashboard() {
             <div className="text-3xl font-bold text-blue-600">
               {formatNumber(stats.totalTokens)}
             </div>
-            <p className="text-sm text-gray-600 mt-1">tokens used</p>
+            <p className="text-sm text-muted-foreground mt-1">tokens used</p>
           </CardContent>
         </Card>
 
@@ -102,7 +102,7 @@ export function TokenUsageDashboard() {
             <div className="text-3xl font-bold text-green-600">
               {formatCost(stats.totalCost)}
             </div>
-            <p className="text-sm text-gray-600 mt-1">estimated cost</p>
+            <p className="text-sm text-muted-foreground mt-1">estimated cost</p>
           </CardContent>
         </Card>
       </div>
@@ -118,13 +118,13 @@ export function TokenUsageDashboard() {
               <div key={provider} className="flex items-center justify-between">
                 <div>
                   <div className="font-medium capitalize">{provider}</div>
-                  <div className="text-sm text-gray-600">
+                  <div className="text-sm text-muted-foreground">
                     {formatNumber(data.tokens)} tokens
                   </div>
                 </div>
                 <div className="text-right">
                   <div className="font-semibold">{formatCost(data.cost)}</div>
-                  <div className="text-sm text-gray-600">
+                  <div className="text-sm text-muted-foreground">
                     {((data.tokens / stats.totalTokens) * 100).toFixed(1)}%
                   </div>
                 </div>
@@ -148,7 +148,7 @@ export function TokenUsageDashboard() {
                 <div key={model} className="flex items-center justify-between">
                   <div>
                     <div className="font-medium">{model}</div>
-                    <div className="text-sm text-gray-600">
+                    <div className="text-sm text-muted-foreground">
                       {formatNumber(data.tokens)} tokens
                     </div>
                   </div>

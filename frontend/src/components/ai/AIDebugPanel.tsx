@@ -60,9 +60,9 @@ export function AIDebugPanel({ executionId }: AIDebugPanelProps) {
       case 'error':
         return 'bg-red-100 text-red-800';
       case 'tool_call':
-        return 'bg-purple-100 text-purple-800';
+        return 'bg-primary/10 text-primary';
       default:
-        return 'bg-gray-100 text-gray-800';
+        return 'bg-muted text-foreground';
     }
   };
 
@@ -71,7 +71,7 @@ export function AIDebugPanel({ executionId }: AIDebugPanelProps) {
       <Card>
         <CardContent className="py-8 text-center">
           <div className="animate-spin h-8 w-8 border-4 border-blue-500 border-t-transparent rounded-full mx-auto"></div>
-          <p className="mt-2 text-gray-600">Loading debug logs...</p>
+          <p className="mt-2 text-muted-foreground">Loading debug logs...</p>
         </CardContent>
       </Card>
     );
@@ -90,15 +90,15 @@ export function AIDebugPanel({ executionId }: AIDebugPanelProps) {
               <div
                 key={log.id}
                 onClick={() => setSelectedLog(log)}
-                className={`p-3 border rounded-md cursor-pointer hover:bg-gray-50 transition ${
-                  selectedLog?.id === log.id ? 'border-blue-500 bg-blue-50' : ''
+                className={`p-3 border rounded-md cursor-pointer hover:bg-accent/50 transition ${
+                  selectedLog?.id === log.id ? 'border-primary bg-primary/5' : ''
                 }`}
               >
                 <div className="flex items-center justify-between mb-1">
                   <span className={`px-2 py-0.5 rounded text-xs font-medium ${getTypeColor(log.type)}`}>
                     {log.type}
                   </span>
-                  <span className="text-xs text-gray-500">
+                  <span className="text-xs text-muted-foreground">
                     {formatLatency(log.latency)}
                   </span>
                 </div>
@@ -106,7 +106,7 @@ export function AIDebugPanel({ executionId }: AIDebugPanelProps) {
                   <span className="font-medium">{log.provider}</span> / {log.model}
                 </div>
                 {log.tokenUsage && (
-                  <div className="text-xs text-gray-600 mt-1">
+                  <div className="text-xs text-muted-foreground mt-1">
                     {log.tokenUsage.totalTokens} tokens
                     {log.tokenUsage.cost && ` • $${log.tokenUsage.cost.toFixed(4)}`}
                   </div>
@@ -157,8 +157,8 @@ export function AIDebugPanel({ executionId }: AIDebugPanelProps) {
                   <h4 className="font-medium mb-2">Messages</h4>
                   <div className="space-y-2 max-h-[200px] overflow-y-auto">
                     {selectedLog.messages.map((msg, idx) => (
-                      <div key={idx} className="p-2 bg-gray-50 rounded text-sm">
-                        <div className="font-medium text-xs text-gray-600 mb-1">
+                      <div key={idx} className="p-2 bg-muted rounded text-sm">
+                        <div className="font-medium text-xs text-muted-foreground mb-1">
                           {msg.role}
                         </div>
                         <div className="whitespace-pre-wrap">{msg.content}</div>
@@ -172,7 +172,7 @@ export function AIDebugPanel({ executionId }: AIDebugPanelProps) {
               {selectedLog.response && (
                 <div>
                   <h4 className="font-medium mb-2">Response</h4>
-                  <div className="p-3 bg-gray-50 rounded text-sm">
+                  <div className="p-3 bg-muted rounded text-sm">
                     <pre className="whitespace-pre-wrap">
                       {selectedLog.response.content}
                     </pre>
@@ -206,7 +206,7 @@ export function AIDebugPanel({ executionId }: AIDebugPanelProps) {
               )}
             </div>
           ) : (
-            <div className="text-center text-gray-500 py-8">
+            <div className="text-center text-muted-foreground py-8">
               Select a log to view details
             </div>
           )}
