@@ -1,5 +1,10 @@
 import { Stack } from 'expo-router';
+import { ThemeProvider } from '../src/theme';
 
 export default function RootLayout() {
-  return <Stack />;
+  return (
+    <ThemeProvider>
+      <Stack />
+    </ThemeProvider>
+  );
 }
