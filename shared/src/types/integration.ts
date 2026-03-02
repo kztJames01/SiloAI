@@ -7,21 +7,54 @@
  * Supported integration providers
  */
 export enum IntegrationProvider {
+  // Google Suite
   GMAIL = 'gmail',
-  SLACK = 'slack',
   GOOGLE_SHEETS = 'google_sheets',
-  NOTION = 'notion',
-  AIRTABLE = 'airtable',
-  GITHUB = 'github',
-  STRIPE = 'stripe',
+  GOOGLE_DRIVE = 'google_drive',
+  GOOGLE_CALENDAR = 'google_calendar',
+  GOOGLE_DOCS = 'google_docs',
+  YOUTUBE = 'youtube',
+
+  // Microsoft Suite
+  MICROSOFT_OUTLOOK = 'microsoft_outlook',
+  MICROSOFT_TEAMS = 'microsoft_teams',
+  MICROSOFT_EXCEL = 'microsoft_excel',
+  MICROSOFT_ONEDRIVE = 'microsoft_onedrive',
+
+  // Communication
+  SLACK = 'slack',
+  DISCORD = 'discord',
   TWILIO = 'twilio',
-  OPENAI = 'openai',
-  WEBHOOK = 'webhook',
-  DROPBOX = 'dropbox',
-  TRELLO = 'trello',
-  SENDGRID = 'sendgrid',
-  HUBSPOT = 'hubspot',
   ZOOM = 'zoom',
+  SENDGRID = 'sendgrid',
+
+  // Productivity & Project Management
+  NOTION = 'notion',
+  TRELLO = 'trello',
+  CLICKUP = 'clickup',
+  AIRTABLE = 'airtable',
+
+  // Marketing
+  MAILCHIMP = 'mailchimp',
+  HUBSPOT = 'hubspot',
+  FACEBOOK_ADS = 'facebook_ads',
+  TYPEFORM = 'typeform',
+
+  // Payments
+  STRIPE = 'stripe',
+
+  // AI
+  OPENAI = 'openai',
+  CHATGPT = 'chatgpt',
+
+  // Development
+  GITHUB = 'github',
+
+  // Storage
+  DROPBOX = 'dropbox',
+
+  // Custom
+  WEBHOOK = 'webhook',
 }
 
 /**
@@ -47,6 +80,8 @@ export enum IntegrationCategory {
   MARKETING = 'marketing',
   AI = 'ai',
   CUSTOM = 'custom',
+  VIDEO = 'video',
+  FORMS = 'forms',
 }
 
 /**

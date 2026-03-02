@@ -160,6 +160,8 @@ export class GeminiProvider extends BaseLLMProvider {
   protected calculateCost(usage: TokenUsage): number {
     // Pricing per 1M tokens (as of 2026)
     const pricing: Record<string, { prompt: number; completion: number }> = {
+      'gemini-3.1-pro': { prompt: 0.5, completion: 3.0 },
+      'gemini-3-flash': { prompt: 0.1, completion: 0.4 },
       'gemini-pro': { prompt: 0.5, completion: 1.5 },
       'gemini-1.5-pro': { prompt: 1.25, completion: 5 },
       'gemini-1.5-flash': { prompt: 0.075, completion: 0.3 },
