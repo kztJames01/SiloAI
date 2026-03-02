@@ -1,20 +1,28 @@
-# Dependencies
+# Build artifacts
 node_modules/
-.pnp
-.pnp.js
-
-# Testing
-coverage/
-
-# Production
-build/
+__pycache__/
 dist/
+build/
+.next/
+out/
+.nuxt/
 
-# Environment
+# Environment variables
 .env
 .env.local
-.env.*.local
-.env.example
+.env.development.local
+.env.test.local
+.env.production.local
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
 # Logs
 logs
 *.log
