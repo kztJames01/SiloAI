@@ -37,7 +37,7 @@ export function LLMConfigPanel({ config, onChange }: LLMConfigProps) {
   const providerModels: Record<string, string[]> = {
     openai: ['gpt-4o', 'gpt-4-turbo', 'gpt-4', 'gpt-3.5-turbo'],
     anthropic: ['claude-3-5-sonnet-20241022', 'claude-3-opus', 'claude-3-sonnet', 'claude-3-haiku'],
-    gemini: ['gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-pro', 'gemini-ultra'],
+    gemini: ['gemini-3.1-pro-preview', 'gemini-3-flash-preview', 'gemini-1.5-pro', 'gemini-1.5-flash'],
     ollama: ['llama3', 'mistral', 'codellama', 'phi', 'neural-chat'],
     custom: [],
   };
@@ -59,7 +59,7 @@ export function LLMConfigPanel({ config, onChange }: LLMConfigProps) {
               const models = providerModels[e.target.value];
               if (models.length > 0) setModel(models[0]);
             }}
-            className="w-full px-3 py-2 border rounded-md"
+            className="w-full px-3 py-2 border rounded-md text-input"
           >
             <option value="openai">OpenAI</option>
             <option value="anthropic">Anthropic (Claude)</option>
@@ -76,7 +76,7 @@ export function LLMConfigPanel({ config, onChange }: LLMConfigProps) {
             <select
               value={model}
               onChange={(e) => setModel(e.target.value)}
-              className="w-full px-3 py-2 border rounded-md"
+              className="w-full px-3 py-2 border rounded-md text-input"
             >
               {providerModels[provider].map((m) => (
                 <option key={m} value={m}>

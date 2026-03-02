@@ -12,6 +12,7 @@ import {
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import type { NodeDefinition } from '@silo/shared';
+import { POPULAR_INTEGRATIONS } from '../lib/integrations';
 
 type StepType = string; // Now using backend node types
 
@@ -1079,7 +1080,7 @@ export default function WorkflowEditorPage() {
                     <div className="flex flex-col h-full">
                       <div className="px-4 py-3 border-b border-border">
                         <h3 className="text-sm font-semibold text-foreground">Linked assets</h3>
-                        <p className="text-[10px] text-muted-foreground mt-0.5">Assets referenced in this workflow.</p>
+                        <p className="text-[10px] text-muted-foreground mt-0.5">Assets and app integrations for this workflow.</p>
                       </div>
                       <div className="p-3 border-b border-border flex gap-2">
                         <button className="flex items-center gap-1.5 px-3 py-1.5 border border-border rounded-lg text-xs font-semibold text-foreground hover:bg-accent transition-colors">
@@ -1089,6 +1090,24 @@ export default function WorkflowEditorPage() {
                           <span className="text-red-500">□</span> Upload Files
                         </button>
                       </div>
+
+                      {/* App Integrations */}
+                      <div className="px-3 pt-3 pb-2">
+                        <p className="text-[10px] font-semibold text-muted-foreground uppercase tracking-widest mb-2">App Integrations</p>
+                        <div className="grid grid-cols-2 gap-1.5">
+                          {POPULAR_INTEGRATIONS.slice(0, 10).map((app) => (
+                            <button
+                              key={app.provider}
+                              className="flex items-center gap-2 px-2.5 py-2 border border-border rounded-lg text-xs text-muted-foreground hover:border-primary/40 hover:text-primary transition-all"
+                              onClick={() => window.open(`/integrations/${app.provider}`, '_blank')}
+                            >
+                              <span className="text-base flex-shrink-0">{app.icon}</span>
+                              <span className="truncate font-medium">{app.name}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+
                       <div className="flex-1 flex flex-col items-center justify-center p-4 text-center">
                         <div className="w-full bg-muted/50 rounded-xl p-6 border border-border">
                           <Link2 className="h-8 w-8 text-muted-foreground/40 mx-auto mb-2" />

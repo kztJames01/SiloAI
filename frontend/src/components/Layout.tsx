@@ -37,7 +37,7 @@ export function Layout() {
       {/* Sidebar */}
       <aside
         className={`fixed left-0 top-16 h-[calc(100vh-4rem)] bg-card border-r border-border flex flex-col transition-all duration-300 z-40 ${
-          sidebarOpen ? 'w-80' : 'w-20'
+          sidebarOpen ? 'w-80' : 'w-30'
         }`}
       >
         {/* Create Button */}
@@ -119,7 +119,7 @@ export function Layout() {
       {/* Main Content Area */}
       <div className={`transition-all duration-300 ${sidebarOpen ? 'ml-80' : 'ml-20'}`}>
         {/* Fixed Header */}
-        <header className="fixed top-0 left-0 right-0 bg-card border-b border-border z-50">
+        <header className="fixed top-0 left-0 right-0 bg-background border-b border-border z-50">
           <div className="px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between items-center h-16">
               {/* Left: Menu + Logo */}

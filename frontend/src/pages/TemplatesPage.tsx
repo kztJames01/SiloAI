@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Bookmark, TrendingUp } from 'lucide-react';
 import { Card, CardContent } from '../components/ui/Card';
+import { getIntegration } from '../lib/integrations';
 
 const categories = [
   'All templates',
@@ -27,14 +28,14 @@ const useCases = [
 ];
 
 const templates = [
-  // ── Healthcare ──────────────────────────────────────────────────────────────
+  // Healthcare
   {
     id: 'healthcare-intake',
     category: 'Healthcare',
     title: 'Patient Intake Follow-up',
     description: 'When a patient form arrives, validate data, notify care staff, and wait for approval before processing.',
     icon: '🏥',
-    connectors: ['📋', '📧', '✅'],
+    connectors: ['typeform', 'gmail', 'slack'],
     tags: ['Automated', 'Multi-step'],
     usageCount: '2.4K',
     featured: true,
@@ -45,19 +46,19 @@ const templates = [
     title: 'Appointment Scheduler',
     description: 'Schedule patient appointments and send automated reminders via email and SMS.',
     icon: '📅',
-    connectors: ['📅', '📧', '📱'],
+    connectors: ['google_calendar', 'gmail', 'twilio'],
     tags: ['Automated', 'Healthcare'],
     usageCount: '1.9K',
     featured: false,
   },
-  // ── Field Service ───────────────────────────────────────────────────────────
+  //Field Service
   {
     id: 'field-hazard',
     category: 'Field Service',
     title: 'Hazard Report Escalation',
     description: 'Capture hazard details, notify supervisor instantly, and log the incident to the safety management system.',
     icon: '⚠️',
-    connectors: ['📸', '📧', '📊'],
+    connectors: ['typeform', 'slack', 'google_sheets'],
     tags: ['Instant', 'Mobile-ready'],
     usageCount: '1.8K',
     featured: true,
@@ -68,7 +69,7 @@ const templates = [
     title: 'Daily Inventory Check',
     description: 'Run every morning, pull stock levels, and send a low-stock alert when items fall below reorder point.',
     icon: '📦',
-    connectors: ['📦', '📊', '🔔'],
+    connectors: ['airtable', 'google_sheets', 'slack'],
     tags: ['Scheduled', 'Field'],
     usageCount: '1.5K',
     featured: false,
@@ -79,19 +80,19 @@ const templates = [
     title: 'Maintenance Request Handler',
     description: 'Receive requests, create work orders, assign technicians, and notify them automatically.',
     icon: '🔧',
-    connectors: ['📝', '👨‍🔧', '✅'],
+    connectors: ['typeform', 'trello', 'slack'],
     tags: ['Instant', 'Service'],
     usageCount: '1.6K',
     featured: false,
   },
-  // ── Invoicing ──────────────────────────────────────────────────────────────
+  //Invoicing
   {
     id: 'invoice-approval',
     category: 'Invoicing',
     title: 'Invoice Approval Workflow',
     description: 'Parse invoice totals, route high-value invoices for manager sign-off, then post approved records automatically.',
     icon: '📄',
-    connectors: ['📊', '✅', '💰'],
+    connectors: ['google_sheets', 'gmail', 'stripe'],
     tags: ['Automated', 'Business'],
     usageCount: '3.2K',
     featured: true,
@@ -102,31 +103,31 @@ const templates = [
     title: 'Expense Report Approval',
     description: 'Submit expense reports, validate against company policy, flag violations, and sync approved records with Xero.',
     icon: '💳',
-    connectors: ['💳', '✅', '📊'],
+    connectors: ['google_sheets', 'slack', 'stripe'],
     tags: ['Automated', 'Finance'],
     usageCount: '2.7K',
     featured: true,
   },
-  // ── Data collection / HR ────────────────────────────────────────────────────
+  //Data collection / HR
   {
     id: 'onboarding',
     category: 'Data collection',
     title: 'Employee Onboarding',
     description: 'Detect new hires, provision Google Workspace + Slack accounts, and send a personalised welcome email.',
     icon: '👥',
-    connectors: ['📋', '👤', '📧'],
+    connectors: ['google_drive', 'slack', 'gmail'],
     tags: ['Automated', 'HR'],
     usageCount: '2.1K',
     featured: false,
   },
-  // ── Students ────────────────────────────────────────────────────────────────
+  //Students
   {
     id: 'student-research-assistant',
     category: 'Students',
     title: 'AI Research Assistant',
     description: 'Submit a research topic and get back a structured summary with key findings, notable authors, and further reading.',
     icon: '🎓',
-    connectors: ['🔍', '🤖', '📄'],
+    connectors: ['chatgpt', 'notion', 'google_docs'],
     tags: ['AI', 'Research'],
     usageCount: '5.1K',
     featured: true,
@@ -137,7 +138,7 @@ const templates = [
     title: 'Essay Feedback Bot',
     description: 'Paste a draft essay and receive instant, actionable feedback on structure, argument, grammar, and citations.',
     icon: '✏️',
-    connectors: ['📝', '🤖', '💬'],
+    connectors: ['google_docs', 'chatgpt', 'slack'],
     tags: ['AI', 'Writing'],
     usageCount: '4.3K',
     featured: true,
@@ -148,7 +149,7 @@ const templates = [
     title: 'Smart Study Planner',
     description: 'Upload your syllabus and exam dates — get an AI-generated week-by-week study schedule synced to Google Calendar.',
     icon: '📆',
-    connectors: ['📚', '🤖', '📅'],
+    connectors: ['google_drive', 'chatgpt', 'google_calendar'],
     tags: ['AI', 'Productivity'],
     usageCount: '3.7K',
     featured: false,
@@ -159,19 +160,19 @@ const templates = [
     title: 'Citation & Bibliography Builder',
     description: 'Paste raw source URLs and get a perfectly formatted APA 7th edition bibliography, sorted alphabetically.',
     icon: '📑',
-    connectors: ['📄', '🤖', '✅'],
+    connectors: ['chatgpt', 'google_docs', 'notion'],
     tags: ['AI', 'Academic'],
     usageCount: '2.9K',
     featured: false,
   },
-  // ── SMB ──────────────────────────────────────────────────────────────────
+  //SMB
   {
     id: 'smb-lead-capture',
     category: 'SMB',
     title: 'Lead Capture & CRM Sync',
     description: 'Capture website leads, extract contact info with AI, score them, and sync automatically to HubSpot.',
     icon: '🎯',
-    connectors: ['🌐', '🤖', '💼'],
+    connectors: ['typeform', 'chatgpt', 'hubspot'],
     tags: ['Automated', 'Sales'],
     usageCount: '6.8K',
     featured: true,
@@ -182,7 +183,7 @@ const templates = [
     title: 'Customer Support Triage',
     description: 'Classify incoming tickets by intent, escalate billing/refunds, and draft an on-brand AI first response.',
     icon: '🎧',
-    connectors: ['📨', '🤖', '✅'],
+    connectors: ['gmail', 'chatgpt', 'slack'],
     tags: ['AI', 'Support'],
     usageCount: '4.2K',
     featured: true,
@@ -193,7 +194,7 @@ const templates = [
     title: 'Invoice Payment Reminders',
     description: 'Every Monday, fetch overdue invoices from Xero and fire personalised reminder emails to customers with outstanding balances.',
     icon: '💰',
-    connectors: ['📊', '📧', '🔔'],
+    connectors: ['stripe', 'gmail', 'slack'],
     tags: ['Scheduled', 'Finance'],
     usageCount: '3.5K',
     featured: false,
@@ -204,19 +205,19 @@ const templates = [
     title: 'Post-Purchase Review Request',
     description: 'Three days after an order ships, send a personalised review request to boost your Google / Trustpilot ratings.',
     icon: '⭐',
-    connectors: ['🛒', '⏱️', '📧'],
+    connectors: ['stripe', 'mailchimp', 'gmail'],
     tags: ['Automated', 'Marketing'],
     usageCount: '2.8K',
     featured: false,
   },
-  // ── Startups ────────────────────────────────────────────────────────────────
+  //Startups
   {
     id: 'startup-user-feedback',
     category: 'Startups',
     title: 'User Feedback Analyzer',
     description: 'Collect in-app feedback, run sentiment analysis, escalate negative responses to CS, and log insights to ProductBoard.',
     icon: '💡',
-    connectors: ['💬', '🤖', '📊'],
+    connectors: ['typeform', 'chatgpt', 'notion'],
     tags: ['AI', 'Product'],
     usageCount: '3.9K',
     featured: true,
@@ -227,7 +228,7 @@ const templates = [
     title: 'User Onboarding Email Series',
     description: "On sign-up, personalise a welcome email to the user's role and use case, then dispatch via Customer.io.",
     icon: '🚀',
-    connectors: ['👤', '🤖', '📧'],
+    connectors: ['mailchimp', 'chatgpt', 'gmail'],
     tags: ['AI', 'Growth'],
     usageCount: '5.4K',
     featured: true,
@@ -238,7 +239,7 @@ const templates = [
     title: 'Weekly Metrics Digest',
     description: 'Every Friday, pull KPIs from your analytics stack, get an AI plain-English summary, and post it to Slack.',
     icon: '📈',
-    connectors: ['📊', '🤖', '💬'],
+    connectors: ['google_sheets', 'chatgpt', 'slack'],
     tags: ['Scheduled', 'Analytics'],
     usageCount: '4.1K',
     featured: false,
@@ -249,7 +250,7 @@ const templates = [
     title: 'A/B Test Result Processor',
     description: 'Fetch experiment data weekly, determine the winning variant with AI statistical analysis, and notify your product team.',
     icon: '🧪',
-    connectors: ['🔬', '🤖', '💬'],
+    connectors: ['google_sheets', 'chatgpt', 'slack'],
     tags: ['AI', 'Product'],
     usageCount: '2.3K',
     featured: false,
@@ -410,14 +411,19 @@ export default function TemplatesPage() {
                       
                       {/* Connector Icons */}
                       <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
-                        {template.connectors.map((connector, idx) => (
-                          <div
-                            key={idx}
-                            className="w-10 h-10 bg-card rounded-lg shadow-md flex items-center justify-center text-xl"
-                          >
-                            {connector}
-                          </div>
-                        ))}
+                        {template.connectors.map((provider, idx) => {
+                          const app = getIntegration(provider);
+                          return (
+                            <div
+                              key={idx}
+                              className="w-10 h-10 bg-card rounded-lg shadow-md flex items-center justify-center text-xl"
+                              style={app ? { backgroundColor: app.color + '15' } : undefined}
+                              title={app?.name || provider}
+                            >
+                              {app?.icon || '🔌'}
+                            </div>
+                          );
+                        })}
                       </div>
                     </div>
 

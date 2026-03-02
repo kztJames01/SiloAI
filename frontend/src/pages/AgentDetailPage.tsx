@@ -1,5 +1,5 @@
 import { useState, useEffect } from 'react';
-import { useParams, useNavigate, Link } from 'react-router-dom';
+import { useParams, useNavigate, Link, useLocation } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   ArrowLeft,
@@ -17,6 +17,7 @@ import {
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { agentApi } from '../lib/api';
+import { APP_INTEGRATIONS } from '../lib/integrations';
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 type TriggerType = 'manual' | 'schedule' | 'webhook';
@@ -62,6 +63,17 @@ const DEFAULT_TOOLS = [
   'post_twitter',
 ];
 
+// Integration-powered tools that map to real app connectors
+const INTEGRATION_TOOLS = APP_INTEGRATIONS
+  .filter((a) => a.enabled && !a.comingSoon)
+  .map((app) => ({
+    name: `${app.provider}_action`,
+    label: app.name,
+    icon: app.icon,
+    color: app.color,
+    provider: app.provider,
+  }));
+
 // ─── Status badge ─────────────────────────────────────────────────────────────
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { cls: string; icon: React.ReactNode; label: string }> = {
@@ -95,27 +107,33 @@ function StatusBadge({ status }: { status: string }) {
   );
 }
 
-// ─── Main Component ───────────────────────────────────────────────────────────
+//Main Component
 export default function AgentDetailPage() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
+  const location = useLocation();
   const queryClient = useQueryClient();
-  const isNew = id === 'new';
+  // Route /agents/new has no :id param so id can be undefined OR the literal string 'new'
+  const isNew = !id || id === 'new';
+
+  // If navigated from Library with a preset, use it to seed the form
+  const presetSeed = isNew ? (location.state as any)?.preset : null;
 
   const [form, setForm] = useState<AgentForm>({
-    name: '',
-    description: '',
-    systemPrompt: '',
-    llmProvider: 'OPENAI',
-    llmModel: 'gpt-4o',
-    maxIterations: 5,
-    triggerType: 'manual',
-    tools: [],
+    name: presetSeed?.name ?? '',
+    description: presetSeed?.description ?? '',
+    systemPrompt: presetSeed?.systemPrompt ?? '',
+    llmProvider: (presetSeed?.llmProvider as LLMProvider) ?? 'OPENAI',
+    llmModel: presetSeed?.llmModel ?? 'gpt-4o',
+    maxIterations: presetSeed?.maxIterations ?? 5,
+    triggerType: (presetSeed?.triggerType as TriggerType) ?? 'manual',
+    tools: presetSeed?.tools?.map((t: string) => ({ name: t, type: 'builtin' })) ?? [],
     isActive: true,
   });
-  const [dirty, setDirty] = useState(false);
+  const [dirty, setDirty] = useState(!!presetSeed);
   const [runTask, setRunTask] = useState('');
   const [showRunPanel, setShowRunPanel] = useState(false);
+  const [showActivity, setShowActivity] = useState(false);
   const [expanded, setExpanded] = useState(false);
   const [customTool, setCustomTool] = useState('');
 
@@ -213,7 +231,7 @@ export default function AgentDetailPage() {
   return (
     <div className="min-h-screen bg-background">
       {/* Top Bar */}
-      <div className="bg-card border-b border-border px-6 py-3 flex items-center justify-between sticky top-0 z-30">
+      <div className="bg-background border-b border-border px-6 py-3 flex items-center justify-between sticky top-0 z-30">
         <div className="flex items-center gap-4">
           <Link to="/agents" className="text-muted-foreground hover:text-foreground transition-colors">
             <ArrowLeft className="h-5 w-5" />
@@ -228,6 +246,11 @@ export default function AgentDetailPage() {
             ) : (
               <span className="text-muted-foreground italic text-sm">Unnamed agent</span>
             )}
+            {isNew && presetSeed && (
+              <span className="text-xs px-2 py-0.5 bg-amber-500/10 text-amber-600 rounded-full font-medium">
+                from template
+              </span>
+            )}
           </div>
 
           {/* Status toggle */}
@@ -240,7 +263,7 @@ export default function AgentDetailPage() {
                 }`}
               >
                 <span
-                  className={`inline-block h-4 w-4 transform rounded-full bg-card shadow transition-transform ${
+                  className={`inline-block h-4 w-4 transform rounded-full bg-primary-foreground shadow transition-transform ${
                     form.isActive ? 'translate-x-4' : 'translate-x-0.5'
                   }`}
                 />
@@ -251,12 +274,21 @@ export default function AgentDetailPage() {
         </div>
 
         <div className="flex items-center gap-2">
+          <Button
+            size="sm"
+            variant={showActivity ? 'primary' : 'outline'}
+            className="gap-1.5"
+            onClick={() => setShowActivity((v) => !v)}
+          >
+            <Clock className="h-3.5 w-3.5" />
+            Activity
+          </Button>
           {!isNew && (
             <Button
               size="sm"
               variant="outline"
               className="gap-1.5"
-              onClick={() => setShowRunPanel(!showRunPanel)}
+              onClick={() => { setShowActivity(true); setShowRunPanel(!showRunPanel); }}
             >
               <Play className="h-3.5 w-3.5" />
               Run
@@ -280,12 +312,21 @@ export default function AgentDetailPage() {
 
       {/* Body: two columns */}
       <div className="flex max-w-7xl mx-auto gap-0 min-h-[calc(100vh-57px)]">
-        {/* ── LEFT: Activity ── */}
-        {!isNew && (
+        {/* ── LEFT: Activity (collapsed by default) ── */}
+        {showActivity && (
           <div className="w-80 flex-shrink-0 border-r border-border bg-card flex flex-col">
-            <div className="p-4 border-b border-border">
-              <p className="text-sm font-semibold text-foreground">Activity</p>
-              <p className="text-xs text-muted-foreground mt-0.5">Recent agent runs</p>
+            <div className="p-4 border-b border-border flex items-center justify-between">
+              <div>
+                <p className="text-sm font-semibold text-foreground">Activity</p>
+                <p className="text-xs text-muted-foreground mt-0.5">Recent agent runs</p>
+              </div>
+              <button
+                onClick={() => setShowActivity(false)}
+                className="text-muted-foreground hover:text-foreground transition-colors text-lg leading-none"
+                title="Close"
+              >
+                ×
+              </button>
             </div>
 
             {/* Run input */}
@@ -315,7 +356,13 @@ export default function AgentDetailPage() {
 
             {/* Execution list */}
             <div className="flex-1 overflow-y-auto divide-y divide-gray-100">
-              {executions.length === 0 ? (
+              {isNew ? (
+                <div className="flex flex-col items-center justify-center py-16 text-muted-foreground text-center px-4">
+                  <Clock className="h-8 w-8 mb-3 opacity-40" />
+                  <p className="text-xs font-medium">No runs yet</p>
+                  <p className="text-xs mt-1 opacity-60">Create this agent to start tracking runs here</p>
+                </div>
+              ) : executions.length === 0 ? (
                 <div className="flex flex-col items-center justify-center py-16 text-muted-foreground">
                   <Clock className="h-8 w-8 mb-3 opacity-40" />
                   <p className="text-xs">No runs yet</p>
@@ -444,20 +491,28 @@ export default function AgentDetailPage() {
               </div>
               <div className="border border-border rounded-xl overflow-hidden">
                 <div className="p-3 flex flex-wrap gap-2 min-h-[60px]">
-                  {form.tools.map((tool, i) => (
-                    <span
-                      key={i}
-                      className="inline-flex items-center gap-1.5 text-xs px-2.5 py-1 bg-blue-500/10 text-blue-500 rounded-lg font-medium"
-                    >
-                      {tool.name.replace(/_/g, ' ')}
-                      <button
-                        onClick={() => patch('tools', form.tools.filter((_, idx) => idx !== i))}
-                        className="text-blue-400 hover:text-red-500 transition-colors"
+                  {form.tools.map((tool, i) => {
+                    const intTool = INTEGRATION_TOOLS.find((t) => t.name === tool.name);
+                    return (
+                      <span
+                        key={i}
+                        className={`inline-flex items-center gap-1.5 text-xs px-2.5 py-1 rounded-lg font-medium ${
+                          intTool
+                            ? 'bg-purple-500/10 text-purple-600'
+                            : 'bg-blue-500/10 text-blue-500'
+                        }`}
                       >
-                        ×
-                      </button>
-                    </span>
-                  ))}
+                        {intTool && <span className="text-sm">{intTool.icon}</span>}
+                        {intTool ? intTool.label : tool.name.replace(/_/g, ' ')}
+                        <button
+                          onClick={() => patch('tools', form.tools.filter((_, idx) => idx !== i))}
+                          className="text-current opacity-60 hover:text-red-500 hover:opacity-100 transition-colors"
+                        >
+                          ×
+                        </button>
+                      </span>
+                    );
+                  })}
                   {form.tools.length === 0 && (
                     <span className="text-xs text-muted-foreground py-1">No tools selected — add from the list below</span>
                   )}
@@ -480,6 +535,27 @@ export default function AgentDetailPage() {
                       </button>
                     ))}
                   </div>
+                  {/* Integration tools */}
+                  <div className="mt-3 pt-3 border-t border-border">
+                    <p className="text-xs font-medium text-muted-foreground mb-2">App integrations</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {INTEGRATION_TOOLS.filter(
+                        (t) => !form.tools.some((ft) => ft.name === t.name)
+                      ).slice(0, 12).map((t) => (
+                        <button
+                          key={t.name}
+                          onClick={() =>
+                            patch('tools', [...form.tools, { name: t.name, type: 'integration' }])
+                          }
+                          className="inline-flex items-center gap-1.5 text-xs px-2 py-1 bg-card border border-border text-muted-foreground rounded-lg hover:border-primary/40 hover:text-primary transition-all"
+                        >
+                          <span className="text-sm">{t.icon}</span>
+                          {t.label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+
                   {/* Custom tool */}
                   <div className="flex gap-2 mt-3">
                     <input

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import {
   Plus,
@@ -24,8 +24,9 @@ import { agentApi, api } from '../lib/api';
 import { LLMConfigPanel } from '../components/ai/LLMConfigPanel';
 import { TokenUsageDashboard } from '../components/ai/TokenUsageDashboard';
 import { PromptTemplateEditor } from '../components/ai/PromptTemplateEditor';
+import { POPULAR_INTEGRATIONS } from '../lib/integrations';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
+//Types 
 interface PresetAgent {
   id: string;
   category: string;
@@ -57,28 +58,32 @@ interface Agent {
 function NewAgentModal({
   presets,
   onClose,
-  onSelectPreset,
   onScratch,
 }: {
   presets: PresetAgent[];
   onClose: () => void;
-  onSelectPreset: (preset: PresetAgent) => void;
   onScratch: () => void;
 }) {
   const [hovered, setHovered] = useState<string | null>(null);
   const [cat, setCat] = useState('All');
+  const navigate = useNavigate();
   const categories = ['All', ...Array.from(new Set(presets.map((p) => p.category)))];
   const filtered = cat === 'All' ? presets : presets.filter((p) => p.category === cat);
   const hoveredPreset = presets.find((x) => x.id === hovered) ?? null;
 
+  const handleSelectPreset = (preset: PresetAgent) => {
+    onClose();
+    navigate('/agents/new', { state: { preset } });
+  };
+
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60" onClick={onClose}>
       <div
-        className="bg-card rounded-2xl shadow-2xl overflow-hidden flex"
+        className="bg-input rounded-2xl shadow-2xl overflow-hidden flex"
         style={{ width: 960, maxHeight: '85vh' }}
         onClick={(e) => e.stopPropagation()}
       >
-        {/* ── Panel 1: Category sidebar ── */}
+        {/*Panel 1: Category sidebar ── */}
         <div className="w-48 border-r border-border bg-muted/50 flex flex-col flex-shrink-0">
           <div className="p-4 border-b border-border">
             <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">New Agent</p>
@@ -86,9 +91,9 @@ function NewAgentModal({
           <div className="p-3">
             <button
               onClick={onScratch}
-              className="w-full text-left px-3 py-2.5 rounded-xl text-sm font-semibold text-primary bg-primary/10 hover:bg-primary/20 transition-colors mb-3"
+              className="w-full text-left px-3 py-2.5 rounded-xl text-md font-semibold text-primary bg-primary/10 hover:bg-primary/20 transition-colors mb-3"
             >
-              + Create from scratch
+              Create from scratch
             </button>
             <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-2 px-1">
               Use a template
@@ -111,7 +116,7 @@ function NewAgentModal({
           </div>
         </div>
 
-        {/* ── Panel 2: Agent grid (always visible) ── */}
+        {/*Panel 2: Agent grid (always visible)*/}
         <div className="flex-1 overflow-y-auto border-r border-border">
           <div className="p-4">
             <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-3">
@@ -123,7 +128,7 @@ function NewAgentModal({
                   key={p.id}
                   onMouseEnter={() => setHovered(p.id)}
                   onMouseLeave={() => setHovered(null)}
-                  onClick={() => onSelectPreset(p)}
+                  onClick={() => handleSelectPreset(p)}
                   className={`text-left rounded-xl border p-3 transition-all group ${
                     hovered === p.id
                       ? 'border-primary bg-primary/5 shadow-md scale-[1.02]'
@@ -200,7 +205,7 @@ function NewAgentModal({
               </div>
 
               <div className="mt-auto">
-                <Button className="w-full" onClick={() => onSelectPreset(hoveredPreset)}>
+                <Button className="w-full" onClick={() => handleSelectPreset(hoveredPreset)}>
                   Use this agent
                 </Button>
               </div>
@@ -364,17 +369,33 @@ function AgentCard({
   );
 }
 
-// ─── Preset Card ─────────────────────────────────────────────────────────────
+//Preset Card
 function PresetCard({
   preset,
-  onUse,
 }: {
   preset: PresetAgent;
-  onUse: (preset: PresetAgent) => void;
 }) {
+  const [hovered, setHovered] = useState(false);
+  const navigate = useNavigate();
+
+  const handleUseTemplate = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigate('/agents/new', { state: { preset } });
+  };
+
   return (
-    <div onClick={() => onUse(preset)} className="cursor-pointer">
-      <Card className="hover:shadow-md transition-all border border-border hover:border-primary/40 group h-full">
+    <div
+      className={`relative transition-all duration-200 ${hovered ? 'z-10' : 'z-0'}`}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+    >
+      <Card
+        className={`border transition-all duration-200 h-full cursor-default ${
+          hovered
+            ? 'shadow-2xl border-primary/60 scale-[1.04] bg-card'
+            : 'shadow-sm border-border hover:border-primary/30'
+        }`}
+      >
         <CardContent className="p-5">
           <div className="flex items-start gap-3 mb-3">
             <span className="text-3xl flex-shrink-0">{preset.icon}</span>
@@ -388,34 +409,43 @@ function PresetCard({
             </div>
           </div>
 
-          <p className="text-xs text-muted-foreground line-clamp-2 mb-4">{preset.description}</p>
+          <p className={`text-xs text-muted-foreground mb-4 leading-relaxed transition-all duration-200 ${hovered ? '' : 'line-clamp-2'}`}>
+            {preset.description}
+          </p>
 
-          <div className="flex flex-wrap gap-1 mb-4">
+          <div className="flex flex-wrap gap-1 mb-3">
             <span className="text-xs px-2 py-0.5 bg-primary/10 text-primary rounded-md font-medium capitalize">
               {preset.triggerType}
             </span>
             <span className="text-xs px-2 py-0.5 bg-muted text-muted-foreground rounded-md">
               {preset.category}
             </span>
+            <span className="text-xs px-2 py-0.5 bg-secondary/10 text-secondary rounded-md">
+              {preset.llmModel}
+            </span>
           </div>
 
           {/* Tool icons */}
           {preset.tools.length > 0 && (
             <div className="flex flex-wrap gap-1 mb-4">
-              {preset.tools.slice(0, 3).map((t) => (
+              {(hovered ? preset.tools : preset.tools.slice(0, 3)).map((t) => (
                 <span key={t} className="text-xs px-2 py-0.5 bg-blue-500/10 text-blue-500 rounded-md">
                   {t.replace(/_/g, ' ')}
                 </span>
               ))}
-              {preset.tools.length > 3 && (
+              {!hovered && preset.tools.length > 3 && (
                 <span className="text-xs px-2 py-0.5 bg-muted text-muted-foreground rounded-md">
-                  +{preset.tools.length - 3}
+                  +{preset.tools.length - 3} more
                 </span>
               )}
             </div>
           )}
 
-          <Button size="sm" className="w-full text-xs h-8 gap-1.5 group-hover:bg-primary/90">
+          <Button
+            size="sm"
+            className={`w-full text-xs h-8 gap-1.5 transition-all duration-200 ${hovered ? 'opacity-100' : 'opacity-80'}`}
+            onClick={handleUseTemplate}
+          >
             <Zap className="h-3.5 w-3.5" />
             Use this template
           </Button>
@@ -425,7 +455,7 @@ function PresetCard({
   );
 }
 
-// ─── Main Page ────────────────────────────────────────────────────────────────
+//Main page
 type Tab = 'my-agents' | 'library' | 'config' | 'tokens' | 'templates';
 
 export default function AgentsPage() {
@@ -495,14 +525,6 @@ export default function AgentsPage() {
   const presets = presetsData ?? [];
 
   // Mutations
-  const createMutation = useMutation({
-    mutationFn: async (data: any) => agentApi.create(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ['agents'] });
-      setShowNewModal(false);
-    },
-  });
-
   const deleteMutation = useMutation({
     mutationFn: async (id: string) => agentApi.delete(id),
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ['agents'] }),
@@ -517,18 +539,6 @@ export default function AgentsPage() {
   });
 
   // Handlers
-  const handleSelectPreset = (preset: PresetAgent) => {
-    createMutation.mutate({
-      name: preset.name,
-      description: preset.description,
-      systemPrompt: preset.systemPrompt,
-      llmProvider: preset.llmProvider,
-      llmModel: preset.llmModel,
-      tools: preset.tools.map((t) => ({ name: t, type: 'builtin' })),
-      maxIterations: preset.maxIterations,
-    });
-  };
-
   const handleScratch = () => {
     setShowNewModal(false);
     // Navigate to new agent form — route handled below
@@ -628,7 +638,7 @@ export default function AgentsPage() {
         )}
       </div>
 
-      {/* ── MY AGENTS TAB ── */}
+      {/*MY AGENTS TAB */}
       {tab === 'my-agents' && (
         <>
           {loadingAgents ? (
@@ -673,7 +683,7 @@ export default function AgentsPage() {
         </>
       )}
 
-      {/* ── LIBRARY TAB ── */}
+      {/*LIBRARY TAB*/}
       {tab === 'library' && (
         <div className="flex gap-6">
           {/* Category sidebar */}
@@ -716,9 +726,9 @@ export default function AgentsPage() {
                     <h2 className="text-base font-bold text-foreground mb-4">
                       Featured agents
                     </h2>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 overflow-visible py-2">
                       {featuredPresets.map((p) => (
-                        <PresetCard key={p.id} preset={p} onUse={handleSelectPreset} />
+                        <PresetCard key={p.id} preset={p} />
                       ))}
                     </div>
                   </div>
@@ -729,18 +739,18 @@ export default function AgentsPage() {
                     {featuredPresets.length > 0 && (
                       <h2 className="text-base font-bold text-foreground mb-4">All agents</h2>
                     )}
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 overflow-visible py-2">
                       {filteredPresets.filter(p => !p.featured).map((p) => (
-                        <PresetCard key={p.id} preset={p} onUse={handleSelectPreset} />
+                        <PresetCard key={p.id} preset={p} />
                       ))}
                     </div>
                   </div>
                 )}
 
                 {selectedCategory !== 'All' && (
-                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 overflow-visible py-2">
                     {filteredPresets.map((p) => (
-                      <PresetCard key={p.id} preset={p} onUse={handleSelectPreset} />
+                      <PresetCard key={p.id} preset={p} />
                     ))}
                   </div>
                 )}
@@ -751,13 +761,33 @@ export default function AgentsPage() {
                     <p className="text-sm">No presets found</p>
                   </div>
                 )}
+
+                {/* Popular Integrations */}
+                {selectedCategory === 'All' && (
+                  <div className="mt-8 pt-6 border-t border-border">
+                    <h2 className="text-base font-bold text-foreground mb-1">Connect Apps to Your Agents</h2>
+                    <p className="text-xs text-muted-foreground mb-4">These integrations power agent tools like sending emails, updating CRMs, and more.</p>
+                    <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-6 gap-3">
+                      {POPULAR_INTEGRATIONS.slice(0, 12).map((app) => (
+                        <Link key={app.provider} to={`/integrations/${app.provider}`}>
+                          <div className="group bg-card border border-border rounded-xl p-3 flex flex-col items-center gap-2 hover:shadow-sm hover:border-primary/40 transition-all cursor-pointer text-center">
+                            <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ backgroundColor: app.color + '15' }}>
+                              {app.icon}
+                            </div>
+                            <span className="text-xs font-medium text-muted-foreground group-hover:text-primary line-clamp-1">{app.name}</span>
+                          </div>
+                        </Link>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </>
             )}
           </div>
         </div>
       )}
 
-      {/* ── LLM CONFIG TAB ── */}
+      {/*LLM CONFIG TAB*/}
       {tab === 'config' && (
         <div className="max-w-3xl">
           <div className="mb-5">
@@ -768,7 +798,7 @@ export default function AgentsPage() {
         </div>
       )}
 
-      {/* ── TOKEN USAGE TAB ── */}
+      {/*TOKEN USAGE TAB */}
       {tab === 'tokens' && (
         <div>
           <div className="mb-5">
@@ -779,7 +809,7 @@ export default function AgentsPage() {
         </div>
       )}
 
-      {/* ── PROMPT TEMPLATES TAB ── */}
+      {/*PROMPT TEMPLATES TAB*/}
       {tab === 'templates' && (
         <div>
           <div className="mb-5">
@@ -835,7 +865,6 @@ export default function AgentsPage() {
         <NewAgentModal
           presets={presets}
           onClose={() => setShowNewModal(false)}
-          onSelectPreset={handleSelectPreset}
           onScratch={handleScratch}
         />
       )}

@@ -5,6 +5,7 @@ import { Input } from '../components/ui/Input';
 import { api } from '../lib/api';
 import toast from 'react-hot-toast';
 import { Search, Check, Plus, Settings, Trash2, ExternalLink } from 'lucide-react';
+import { APP_INTEGRATIONS, INTEGRATION_CATEGORIES } from '../lib/integrations';
 
 interface Integration {
   provider: string;
@@ -14,6 +15,7 @@ interface Integration {
   authType: string;
   logo?: string;
   color?: string;
+  icon?: string;
   docUrl?: string;
   enabled: boolean;
   comingSoon?: boolean;
@@ -50,11 +52,46 @@ export default function IntegrationsPage() {
 
   const fetchIntegrations = async () => {
     try {
+      // Use central data as base, merge with any extra API-only integrations
       const response = await api.get('/integrations');
-      setIntegrations(response.data.integrations || []);
+      const apiIntegrations = response.data.integrations || [];
+      const centralProviders = new Set(APP_INTEGRATIONS.map((a) => a.provider));
+      const extras: Integration[] = apiIntegrations.filter(
+        (i: Integration) => !centralProviders.has(i.provider)
+      );
+      // Central data takes precedence for display
+      const merged: Integration[] = APP_INTEGRATIONS.map((app) => ({
+        provider: app.provider,
+        name: app.name,
+        description: app.description,
+        category: app.category,
+        authType: app.authType,
+        logo: app.logo,
+        color: app.color,
+        icon: app.icon,
+        docUrl: app.docUrl,
+        enabled: app.enabled,
+        comingSoon: app.comingSoon,
+      }));
+      setIntegrations([...merged, ...extras]);
     } catch (error) {
       console.error('Failed to fetch integrations:', error);
-      toast.error('Failed to load integrations');
+      // Fallback to central data only
+      setIntegrations(
+        APP_INTEGRATIONS.map((app) => ({
+          provider: app.provider,
+          name: app.name,
+          description: app.description,
+          category: app.category,
+          authType: app.authType,
+          logo: app.logo,
+          color: app.color,
+          icon: app.icon,
+          docUrl: app.docUrl,
+          enabled: app.enabled,
+          comingSoon: app.comingSoon,
+        }))
+      );
     } finally {
       setLoading(false);
     }
@@ -145,7 +182,7 @@ export default function IntegrationsPage() {
     return connections.some((c) => c.provider === provider && c.status === 'ACTIVE');
   };
 
-  const categories = ['all', ...Array.from(new Set(integrations.map((i) => i.category)))];
+  const categories = ['all', ...INTEGRATION_CATEGORIES.map((c) => c.label)];
 
   const filteredIntegrations = integrations.filter((integration) => {
     const matchesSearch =
@@ -272,7 +309,14 @@ export default function IntegrationsPage() {
               <CardContent className="p-6">
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    {integration.logo ? (
+                    {(integration as any).icon ? (
+                      <div
+                        className="w-12 h-12 rounded-xl flex items-center justify-center text-2xl shadow-sm"
+                        style={{ backgroundColor: (integration.color || '#3B82F6') + '15' }}
+                      >
+                        {(integration as any).icon}
+                      </div>
+                    ) : integration.logo ? (
                       <img src={integration.logo} alt="" className="w-12 h-12 rounded" />
                     ) : (
                       <div

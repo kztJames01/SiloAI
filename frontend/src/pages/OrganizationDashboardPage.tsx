@@ -13,6 +13,7 @@ import {
 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent } from '../components/ui/Card';
+import { POPULAR_INTEGRATIONS, getIntegration } from '../lib/integrations';
 
 interface StatCardProps {
   icon: React.ReactNode;
@@ -75,63 +76,46 @@ function AppIcon({ name, icon, color, size = 'md' }: AppIconProps) {
   );
 }
 
-interface SuggestedApp {
-  name: string;
-  color: string;
-  icon?: string;
-}
-
 interface TrendingAgent {
   name: string;
   apps: { name: string; color: string; icon?: string }[];
   count?: number;
 }
 
-const SUGGESTED_APPS: SuggestedApp[] = [
-  { name: 'Make AI Agents', color: '#6B46C1', icon: '🤖' },
-  { name: 'Make AI Tools', color: '#8B5CF6', icon: '🛠️' },
-  { name: 'OpenAI', color: '#10A37F', icon: '✨' },
-  { name: 'Google Sheets', color: '#34A853', icon: '📊' },
-  { name: 'Slack', color: '#4A154B', icon: '💬' },
-  { name: 'Gmail', color: '#EA4335', icon: '📧' },
-  { name: 'Notion', color: '#000000', icon: '📝' },
-  { name: 'Airtable', color: '#F82B60', icon: '🗃️' },
-];
+const SUGGESTED_APPS = POPULAR_INTEGRATIONS.slice(0, 8).map((app) => ({
+  name: app.name,
+  color: app.color,
+  icon: app.icon,
+  provider: app.provider,
+}));
+
+function resolveApps(providers: string[]): { name: string; color: string; icon: string }[] {
+  return providers.map((p) => {
+    const app = getIntegration(p);
+    return app
+      ? { name: app.name, color: app.color, icon: app.icon }
+      : { name: p, color: '#6B7280', icon: '🔌' };
+  });
+}
 
 const TRENDING_AGENTS: TrendingAgent[] = [
   {
     name: 'Sales Outreach Agent',
-    apps: [
-      { name: 'Gmail', color: '#EA4335', icon: '📧' },
-      { name: 'Make AI', color: '#6B46C1', icon: '🤖' },
-      { name: 'Google Sheets', color: '#34A853', icon: '📊' },
-    ],
+    apps: resolveApps(['gmail', 'chatgpt', 'google_sheets']),
     count: 2,
   },
   {
     name: 'Social Media Comment Responder',
-    apps: [
-      { name: 'Twitter', color: '#1DA1F2', icon: '🐦' },
-      { name: 'Facebook', color: '#1877F2', icon: '👥' },
-      { name: 'Make AI', color: '#8B5CF6', icon: '🤖' },
-    ],
+    apps: resolveApps(['facebook_ads', 'slack', 'chatgpt']),
     count: 1,
   },
   {
     name: 'Inventory and Order Management Agent',
-    apps: [
-      { name: 'Shopify', color: '#96BF48', icon: '🛍️' },
-      { name: 'Make AI', color: '#6B46C1', icon: '🤖' },
-      { name: 'Google Sheets', color: '#34A853', icon: '📊' },
-    ],
+    apps: resolveApps(['stripe', 'chatgpt', 'google_sheets']),
   },
   {
     name: 'Market Research Analyst',
-    apps: [
-      { name: 'LinkedIn', color: '#0A66C2', icon: '💼' },
-      { name: 'Make AI', color: '#8B5CF6', icon: '🤖' },
-      { name: 'Twitter', color: '#1DA1F2', icon: '🐦' },
-    ],
+    apps: resolveApps(['hubspot', 'chatgpt', 'notion']),
     count: 2,
   },
 ];
@@ -251,7 +235,7 @@ export default function OrganizationDashboardPage() {
             {SUGGESTED_APPS.map((app) => (
               <Link
                 key={app.name}
-                to={`/integrations/${app.name.toLowerCase().replace(/\s+/g, '-')}`}
+                to={`/integrations/${(app as any).provider || app.name.toLowerCase().replace(/\s+/g, '-')}`}
                 className="group bg-card border border-border rounded-xl p-4 flex flex-col items-center gap-3 hover:shadow-md hover:border-primary/40 transition-all cursor-pointer"
               >
                 <AppIcon name={app.name} icon={app.icon} color={app.color} size="md" />

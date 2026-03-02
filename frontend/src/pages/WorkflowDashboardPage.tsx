@@ -5,8 +5,9 @@ import { useQuery } from '@tanstack/react-query';
 import { formatDate, getStatusColor } from '../lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { Button } from '@/components/ui/Button';
-import { CheckCircle2, Clock, Play, Plus, XCircle, Zap, ExternalLink, ListChecks, Workflow as WorkflowIcon } from 'lucide-react';
+import { CheckCircle2, Clock, Play, Plus, XCircle, Zap, ExternalLink, ListChecks, Workflow as WorkflowIcon, ArrowRight } from 'lucide-react';
 import { workflowApi, executionApi } from '@/lib/api';
+import { POPULAR_INTEGRATIONS } from '../lib/integrations';
 
 type Tab = 'workflows' | 'executions';
 
@@ -145,6 +146,30 @@ export default function WorkflowDashboardPage() {
               ))}
             </div>
           )}
+
+          {/* Connect Apps Banner */}
+          <div className="mt-8 pt-6 border-t border-border">
+            <div className="flex items-center justify-between mb-4">
+              <div>
+                <h2 className="text-lg font-semibold text-foreground">Connect Apps to Your Workflows</h2>
+                <p className="text-xs text-muted-foreground mt-0.5">Power your automations with these popular integrations</p>
+              </div>
+              <Link to="/apps" className="flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+                All apps <ArrowRight className="h-4 w-4" />
+              </Link>
+            </div>
+            <div className="grid grid-cols-3 sm:grid-cols-5 lg:grid-cols-8 gap-3">
+              {POPULAR_INTEGRATIONS.slice(0, 8).map((app) => (
+                <Link key={app.provider} to={`/integrations/${app.provider}`}
+                  className="group bg-card border border-border rounded-xl p-3 flex flex-col items-center gap-2 hover:shadow-sm hover:border-primary/40 transition-all cursor-pointer text-center">
+                  <div className="w-10 h-10 rounded-xl flex items-center justify-center text-xl" style={{ backgroundColor: app.color + '15' }}>
+                    {app.icon}
+                  </div>
+                  <span className="text-xs font-medium text-muted-foreground group-hover:text-primary line-clamp-1">{app.name}</span>
+                </Link>
+              ))}
+            </div>
+          </div>
         </section>
       )}
 

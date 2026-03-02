@@ -2,55 +2,18 @@ import { useState, useEffect, useMemo } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Check, Star, Zap, ArrowRight, Grid3x3, List } from 'lucide-react';
 import { api } from '../lib/api';
-
-interface Integration {
-  provider: string;
-  name: string;
-  description: string;
-  category: string;
-  authType: string;
-  logo?: string;
-  color?: string;
-  docUrl?: string;
-  enabled: boolean;
-  comingSoon?: boolean;
-}
-
-// Map provider to a tailwind/hex color for gradient logo avatars
-const PROVIDER_COLORS: Record<string, string> = {
-  gmail: '#EA4335',
-  slack: '#4A154B',
-  google_sheets: '#34A853',
-  notion: '#000000',
-  airtable: '#F82B60',
-  github: '#24292E',
-  stripe: '#635BFF',
-  twilio: '#F22F46',
-  openai: '#10a37f',
-  webhook: '#6366F1',
-  dropbox: '#0061FE',
-  trello: '#0052CC',
-  sendgrid: '#1A82E2',
-  hubspot: '#FF5C35',
-  zoom: '#2D8CFF',
-};
-
-const CATEGORY_ICONS: Record<string, string> = {
-  communication: '💬',
-  productivity: '⚡',
-  storage: '🗂️',
-  development: '🛠️',
-  payments: '💳',
-  marketing: '📣',
-  ai: '🤖',
-  custom: '🔧',
-};
-
-const FEATURED = ['gmail', 'slack', 'github', 'stripe', 'openai', 'google_sheets', 'notion', 'airtable'];
+import {
+  APP_INTEGRATIONS,
+  INTEGRATION_CATEGORIES,
+  POPULAR_INTEGRATIONS,
+  filterIntegrations,
+  getGoogleSuiteApps,
+  getMicrosoftSuiteApps,
+  type AppIntegration,
+} from '../lib/integrations';
 
 export default function AppExplorerPage() {
   const navigate = useNavigate();
-  const [integrations, setIntegrations] = useState<Integration[]>([]);
   const [connections, setConnections] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
@@ -58,44 +21,33 @@ export default function AppExplorerPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    Promise.all([
-      api.get('/integrations').then((r) => setIntegrations(r.data.integrations || [])),
-      api
-        .get('/integrations/connections/list')
-        .then((r) => {
-          const active = (r.data.connections || [])
-            .filter((c: any) => c.status === 'ACTIVE')
-            .map((c: any) => c.provider as string);
-          setConnections(new Set(active));
-        })
-        .catch(() => {}),
-    ]).finally(() => setLoading(false));
+    api
+      .get('/integrations/connections/list')
+      .then((r) => {
+        const active = (r.data.connections || [])
+          .filter((c: any) => c.status === 'ACTIVE')
+          .map((c: any) => c.provider as string);
+        setConnections(new Set(active));
+      })
+      .catch(() => {})
+      .finally(() => setLoading(false));
   }, []);
 
-  const categories = useMemo(
-    () => ['all', ...Array.from(new Set(integrations.map((i) => i.category)))],
-    [integrations]
-  );
-
-  const featured = integrations.filter((i) => FEATURED.includes(i.provider));
-
-  const filtered = integrations.filter((i) => {
-    const q = searchQuery.toLowerCase();
-    const matchSearch =
-      !q || i.name.toLowerCase().includes(q) || i.description?.toLowerCase().includes(q);
-    const matchCat = selectedCategory === 'all' || i.category === selectedCategory;
-    return matchSearch && matchCat;
-  });
+  const integrations = APP_INTEGRATIONS;
+  const featured = POPULAR_INTEGRATIONS;
+  const googleSuite = getGoogleSuiteApps();
+  const microsoftSuite = getMicrosoftSuiteApps();
+  const filtered = filterIntegrations(selectedCategory, searchQuery);
 
   const IntegrationLogo = ({
     integration,
     size = 'md',
   }: {
-    integration: Integration;
+    integration: AppIntegration;
     size?: 'sm' | 'md' | 'lg' | 'xl';
   }) => {
     const dims = { sm: 'w-8 h-8 text-sm', md: 'w-12 h-12 text-lg', lg: 'w-16 h-16 text-2xl', xl: 'w-20 h-20 text-3xl' };
-    const bg = integration.color || PROVIDER_COLORS[integration.provider] || '#6366F1';
+    const bg = integration.color || '#6366F1';
     if (integration.logo) {
       return (
         <img
@@ -110,7 +62,7 @@ export default function AppExplorerPage() {
         className={`${dims[size]} rounded-2xl flex items-center justify-center text-white font-bold shadow-sm flex-shrink-0`}
         style={{ backgroundColor: bg }}
       >
-        {integration.name.charAt(0)}
+        {integration.icon || integration.name.charAt(0)}
       </div>
     );
   };
@@ -162,20 +114,20 @@ export default function AppExplorerPage() {
           <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 px-3">
             Browse by Category
           </p>
-          {categories.map((cat) => {
-            const active = selectedCategory === cat;
+          {INTEGRATION_CATEGORIES.map((cat) => {
+            const active = selectedCategory === cat.id;
             return (
               <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.id)}
                 className={`flex items-center gap-2.5 w-full px-3 py-2.5 rounded-xl text-sm font-medium transition-all text-left ${
                   active ? 'bg-primary text-primary-foreground shadow-sm' : 'text-muted-foreground hover:bg-accent hover:text-accent-foreground'
                 }`}
               >
-                {cat !== 'all' && (
-                  <span className="text-base">{CATEGORY_ICONS[cat] || '📦'}</span>
+                {cat.id !== 'all' && (
+                  <span className="text-base">{cat.icon}</span>
                 )}
-                <span className="capitalize">{cat}</span>
+                <span>{cat.label}</span>
                 {active && (
                   <span className="ml-auto bg-white/20 text-white text-xs px-1.5 py-0.5 rounded-md">
                     {filtered.length}
@@ -193,7 +145,7 @@ export default function AppExplorerPage() {
             <section className="mb-10">
               <div className="flex items-center gap-2 mb-4">
                 <Star className="h-4.5 w-4.5 text-amber-400 fill-amber-400" />
-                <h2 className="text-lg font-semibold text-foreground">Featured Apps</h2>
+                <h2 className="text-lg font-semibold text-foreground">Popular Apps</h2>
               </div>
               <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
                 {featured.map((integration) => {
@@ -211,6 +163,82 @@ export default function AppExplorerPage() {
                       )}
                       <IntegrationLogo integration={integration} size="lg" />
                       <span className="text-sm font-semibold text-foreground group-hover:text-primary transition-colors">
+                        {integration.name}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+          {/* Google Suite */}
+          {!searchQuery && selectedCategory === 'all' && (
+            <section className="mb-10">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-lg">🔵</span>
+                <h2 className="text-lg font-semibold text-foreground">Google Suite</h2>
+                <span className="text-xs px-2 py-0.5 bg-blue-500/10 text-blue-600 rounded-full font-medium">{googleSuite.length} apps</span>
+              </div>
+              <div className="grid grid-cols-3 sm:grid-cols-6 gap-3">
+                {googleSuite.map((integration) => {
+                  const connected = connections.has(integration.provider);
+                  return (
+                    <button
+                      key={integration.provider}
+                      onClick={() => navigate(`/integrations/${integration.provider}`)}
+                      className="group bg-card border border-border rounded-2xl p-4 flex flex-col items-center gap-2 hover:shadow-md hover:border-blue-400/40 transition-all text-center relative"
+                    >
+                      {connected && (
+                        <span className="absolute top-2 right-2 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+                          <Check className="h-2.5 w-2.5 text-white" />
+                        </span>
+                      )}
+                      <div
+                        className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shadow-sm"
+                        style={{ backgroundColor: integration.color + '15' }}
+                      >
+                        {integration.icon}
+                      </div>
+                      <span className="text-xs font-semibold text-foreground group-hover:text-blue-600 transition-colors line-clamp-1">
+                        {integration.name}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
+            </section>
+          )}
+
+          {/* Microsoft Suite */}
+          {!searchQuery && selectedCategory === 'all' && (
+            <section className="mb-10">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-lg">🟦</span>
+                <h2 className="text-lg font-semibold text-foreground">Microsoft Suite</h2>
+                <span className="text-xs px-2 py-0.5 bg-blue-500/10 text-blue-600 rounded-full font-medium">{microsoftSuite.length} apps</span>
+              </div>
+              <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
+                {microsoftSuite.map((integration) => {
+                  const connected = connections.has(integration.provider);
+                  return (
+                    <button
+                      key={integration.provider}
+                      onClick={() => navigate(`/integrations/${integration.provider}`)}
+                      className="group bg-card border border-border rounded-2xl p-4 flex flex-col items-center gap-2 hover:shadow-md hover:border-blue-400/40 transition-all text-center relative"
+                    >
+                      {connected && (
+                        <span className="absolute top-2 right-2 w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+                          <Check className="h-2.5 w-2.5 text-white" />
+                        </span>
+                      )}
+                      <div
+                        className="w-10 h-10 rounded-xl flex items-center justify-center text-xl shadow-sm"
+                        style={{ backgroundColor: integration.color + '15' }}
+                      >
+                        {integration.icon}
+                      </div>
+                      <span className="text-xs font-semibold text-foreground group-hover:text-blue-600 transition-colors line-clamp-1">
                         {integration.name}
                       </span>
                     </button>
@@ -252,18 +280,18 @@ export default function AppExplorerPage() {
 
           {/* Mobile category pills */}
           <div className="flex lg:hidden gap-2 overflow-x-auto pb-3 mb-4 -mx-1 px-1">
-            {categories.map((cat) => (
+            {INTEGRATION_CATEGORIES.map((cat) => (
               <button
-                key={cat}
-                onClick={() => setSelectedCategory(cat)}
+                key={cat.id}
+                onClick={() => setSelectedCategory(cat.id)}
                 className={`px-3 py-1.5 rounded-full text-sm font-medium whitespace-nowrap flex-shrink-0 transition-colors ${
-                  selectedCategory === cat
+                  selectedCategory === cat.id
                     ? 'bg-primary text-primary-foreground'
                     : 'bg-card border border-border text-muted-foreground hover:bg-accent'
                 }`}
               >
-                {cat !== 'all' && CATEGORY_ICONS[cat] ? `${CATEGORY_ICONS[cat]} ` : ''}
-                <span className="capitalize">{cat}</span>
+                {cat.id !== 'all' ? `${cat.icon} ` : ''}
+                <span>{cat.label}</span>
               </button>
             ))}
           </div>

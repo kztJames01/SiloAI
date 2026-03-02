@@ -1,11 +1,12 @@
 import { useQuery } from '@tanstack/react-query';
 import { Link, useNavigate } from 'react-router-dom';
 import { useState } from 'react';
-import { workflowApi, integrationApi } from '../lib/api';
+import { workflowApi } from '../lib/api';
 import { Button } from '../components/ui/Button';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card';
-import { Plus, Play, Clock, CheckCircle2, XCircle, LayoutGrid, Sparkles, Zap, Globe } from 'lucide-react';
+import { Plus, Play, Clock, CheckCircle2, XCircle, LayoutGrid, Sparkles, Zap, Globe, ArrowRight } from 'lucide-react';
 import { formatDate } from '../lib/utils';
+import { APP_INTEGRATIONS, POPULAR_INTEGRATIONS, getGoogleSuiteApps, getMicrosoftSuiteApps } from '../lib/integrations';
 
 const templates = [
   {
@@ -43,13 +44,7 @@ export default function DashboardPage() {
     },
   });
 
-  const { data: integrationsData } = useQuery({
-    queryKey: ['integrations'],
-    queryFn: async () => {
-      const response = await integrationApi.list();
-      return response.data.integrations;
-    },
-  });
+
 
   const handleAiPromptSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -67,14 +62,16 @@ export default function DashboardPage() {
   }
 
   const workflows = data || [];
-  const integrations = integrationsData || [];
+  const popularApps = POPULAR_INTEGRATIONS;
+  const googleSuite = getGoogleSuiteApps();
+  const microsoftSuite = getMicrosoftSuiteApps();
 
   return (
     <div className="min-h-screen">
       <div className="max-w-7xl mx-auto">
         <div className="max-w-6xl mx-auto px-6 py-8 space-y-12">
           {/* Hero Section with AI Prompt */}
-          <section className="text-center space-y-6">
+          <section className="text-center space-y-6 my-auto py-20">
             <div>
               <h1 className="text-4xl font-bold text-foreground mb-2">What would you like to automate?</h1>
               <p className="text-muted-foreground">Describe your workflow in plain English</p>
@@ -91,7 +88,7 @@ export default function DashboardPage() {
                   value={aiPrompt}
                   onChange={(e) => setAiPrompt(e.target.value)}
                   placeholder="Enter an idea or app name to get started"
-                  className="w-full pl-32 pr-24 py-4 text-base border border-border rounded-lg bg-card text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                  className="w-full text-input pl-32 pr-24 py-4 border border-border rounded-lg bg-card placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
                 />
                 <button
                   type="submit"
@@ -227,37 +224,75 @@ export default function DashboardPage() {
           </section>
 
           {/* Discover Applications */}
-          <section id="discover-apps" className="space-y-4 scroll-mt-8">
-            <div>
-              <h2 className="text-2xl font-semibold text-foreground">Discover Applications</h2>
-              <p className="text-sm text-muted-foreground mt-1">Connect apps to power your workflows</p>
+          <section id="discover-apps" className="space-y-6 scroll-mt-8">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-2xl font-semibold text-foreground">Discover Applications</h2>
+                <p className="text-sm text-muted-foreground mt-1">Connect {APP_INTEGRATIONS.length}+ apps to power your workflows</p>
+              </div>
+              <Link to="/apps" className="flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+                View all apps <ArrowRight className="h-4 w-4" />
+              </Link>
             </div>
-            {integrations.length === 0 ? (
-              <Card>
-                <CardContent className="py-8 text-center">
-                  <p className="text-sm text-muted-foreground">No applications found yet.</p>
-                </CardContent>
-              </Card>
-            ) : (
-              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-4">
-                {integrations.slice(0, 8).map((integration: any) => (
-                  <Card key={integration.id} className="hover:shadow-md hover:border-primary/30 transition-all cursor-pointer">
-                    <CardContent className="p-4 text-center">
-                      <div className="w-12 h-12 mx-auto mb-2 bg-muted rounded-lg flex items-center justify-center">
-                        {integration.iconUrl ? (
-                          <img src={integration.iconUrl} alt={integration.displayName} className="w-8 h-8" />
-                        ) : (
-                          <Globe className="w-6 h-6 text-muted-foreground" />
-                        )}
-                      </div>
-                      <h3 className="text-sm font-medium text-foreground truncate">
-                        {integration.displayName || integration.name}
-                      </h3>
-                    </CardContent>
-                  </Card>
+
+            {/* Popular Apps */}
+            <div>
+              <h3 className="text-sm font-semibold text-muted-foreground uppercase tracking-wider mb-3">Popular</h3>
+              <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-5 gap-3">
+                {popularApps.map((app) => (
+                  <Link key={app.provider} to={`/integrations/${app.provider}`}>
+                    <Card className="hover:shadow-md hover:border-primary/30 transition-all cursor-pointer">
+                      <CardContent className="p-4 text-center">
+                        <div className="w-12 h-12 mx-auto mb-2 rounded-xl flex items-center justify-center text-2xl shadow-sm" 
+                          style={{ backgroundColor: app.color + '15' }}>
+                          {app.icon}
+                        </div>
+                        <h3 className="text-sm font-medium text-foreground truncate">{app.name}</h3>
+                        <p className="text-xs text-muted-foreground mt-0.5">{app.category}</p>
+                      </CardContent>
+                    </Card>
+                  </Link>
                 ))}
               </div>
-            )}
+            </div>
+
+            {/* Google & Microsoft Suites */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-base">🔵</span>
+                  <h3 className="text-sm font-semibold text-foreground">Google Suite</h3>
+                </div>
+                <div className="grid grid-cols-3 gap-2">
+                  {googleSuite.map((app) => (
+                    <Link key={app.provider} to={`/integrations/${app.provider}`}
+                      className="group bg-card border border-border rounded-xl p-3 flex flex-col items-center gap-1.5 hover:shadow-sm hover:border-blue-400/40 transition-all text-center">
+                      <div className="w-8 h-8 rounded-lg flex items-center justify-center text-lg" style={{ backgroundColor: app.color + '15' }}>
+                        {app.icon}
+                      </div>
+                      <span className="text-xs font-medium text-muted-foreground group-hover:text-blue-600 line-clamp-1">{app.name}</span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <span className="text-base">🟦</span>
+                  <h3 className="text-sm font-semibold text-foreground">Microsoft Suite</h3>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  {microsoftSuite.map((app) => (
+                    <Link key={app.provider} to={`/integrations/${app.provider}`}
+                      className="group bg-card border border-border rounded-xl p-3 flex flex-col items-center gap-1.5 hover:shadow-sm hover:border-blue-400/40 transition-all text-center">
+                      <div className="w-8 h-8 rounded-lg flex items-center justify-center text-lg" style={{ backgroundColor: app.color + '15' }}>
+                        {app.icon}
+                      </div>
+                      <span className="text-xs font-medium text-muted-foreground group-hover:text-blue-600 line-clamp-1">{app.name}</span>
+                    </Link>
+                  ))}
+                </div>
+              </div>
+            </div>
           </section>
         </div>
       </div>

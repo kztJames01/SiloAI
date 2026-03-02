@@ -41,11 +41,11 @@ interface DbConnection {
 }
 
 const ENGINE_META: Record<DbEngine, { label: string; color: string; bg: string; icon: string; defaultPort: number; description: string }> = {
-  postgresql: { label: 'PostgreSQL', color: 'text-blue-700', bg: 'bg-blue-50 border-blue-200', icon: '🐘', defaultPort: 5432, description: 'Advanced open-source relational DB' },
-  mysql:       { label: 'MySQL',      color: 'text-orange-700', bg: 'bg-orange-50 border-orange-200', icon: '🐬', defaultPort: 3306, description: 'Most popular open-source SQL DB' },
+  postgresql: { label: 'PostgreSQL', color: 'text-blue-700', bg: 'bg-blue-100 border-blue-200', icon: '🐘', defaultPort: 5432, description: 'Advanced open-source relational DB' },
+  mysql:       { label: 'MySQL',      color: 'text-orange-700', bg: 'bg-orange-100 border-orange-200', icon: '🐬', defaultPort: 3306, description: 'Most popular open-source SQL DB' },
   sqlite:      { label: 'SQLite',     color: 'text-muted-foreground', bg: 'bg-muted/50 border-border', icon: '📦', defaultPort: 0, description: 'Lightweight file-based database' },
-  mongodb:     { label: 'MongoDB',    color: 'text-green-700', bg: 'bg-green-50 border-green-200', icon: '🍃', defaultPort: 27017, description: 'Flexible document database' },
-  redis:       { label: 'Redis',      color: 'text-red-700', bg: 'bg-red-50 border-red-200', icon: '⚡', defaultPort: 6379, description: 'In-memory key-value store' },
+  mongodb:     { label: 'MongoDB',    color: 'text-green-700', bg: 'bg-green-100 border-green-200', icon: '🍃', defaultPort: 27017, description: 'Flexible document database' },
+  redis:       { label: 'Redis',      color: 'text-red-700', bg: 'bg-red-100 border-red-200', icon: '⚡', defaultPort: 6379, description: 'In-memory key-value store' },
 };
 
 const STATUS_META: Record<DbStatus, { label: string; color: string; dot: string }> = {
@@ -148,9 +148,9 @@ function DbModal({ mode, onClose, onSave }: CreateModalProps) {
   };
 
   return (
-    <div className="fixed inset-0 z-50 bg-black/50 flex items-center justify-center p-4" onClick={onClose}>
+    <div className="fixed inset-0 z-50 bg-transparent flex items-center justify-center p-4" onClick={onClose}>
       <div
-        className="bg-card rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
+        className="bg-background border-b border rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto"
         onClick={e => e.stopPropagation()}
       >
         {/* Header */}
@@ -183,12 +183,12 @@ function DbModal({ mode, onClose, onSave }: CreateModalProps) {
                     onClick={() => handleEngineChange(eng)}
                     className={`flex flex-col items-center gap-1 p-2 rounded-xl border-2 transition-all text-center ${
                       engine === eng
-                        ? `border-primary ${m.bg}`
+                        ? `${m.bg}`
                         : 'border-border hover:border-primary/50'
                     }`}
                   >
                     <span className="text-xl">{m.icon}</span>
-                    <span className="text-[9px] font-semibold text-foreground leading-tight">{m.label}</span>
+                    <span className={`text-[9px] font-semibold leading-tight ${m.color}`}>{m.label}</span>
                   </button>
                 );
               })}
