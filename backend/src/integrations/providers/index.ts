@@ -5,6 +5,7 @@
 
 import { GmailIntegration } from './GmailIntegration';
 import { SlackIntegration } from './SlackIntegration';
+import { DiscordIntegration } from './Discord';
 import {
   GoogleSheetsIntegration,
   NotionIntegration,
@@ -19,6 +20,19 @@ import {
   SendGridIntegration,
   HubSpotIntegration,
   ZoomIntegration,
+  GoogleDriveIntegration,
+  GoogleCalendarIntegration,
+  GoogleDocsIntegration,
+  YouTubeIntegration,
+  MicrosoftOutlookIntegration,
+  MicrosoftTeamsIntegration,
+  MicrosoftExcelIntegration,
+  MicrosoftOneDriveIntegration,
+  ClickUpIntegration,
+  MailChimpIntegration,
+  FacebookAdsIntegration,
+  TypeformIntegration,
+  ChatGPTIntegration,
 } from './integrations';
 import { BaseIntegration } from '../base/BaseIntegration';
 import { IntegrationProvider } from '@silo/shared/types/integration';
@@ -52,6 +66,26 @@ class IntegrationRegistry {
     this.register(new SendGridIntegration());
     this.register(new HubSpotIntegration());
     this.register(new ZoomIntegration());
+    // Google Suite
+    this.register(new GoogleDriveIntegration());
+    this.register(new GoogleCalendarIntegration());
+    this.register(new GoogleDocsIntegration());
+    this.register(new YouTubeIntegration());
+    // Microsoft Suite
+    this.register(new MicrosoftOutlookIntegration());
+    this.register(new MicrosoftTeamsIntegration());
+    this.register(new MicrosoftExcelIntegration());
+    this.register(new MicrosoftOneDriveIntegration());
+    // Communication
+    this.register(new DiscordIntegration());
+    // Productivity
+    this.register(new ClickUpIntegration());
+    // Marketing
+    this.register(new MailChimpIntegration());
+    this.register(new FacebookAdsIntegration());
+    this.register(new TypeformIntegration());
+    // AI
+    this.register(new ChatGPTIntegration());
   }
 
   /**
@@ -120,4 +154,18 @@ export {
   SendGridIntegration,
   HubSpotIntegration,
   ZoomIntegration,
+  GoogleDriveIntegration,
+  GoogleCalendarIntegration,
+  GoogleDocsIntegration,
+  YouTubeIntegration,
+  MicrosoftOutlookIntegration,
+  MicrosoftTeamsIntegration,
+  MicrosoftExcelIntegration,
+  MicrosoftOneDriveIntegration,
+  DiscordIntegration,
+  ClickUpIntegration,
+  MailChimpIntegration,
+  FacebookAdsIntegration,
+  TypeformIntegration,
+  ChatGPTIntegration,
 };
