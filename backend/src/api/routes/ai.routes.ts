@@ -234,7 +234,7 @@ router.get('/providers', async (_req, res) => {
       },
       gemini: {
         name: 'Google Gemini',
-        models: ['gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-pro'],
+        models: ['gemini-3.1-pro-preview', 'gemini-3-flash-preview', 'gemini-1.5-pro', 'gemini-1.5-flash'],
         requiresApiKey: true,
       },
       ollama: {
