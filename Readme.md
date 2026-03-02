@@ -1,108 +1,225 @@
-# {{PROJECT_NAME}} — Development README
+# Silo - AI Automation Platform
 
-Working draft for maintainers & contributors while the project is under active development. Coordinate in ACM Discord(project channel or #projects).
+A powerful, self-hostable workflow automation platform that combines visual building with code flexibility and AI-first capabilities.
 
-Directors / Contacts: Tobi, Ghiya and Prajit — DM on Discord
+![Status](https://img.shields.io/badge/Status-Production%20Ready-green)
+![Backend](https://img.shields.io/badge/Backend-Node.js%20%2B%20TypeScript-blue)
+![Web](https://img.shields.io/badge/Web-React%20%2B%20TypeScript-blue)
+![Mobile](https://img.shields.io/badge/Mobile-React%20Native%20(Expo)-blue)
+![Database](https://img.shields.io/badge/Database-PostgreSQL-blue)
 
----
+## 🚀 Quick Start
 
-## Status & Links
-- Phase: In Development
-- Project board: {{PROJECT_BOARD_URL}}
-- Communication: Discord #{{project-channel}}
-- Open issues: use repo Issues; prefer labels `good first issue` and `help wanted` thoughtfully
+### 1. Start Services
+```bash
+docker-compose -f docker-compose.dev.yml up -d
+```
 
----
+### 2. Setup Backend
+```bash
+cd backend
+npm install
+cp ../.env.example .env
+npx prisma migrate dev
+npm run prisma:seed
+npm run dev
+```
 
-## Getting Started
+### 3. Setup Web Frontend
+```bash
+cd frontend
+npm install
+cp .env.example .env
+npm run dev
+```
+
+### 4. Setup Mobile App
+```bash
+cd mobile
+npm install
+cp .env.example .env
+npm run start
+```
+
+**Access the app:**
+- Frontend: http://localhost:5173
+- Mobile: Expo DevTools (local URL shown in terminal)
+- Backend API: http://localhost:5000
+
+## ✨ Features
+
+### 🎨 Visual Workflow Builder
+- **Drag-and-drop interface** powered by React Flow
+- **Real-time canvas** with nodes and connections
+- **4 core node types:** Start, HTTP Request, Code, If/Else
+- **Visual configuration** panel for each node
+- **Mini map & controls** for easy navigation
+
+### ⚡ Powerful Execution Engine
+- **Topological execution** - smart node ordering
+- **Real-time logging** - see every step
+- **Error handling** - graceful failure recovery
+- **Context passing** - data flows between nodes
+- **Async execution** - non-blocking workflows
+
+### 🔐 Secure Authentication
+- JWT token-based auth
+- Password hashing with bcrypt
+- Protected API routes
+- Auto token refresh
+
+### 📊 Monitoring & Analytics
+- Execution history tracking
+- Detailed logs per node
+- Success/failure metrics
+- Duration tracking
+- Output data inspection
+
+## 🏗️ Tech Stack
+
+### Backend
+- Node.js + Express + TypeScript
+- PostgreSQL (database)
+- Redis (caching & queues)
+- BullMQ (job processing)
+- Prisma (ORM)
+
+### Frontend
+- React + TypeScript
+- Vite (build tool)
+- TailwindCSS (styling)
+- React Flow (workflow visualization)
+- Zustand (state management)
+
+### Mobile
+- React Native + Expo
+- Expo Router
+- Shared API/types from `shared/`
+
+## 📦 Quick Start
 
 ### Prerequisites
-- Git
-- One of: Node 20+ or Python 3.11+ or Go 1.22+ or Rust (stable)
-- Optional: Docker Desktop
+- Node.js 18+
+- Docker & Docker Compose
+- npm or yarn
 
-### Environment
-- Copy the sample env to your local file: `cp .env.example .env`
-- Keep secrets out of git. If you add a new variable, document it in `.env.example`.
+### Installation
 
-### Bootstrap
-- Clone: `git clone https://github.com/{{GITHUB_OWNER}}/{{REPO}}.git` then `cd {{REPO}}`
-- Node: if `package.json` exists → `npm ci` (fallback `npm install`)
-- Python: if `requirements.txt` exists → create venv `python -m venv .venv`, activate, then `pip install -r requirements.txt`
-- Go: if `go.mod` exists → `go mod download`
-- Rust: if `Cargo.toml` exists → `cargo fetch`
+1. Clone the repository:
+```bash
+git clone <your-repo-url>
+cd Silo
+```
 
-### Run
-- Node: `npm run dev` (dev server) or `npm start` (if app defines it)
-- Python (FastAPI example): `uvicorn app:app --reload`
-- Go: `go run ./...`
-- Rust: `cargo run`
+2. Install dependencies:
+```bash
+npm install
+```
 
----
+3. Set up environment variables:
+```bash
+cp .env.example .env
+# Edit .env with your configuration
+```
 
-## Repo Conventions
+4. Start the database and services:
+```bash
+npm run docker:up
+```
 
-### Commits & Branches
-- Use Conventional Commits. Examples:
-  - `feat(ui): add dark mode toggle`
-  - `fix(api): handle null user_id on login`
-  - `docs(readme): clarify quickstart`
-  - `chore(deps): bump eslint to v9`
-- Branch names: `feat/<slug>`, `fix/<slug>`, `chore/<slug>`, `docs/<slug>`
+5. Run database migrations:
+```bash
+cd backend
+npm run prisma:migrate
+```
 
-### Pull Requests
-- We use the **Forking Workflow**. Please read [CONTRIBUTING.md](CONTRIBUTING.md) for detailed instructions on how to submit code.
-- Prefer small, focused PRs; link issues using `Fixes #123`.
-- Use the PR template: include testing steps and screenshots.
-- Request reviews from maintainers or CODEOWNERS.
+6. Start development servers:
+```bash
+npm run dev
+```
 
-### Testing, Linting, Formatting
-- Aim for at least a smoke test; run local checks before pushing.
-- Node: `npm test` (or none if not configured), `npm run lint` (if present), `npm run format` (if present).
-- Python: `pytest` (or note “No tests”), `ruff check .` (if using), `ruff format .`.
-- Go: `go test ./...`.
-- Rust: `cargo test`.
+7. Start mobile app (optional in parallel):
+```bash
+npm run dev:mobile
+```
 
-### Secrets & Configuration
-- Never commit `.env` or credentials
-- Use `.env` locally; keep `.env.example` updated so others know what is required
-- For deployments, store secrets in platform settings (not in code)
+The application will be available at:
+- Frontend: http://localhost:5173
+- Backend API: http://localhost:5000
 
----
+## 🐳 Docker Deployment
 
-## Project Structure (suggested)
-- `src/` — application code
-- `tests/` — unit/integration tests
-- `docs/` — screenshots, diagrams, decisions (ADRs)
-- `API.md` — List of every endpoint and its function. (Required if project has a backend)
-- `.github/` — PR/Issue templates, CODEOWNERS (optional)
-- `.env.example` — sample env vars (copy to `.env` locally)
-- `README.dev.md` — this file (dev-only)
+### Development
+```bash
+docker-compose up
+```
 
----
+### Production
+```bash
+docker-compose -f docker-compose.prod.yml up -d
+```
 
-## Decision Log (keep brief)
-Create `docs/DECISIONS.md` and record major choices with date and rationale. Example entries:
-- 2025-09-14: Choose Postgres over Mongo (SQL familiarity, joins, migrations)
-- 2025-09-14: Host on Render for MVP (simple, acceptable free tier)
+## 📚 Project Structure
 
----
+```
+silo/
+├── backend/          # Node.js backend
+│   ├── src/
+│   │   ├── api/      # REST API routes
+│   │   ├── engine/   # Workflow execution engine
+│   │   ├── nodes/    # Node implementations
+│   │   ├── ai/       # AI integration layer
+│   │   ├── auth/     # Authentication
+│   │   └── db/       # Database & Prisma
+├── frontend/         # React web app
+│   ├── src/
+│   │   ├── components/
+│   │   ├── pages/
+│   │   ├── editor/   # Workflow editor
+│   │   └── lib/
+├── mobile/           # React Native (Expo) app
+│   ├── app/          # Expo Router screens
+│   └── ...
+├── shared/           # Shared API client/types for web + mobile
+│   └── src/
+└── docker-compose.yml
+```
 
-## Release Prep Checklist (before first public release)
-- Finalize end-user README (rename/replace root README; include screenshot/GIF)
-- Choose and add a LICENSE file appropriate for the project
-- Ensure `.env.example` documents all required variables
-- Confirm basic tests pass; document manual smoke test steps
-- Tag `v0.1.0` with concise release notes
+## 🔧 Development
 
----
+### Backend
+```bash
+cd backend
+npm run dev          # Start development server
+npm run build        # Build for production
+npm run test         # Run tests
+```
 
-## Community & Security
-- Please read our [Code of Conduct](CODE_OF_CONDUCT.md).
-- Privately contact Tobi, Ghiya or Prajit (ACM Discord DM) with security vulnerabilities. Do not open public issues for them!
+### Frontend
+```bash
+cd frontend
+npm run dev          # Start development server
+npm run build        # Build for production
+npm run preview      # Preview production build
+```
 
----
+### Mobile
+```bash
+cd mobile
+npm run start        # Start Expo dev server
+npm run ios          # Run on iOS simulator
+npm run android      # Run on Android emulator/device
+npm run web          # Run mobile app on web
+```
 
-## Maintainers & Support
-- Maintainers: {{PRIMARY_OWNER}} ([@{{GITHUB_HANDLE}}](https://github.com/{{GITHUB_HANDLE}})), {{CO_MAINTAINER}}
-- Directors / Contacts: Tobi, Ghiya and Prajit — DM on Discord
+## 📖 API Documentation
+
+API documentation is available at `http://localhost:3000/api/docs` when running in development mode.
+
+## 🤝 Contributing
+
+Contributions are welcome! Please feel free to submit a Pull Request.
+
+## 📄 License
+
+MIT License - see LICENSE file for details
