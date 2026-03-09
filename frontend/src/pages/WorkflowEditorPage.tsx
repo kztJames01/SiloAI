@@ -47,12 +47,11 @@ interface TriggerConfig {
   };
 }
 
-// ─── Template step definitions ────────────────────────────────────────────────
 type TemplateStep = { type: string; label: string; prompt: string; config: Record<string, any> };
 interface TemplateDef { name: string; triggerType: TriggerConfig['type']; triggerConfig?: TriggerConfig['config']; steps: TemplateStep[] }
 
 const TEMPLATE_DATA: Record<string, TemplateDef> = {
-  // ── Healthcare ──────────────────────────────────────────────────────────────
+  // Healthcare 
   'healthcare-intake': {
     name: 'Patient Intake Follow-up',
     triggerType: 'webhook',
@@ -73,7 +72,7 @@ const TEMPLATE_DATA: Record<string, TemplateDef> = {
       { type: 'httpRequest',          label: 'Send SMS Reminder',  prompt: 'Send SMS via Twilio.', config: { method: 'POST', url: 'https://api.twilio.com/2010-04-01/Accounts/ACXXXX/Messages.json' } },
     ],
   },
-  // ── Field Service ───────────────────────────────────────────────────────────
+  // Field Service 
   'field-hazard': {
     name: 'Hazard Report Escalation',
     triggerType: 'webhook',
@@ -105,7 +104,7 @@ const TEMPLATE_DATA: Record<string, TemplateDef> = {
       { type: 'httpRequest',   label: 'Notify Technician',      prompt: 'Send work-order details to assigned technician via email.', config: { method: 'POST', url: 'https://api.sendgrid.com/v3/mail/send' } },
     ],
   },
-  // ── Invoicing / Finance ─────────────────────────────────────────────────────
+  // Invoicing / Finance 
   'invoice-approval': {
     name: 'Invoice Approval Workflow',
     triggerType: 'webhook',
@@ -126,7 +125,7 @@ const TEMPLATE_DATA: Record<string, TemplateDef> = {
       { type: 'httpRequest',   label: 'Sync to Accounting',    prompt: 'Write approved expense record to Xero.', config: { method: 'POST', url: 'https://api.xero.com/api.xro/2.0/Receipts' } },
     ],
   },
-  // ── HR / Data Collection ────────────────────────────────────────────────────
+  // HR / Data Collection 
   'onboarding': {
     name: 'Employee Onboarding',
     triggerType: 'webhook',
@@ -137,7 +136,7 @@ const TEMPLATE_DATA: Record<string, TemplateDef> = {
       { type: 'httpRequest',   label: 'Send Welcome Email',     prompt: 'Dispatch welcome and orientation schedule via SendGrid.', config: { method: 'POST', url: 'https://api.sendgrid.com/v3/mail/send' } },
     ],
   },
-  // ── Students ────────────────────────────────────────────────────────────────
+  // Students 
   'student-research-assistant': {
     name: 'AI Research Assistant',
     triggerType: 'webhook',
@@ -178,7 +177,7 @@ const TEMPLATE_DATA: Record<string, TemplateDef> = {
       { type: 'dataTransform',  label: 'Sort Alphabetically',      prompt: 'Sort entries alphabetically by author surname.', config: {} },
     ],
   },
-  // ── SMB Owners ──────────────────────────────────────────────────────────────
+  // SMB Owners 
   'smb-lead-capture': {
     name: 'Lead Capture & CRM Sync',
     triggerType: 'webhook',
@@ -220,7 +219,7 @@ const TEMPLATE_DATA: Record<string, TemplateDef> = {
       { type: 'httpRequest',    label: 'Send Email',             prompt: 'Dispatch review request email via SendGrid.', config: { method: 'POST', url: 'https://api.sendgrid.com/v3/mail/send' } },
     ],
   },
-  // ── Startups ────────────────────────────────────────────────────────────────
+  // Startups 
   'startup-user-feedback': {
     name: 'User Feedback Analyzer',
     triggerType: 'webhook',
@@ -264,7 +263,6 @@ const TEMPLATE_DATA: Record<string, TemplateDef> = {
     ],
   },
 };
-// ───────────────────────────────────────────────────────────────────────────────
 
 const getIconComponent = (nodeType: string) => {
   const iconMap: Record<string, any> = {
@@ -293,6 +291,16 @@ const createStep = (type: StepType, yPosition: number, nodeDef?: NodeDefinition)
     retryDelay: 1000,
   },
 });
+
+const getGuardrailsFromPrivacy = (mode: 'standard' | 'sensitive' | 'strict') => {
+  if (mode === 'strict') {
+    return { piiMasking: true, redactLogs: true, requireApprovalForExternal: true };
+  }
+  if (mode === 'sensitive') {
+    return { piiMasking: true, redactLogs: true, requireApprovalForExternal: false };
+  }
+  return { piiMasking: false, redactLogs: false, requireApprovalForExternal: false };
+};
 
 export default function WorkflowEditorPage() {
   const { id } = useParams<{ id: string }>();
@@ -331,6 +339,15 @@ export default function WorkflowEditorPage() {
   const [notesSaved, setNotesSaved] = useState(false);
   const [isAiSummarizing, setIsAiSummarizing] = useState(false);
   const [aiSummary, setAiSummary] = useState('');
+  const [workflowInputType, setWorkflowInputType] = useState<'manual' | 'form' | 'webhook' | 'schedule'>('manual');
+  const [workflowOutputType, setWorkflowOutputType] = useState<'notification' | 'record' | 'api' | 'mixed'>('mixed');
+  const [privacyMode, setPrivacyMode] = useState<'standard' | 'sensitive' | 'strict'>('standard');
+  const [guardrails, setGuardrails] = useState(getGuardrailsFromPrivacy('standard'));
+  const [insertAfterStepId, setInsertAfterStepId] = useState<string | null>(null);
+  const [insertNodeSearch, setInsertNodeSearch] = useState('');
+  const [isChangingNodeType, setIsChangingNodeType] = useState(false);
+  const [isTestingStep, setIsTestingStep] = useState(false);
+  const [lastStepTestResult, setLastStepTestResult] = useState<{ ok: boolean; message: string } | null>(null);
   // Version / save state
   const [savedVersions, setSavedVersions] = useState<WorkflowSnapshot[]>([]);
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
@@ -338,6 +355,7 @@ export default function WorkflowEditorPage() {
   const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
   const canvasRef = useRef<HTMLDivElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
+  const nodeTypeSelectRef = useRef<HTMLSelectElement>(null);
 
   // Fetch available nodes from backend
   const { data: nodesData } = useQuery({
@@ -448,6 +466,35 @@ export default function WorkflowEditorPage() {
     }
   }, [isEditingName]);
 
+  useEffect(() => {
+    setIsChangingNodeType(false);
+  }, [selectedStepId]);
+
+  useEffect(() => {
+    setGuardrails(getGuardrailsFromPrivacy(privacyMode));
+  }, [privacyMode]);
+
+  const applyGuardrailsToStep = (
+    step: WorkflowStep,
+    overrideGuardrails?: { piiMasking: boolean; redactLogs: boolean; requireApprovalForExternal: boolean }
+  ) => {
+    const active = overrideGuardrails || guardrails;
+    const externalTypes = ['httpRequest', 'webhook', 'conversation'];
+    const nextConfig: Record<string, any> = { ...step.config };
+
+    if (active.piiMasking) nextConfig.maskSensitiveData = true;
+    if (active.redactLogs) nextConfig.redactLogs = true;
+    if (active.requireApprovalForExternal && externalTypes.includes(step.type)) {
+      nextConfig.approvalRequired = true;
+      nextConfig.approvalSlaMinutes = nextConfig.approvalSlaMinutes || 30;
+    }
+
+    return {
+      ...step,
+      config: nextConfig,
+    };
+  };
+
   const setAndTrackSteps = (nextSteps: WorkflowStep[]) => {
     setSteps(nextSteps);
     pushHistory(nextSteps);
@@ -547,11 +594,125 @@ export default function WorkflowEditorPage() {
     const nextY = steps.length > 0
       ? Math.max(...steps.map(s => s.position.y)) + 200
       : 100;
-    const newStep = createStep(type, nextY, nodeDef);
+    const newStep = applyGuardrailsToStep(createStep(type, nextY, nodeDef));
     const next = [...steps, newStep];
     setAndTrackSteps(next);
     setSelectedStepId(newStep.id);
     setShowRightPanel(true);
+  };
+
+  const insertStepAfter = (afterStepId: string, type: StepType) => {
+    const nodeDef = availableNodes.find((n: NodeDefinition) => n.type === type);
+    const ordered = [...steps].sort((a, b) => a.position.y - b.position.y);
+    const idx = ordered.findIndex((s) => s.id === afterStepId);
+    if (idx === -1) {
+      addStepToCanvas(type);
+      return;
+    }
+    const before = ordered[idx];
+    const after = ordered[idx + 1];
+    const newY = after ? (before.position.y + after.position.y) / 2 : before.position.y + 200;
+    const newStep = applyGuardrailsToStep(createStep(type, newY, nodeDef));
+    newStep.position.x = before.position.x;
+
+    let shifted = [...steps];
+    if (after && Math.abs(after.position.y - before.position.y) < 120) {
+      shifted = shifted.map((s) => {
+        if (s.position.y > before.position.y) {
+          return { ...s, position: { ...s.position, y: s.position.y + 140 } };
+        }
+        return s;
+      });
+    }
+
+    const next = [...shifted, newStep].sort((a, b) => a.position.y - b.position.y);
+    setAndTrackSteps(next);
+    setSelectedStepId(newStep.id);
+    setShowRightPanel(true);
+    setInsertAfterStepId(null);
+    setInsertNodeSearch('');
+  };
+
+  const filteredInsertNodes = availableNodes
+    .filter((n: NodeDefinition) => n.category !== 'Triggers' && n.category !== 'Logic')
+    .filter((n: NodeDefinition) => insertNodeSearch === '' || n.name.toLowerCase().includes(insertNodeSearch.toLowerCase()));
+
+  const toggleDecisionChip = (chip: 'if' | 'retry' | 'approval' | 'wait') => {
+    if (!selectedStep) return;
+    if (chip === 'retry') {
+      updateSelectedStep({
+        retryConfig: {
+          enabled: !selectedStep.retryConfig?.enabled,
+          maxRetries: selectedStep.retryConfig?.maxRetries || 3,
+          retryDelay: selectedStep.retryConfig?.retryDelay || 1000,
+        },
+      });
+      return;
+    }
+    if (chip === 'if') {
+      updateSelectedStep({
+        config: {
+          ...selectedStep.config,
+          useIf: !selectedStep.config.useIf,
+          condition: selectedStep.config.condition || '',
+        },
+      });
+      return;
+    }
+    if (chip === 'approval') {
+      updateSelectedStep({
+        config: {
+          ...selectedStep.config,
+          approvalRequired: !selectedStep.config.approvalRequired,
+          approver: selectedStep.config.approver || '',
+          approvalSlaMinutes: selectedStep.config.approvalSlaMinutes || 60,
+        },
+      });
+      return;
+    }
+    if (chip === 'wait') {
+      updateSelectedStep({
+        config: {
+          ...selectedStep.config,
+          waitEnabled: !selectedStep.config.waitEnabled,
+          waitMinutes: selectedStep.config.waitMinutes || 10,
+        },
+      });
+      return;
+    }
+  };
+
+  const applyGuardrailsToAllSteps = () => {
+    if (steps.length === 0) return;
+    const next = steps.map((s) => applyGuardrailsToStep(s));
+    setAndTrackSteps(next);
+    toast.success('Guardrails applied to all steps');
+  };
+
+  const runStepCheck = async () => {
+    if (!selectedStep) return;
+    setIsTestingStep(true);
+    setLastStepTestResult(null);
+    await new Promise((r) => setTimeout(r, 700));
+
+    const needsPrompt = ['llmCompletion', 'promptTemplate', 'code', 'httpRequest', 'conversation'];
+    const missingPrompt = needsPrompt.includes(selectedStep.type) && String(selectedStep.prompt || '').trim() === '';
+    const strictNeedsApproval = guardrails.requireApprovalForExternal && ['httpRequest', 'webhook', 'conversation'].includes(selectedStep.type);
+    const hasApproval = !!selectedStep.config.approvalRequired;
+
+    if (missingPrompt) {
+      setLastStepTestResult({ ok: false, message: 'Step check failed: add instructions first.' });
+      setIsTestingStep(false);
+      return;
+    }
+    if (strictNeedsApproval && !hasApproval) {
+      setLastStepTestResult({ ok: false, message: 'Step check failed: external step needs approval in this mode.' });
+      setIsTestingStep(false);
+      return;
+    }
+
+    setLastStepTestResult({ ok: true, message: 'Step check passed. Looks runnable.' });
+    setIsTestingStep(false);
   };
 
   const deleteStep = (stepId: string) => {
@@ -707,7 +868,7 @@ export default function WorkflowEditorPage() {
                   setName(name);
                 }
               }}
-              className="text-lg font-semibold px-2 py-1 border border-primary rounded focus:outline-none focus:ring-1 focus:ring-foreground bg-background"
+              className="text-lg font-semibold px-2 py-1 border border-primary rounded focus:outline-none focus:ring-1 focus:ring-primary bg-background"
             />
           ) : (
             <h1
@@ -756,7 +917,7 @@ export default function WorkflowEditorPage() {
             </span>
           )}
           {hasUnsavedChanges && (
-            <span className="text-xs text-amber-500 hidden sm:block whitespace-nowrap">
+            <span className="text-xs text-primary hidden sm:block whitespace-nowrap">
               Unsaved changes
             </span>
           )}
@@ -788,8 +949,8 @@ export default function WorkflowEditorPage() {
             disabled={saveMutation.isPending}
             className={`gap-1.5 ${
               hasUnsavedChanges
-                ? 'border-amber-400 text-amber-700 hover:bg-amber-50'
-                : 'bg-card'
+                ? 'bg-primary/5 border-primary/30 text-primary hover:bg-primary/10'
+                : 'bg-primary/5 border-primary/30 text-primary hover:bg-primary/10'
             }`}
           >
             <Save className="h-4 w-4" />
@@ -815,6 +976,7 @@ export default function WorkflowEditorPage() {
             size="sm"
             onClick={() => executeMutation.mutate()}
             disabled={isNewWorkflow || executeMutation.isPending}
+            className="bg-primary text-primary-foreground hover:bg-primary/90"
           >
             <Play className="h-4 w-4 mr-2" />
             {executeMutation.isPending ? 'Running…' : 'Test run'}
@@ -1119,11 +1281,11 @@ export default function WorkflowEditorPage() {
                     </div>
                   )}
 
-                  {/* ── NOTES TAB ── */}
+                  {/* Notes Tab */}
                   {activeTab === 'notes' && (
                     <div className="flex flex-col h-full">
 
-                      {/* ── TOP HALF: Notes ── */}
+                      {/* Top Half: Notes */}
                       <div className="flex flex-col" style={{ flex: '0 0 50%', minHeight: 0 }}>
                         <div className="px-4 py-2.5 border-b border-border flex items-center justify-between">
 
@@ -1137,7 +1299,7 @@ export default function WorkflowEditorPage() {
                             }}
                             className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-lg text-xs font-semibold transition-all ${notesSaved
                                 ? 'bg-green-100 text-green-700'
-                                : 'bg-primary text-white hover:bg-primary/90'
+                                : 'bg-primary text-primary-foreground hover:bg-primary/90'
                               }`}
                           >
                             {notesSaved ? (
@@ -1187,7 +1349,7 @@ export default function WorkflowEditorPage() {
                               className="w-full flex items-center gap-2 px-3 py-2.5 bg-gradient-to-r from-primary/5 to-secondary/5 hover:from-primary/10 hover:to-secondary/10 transition-colors text-left"
                             >
                               <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
-                                <Sparkles className="h-3.5 w-3.5 text-white" />
+                                <Sparkles className="h-3.5 w-3.5 text-primary-foreground" />
                               </div>
                               <div className="flex-1 min-w-0">
                                 <p className="text-xs font-semibold text-foreground">Summarise with AI</p>
@@ -1326,14 +1488,7 @@ export default function WorkflowEditorPage() {
                         className="cursor-pointer"
                         style={{ pointerEvents: 'all' }}
                         onClick={() => {
-                          const firstNode = availableNodes[0];
-                          if (firstNode) {
-                            const newStep = createStep(firstNode.type, midY, firstNode);
-                            newStep.position.x = (startX + endX) / 2 - 150;
-                            setSteps([...steps, newStep]);
-                            setSelectedStepId(newStep.id);
-                            setShowRightPanel(true);
-                          }
+                          setInsertAfterStepId(step.id);
                         }}
                       />
                       <line x1="-5" y1="0" x2="5" y2="0" stroke="#9CA3AF" strokeWidth="2" style={{ pointerEvents: 'none' }} />
@@ -1405,6 +1560,44 @@ export default function WorkflowEditorPage() {
           </div>
         </div>
 
+        {insertAfterStepId && (
+          <div className="absolute right-6 top-24 z-40 w-[300px] bg-card border border-border rounded-xl shadow-xl">
+            <div className="px-3 py-2.5 border-b border-border flex items-center justify-between">
+              <p className="text-xs font-semibold text-foreground">Insert step here</p>
+              <button
+                onClick={() => { setInsertAfterStepId(null); setInsertNodeSearch(''); }}
+                className="text-xs text-muted-foreground hover:text-foreground"
+              >
+                Close
+              </button>
+            </div>
+            <div className="p-3 space-y-2">
+              <input
+                type="text"
+                value={insertNodeSearch}
+                onChange={(e) => setInsertNodeSearch(e.target.value)}
+                placeholder="Search node type..."
+                className="w-full text-xs px-2.5 py-2 border border-border rounded-lg bg-background"
+              />
+              <div className="max-h-56 overflow-y-auto space-y-1.5">
+                {filteredInsertNodes.slice(0, 20).map((node: NodeDefinition) => (
+                  <button
+                    key={`insert-${node.type}`}
+                    onClick={() => insertStepAfter(insertAfterStepId, node.type)}
+                    className="w-full text-left px-2.5 py-2 rounded-lg border border-border hover:border-primary/40 hover:bg-accent transition-all"
+                  >
+                    <p className="text-xs font-medium text-foreground">{node.name}</p>
+                    <p className="text-[10px] text-muted-foreground">{node.type}</p>
+                  </button>
+                ))}
+                {filteredInsertNodes.length === 0 && (
+                  <p className="text-xs text-muted-foreground px-1 py-2">No nodes found</p>
+                )}
+              </div>
+            </div>
+          </div>
+        )}
+
         {/* Right Configuration Panel */}
         {showRightPanel && selectedStep && (
           <div className="w-[420px] bg-card border-l border-border flex flex-col z-20 shadow-lg">
@@ -1437,25 +1630,49 @@ export default function WorkflowEditorPage() {
             </div>
 
             <div className="flex-1 overflow-y-auto p-6 space-y-6">
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Basics</p>
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">
                   Node Type <span className="text-red-500">*</span>
                 </label>
-                <button className="w-full px-4 py-2.5 text-left border border-border rounded-lg hover:bg-accent flex items-center justify-between">
+                <button
+                  onClick={() => {
+                    const next = !isChangingNodeType;
+                    setIsChangingNodeType(next);
+                    if (next) {
+                      setTimeout(() => {
+                        nodeTypeSelectRef.current?.focus();
+                      }, 0);
+                    }
+                  }}
+                  className="w-full px-4 py-2.5 text-left border border-border rounded-lg hover:bg-accent flex items-center justify-between"
+                >
                   <span className="text-sm text-foreground">
                     {getNodeDef(selectedStep.type)?.name || selectedStep.type}
                   </span>
-                  <span className="text-blue-600 text-xs font-medium">Change</span>
+                  <span className="text-primary text-xs font-medium">
+                    {isChangingNodeType ? 'Cancel' : 'Change'}
+                  </span>
                 </button>
               </div>
 
+              {isChangingNodeType && (
               <div>
                 <label className="block text-sm font-medium text-foreground mb-2">
                   Select Node Type
                 </label>
                 <select
+                  ref={nodeTypeSelectRef}
                   value={selectedStep.type}
-                  onChange={(e) => updateSelectedStep({ type: e.target.value as StepType })}
+                  onChange={(e) => {
+                    const nextType = e.target.value as StepType;
+                    const def = availableNodes.find((n: NodeDefinition) => n.type === nextType);
+                    updateSelectedStep({
+                      type: nextType,
+                      label: def?.name || selectedStep.label,
+                    });
+                    setIsChangingNodeType(false);
+                  }}
                   className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm bg-background text-foreground"
                 >
                   <option value="">Choose a node...</option>
@@ -1465,6 +1682,103 @@ export default function WorkflowEditorPage() {
                     </option>
                   ))}
                 </select>
+              </div>
+              )}
+
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Flow Controls</p>
+              <div>
+                <label className="block text-sm font-medium text-foreground mb-2">
+                  Decision Chips
+                </label>
+                <div className="flex items-center gap-2 flex-wrap">
+                  <button
+                    onClick={() => toggleDecisionChip('if')}
+                    className={`text-xs px-2.5 py-1 rounded-full border ${selectedStep.config.useIf ? 'bg-primary/10 text-primary border-primary/40' : 'border-border text-muted-foreground'}`}
+                  >
+                    If
+                  </button>
+                  <button
+                    onClick={() => toggleDecisionChip('retry')}
+                    className={`text-xs px-2.5 py-1 rounded-full border ${selectedStep.retryConfig?.enabled ? 'bg-primary/10 text-primary border-primary/40' : 'border-border text-muted-foreground'}`}
+                  >
+                    Retry
+                  </button>
+                  <button
+                    onClick={() => toggleDecisionChip('approval')}
+                    className={`text-xs px-2.5 py-1 rounded-full border ${selectedStep.config.approvalRequired ? 'bg-primary/10 text-primary border-primary/40' : 'border-border text-muted-foreground'}`}
+                  >
+                    Approval
+                  </button>
+                  <button
+                    onClick={() => toggleDecisionChip('wait')}
+                    className={`text-xs px-2.5 py-1 rounded-full border ${selectedStep.config.waitEnabled ? 'bg-primary/10 text-primary border-primary/40' : 'border-border text-muted-foreground'}`}
+                  >
+                    Wait
+                  </button>
+                </div>
+              </div>
+
+              {selectedStep.config.useIf && (
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">If condition</label>
+                  <Input
+                    value={selectedStep.config.condition || ''}
+                    onChange={(e) => updateSelectedStep({ config: { ...selectedStep.config, condition: e.target.value } })}
+                    placeholder="ex: data.priority === 'high'"
+                  />
+                </div>
+              )}
+
+              {selectedStep.config.approvalRequired && (
+                <div className="space-y-3">
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-2">Approver</label>
+                    <Input
+                      value={selectedStep.config.approver || ''}
+                      onChange={(e) => updateSelectedStep({ config: { ...selectedStep.config, approver: e.target.value } })}
+                      placeholder="email or role"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-sm font-medium text-foreground mb-2">SLA (minutes)</label>
+                    <Input
+                      type="number"
+                      min="1"
+                      value={selectedStep.config.approvalSlaMinutes || 60}
+                      onChange={(e) => updateSelectedStep({ config: { ...selectedStep.config, approvalSlaMinutes: parseInt(e.target.value) || 60 } })}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {selectedStep.config.waitEnabled && (
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">Wait (minutes)</label>
+                  <Input
+                    type="number"
+                    min="1"
+                    value={selectedStep.config.waitMinutes || 10}
+                    onChange={(e) => updateSelectedStep({ config: { ...selectedStep.config, waitMinutes: parseInt(e.target.value) || 10 } })}
+                  />
+                </div>
+              )}
+
+              <div className="rounded-xl border border-border p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-xs font-semibold text-foreground">Step Check</p>
+                  <button
+                    onClick={runStepCheck}
+                    disabled={isTestingStep}
+                    className="text-xs px-2.5 py-1 rounded-lg border border-border hover:border-primary/40 disabled:opacity-60"
+                  >
+                    {isTestingStep ? 'Checking...' : 'Run check'}
+                  </button>
+                </div>
+                {lastStepTestResult && (
+                  <p className={`text-[11px] mt-2 ${lastStepTestResult.ok ? 'text-green-600' : 'text-amber-600'}`}>
+                    {lastStepTestResult.message}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -1552,9 +1866,71 @@ export default function WorkflowEditorPage() {
                   )}
                 </div>
               )}
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Contract</p>
+              <div className="rounded-xl border border-border p-3 space-y-2.5">
+                <select
+                  value={workflowInputType}
+                  onChange={(e) => { setWorkflowInputType(e.target.value as any); setHasUnsavedChanges(true); }}
+                  className="w-full text-xs px-2.5 py-2 border border-border rounded-lg bg-background"
+                >
+                  <option value="manual">Input: Manual</option>
+                  <option value="form">Input: Form</option>
+                  <option value="webhook">Input: Webhook</option>
+                  <option value="schedule">Input: Schedule</option>
+                </select>
+                <select
+                  value={workflowOutputType}
+                  onChange={(e) => { setWorkflowOutputType(e.target.value as any); setHasUnsavedChanges(true); }}
+                  className="w-full text-xs px-2.5 py-2 border border-border rounded-lg bg-background"
+                >
+                  <option value="notification">Output: Notifications</option>
+                  <option value="record">Output: Records</option>
+                  <option value="api">Output: API Call</option>
+                  <option value="mixed">Output: Mixed</option>
+                </select>
+              </div>
 
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Privacy</p>
+              <div className="rounded-xl border border-border p-3 space-y-2.5">
+                <select
+                  value={privacyMode}
+                  onChange={(e) => { setPrivacyMode(e.target.value as any); setHasUnsavedChanges(true); }}
+                  className="w-full text-xs px-2.5 py-2 border border-border rounded-lg bg-background"
+                >
+                  <option value="standard">Privacy: Standard</option>
+                  <option value="sensitive">Privacy: Sensitive</option>
+                  <option value="strict">Privacy: Strict / Healthcare</option>
+                </select>
+                <div className="flex items-center gap-1.5 flex-wrap">
+                  <button
+                    onClick={() => { setGuardrails((p) => ({ ...p, piiMasking: !p.piiMasking })); setHasUnsavedChanges(true); }}
+                    className={`text-[10px] px-2 py-1 rounded-full border ${guardrails.piiMasking ? 'bg-primary/10 text-primary border-primary/40' : 'border-border text-muted-foreground'}`}
+                  >
+                    Mask PII
+                  </button>
+                  <button
+                    onClick={() => { setGuardrails((p) => ({ ...p, redactLogs: !p.redactLogs })); setHasUnsavedChanges(true); }}
+                    className={`text-[10px] px-2 py-1 rounded-full border ${guardrails.redactLogs ? 'bg-primary/10 text-primary border-primary/40' : 'border-border text-muted-foreground'}`}
+                  >
+                    Redact Logs
+                  </button>
+                  <button
+                    onClick={() => { setGuardrails((p) => ({ ...p, requireApprovalForExternal: !p.requireApprovalForExternal })); setHasUnsavedChanges(true); }}
+                    className={`text-[10px] px-2 py-1 rounded-full border ${guardrails.requireApprovalForExternal ? 'bg-primary/10 text-primary border-primary/40' : 'border-border text-muted-foreground'}`}
+                  >
+                    Approval on External
+                  </button>
+                </div>
+                <button
+                  onClick={applyGuardrailsToAllSteps}
+                  className="text-[10px] px-2 py-1 rounded-full border border-border text-muted-foreground hover:text-foreground hover:border-primary/40"
+                >
+                  Apply to all steps
+                </button>
+              </div>
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Reliability</p>
               {/* Retry Configuration */}
-              <div className="pt-4 border-t border-border">
+              <div>
                 <label className="flex items-center gap-2 cursor-pointer">
                   <input
                     type="checkbox"
@@ -1608,10 +1984,11 @@ export default function WorkflowEditorPage() {
                 )}
               </div>
 
+              <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Danger Zone</p>
               <div className="pt-4 border-t border-border">
                 <Button
                   variant="ghost"
-                  className="w-full text-red-600 hover:bg-red-500/10"
+                  className="w-full text-destructive hover:bg-red-500"
                   onClick={() => {
                     deleteStep(selectedStep.id);
                     setShowRightPanel(false);
