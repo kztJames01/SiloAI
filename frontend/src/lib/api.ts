@@ -6,7 +6,8 @@ import { createIntegrationApi } from '@silo/shared/api/integration';
 import { createNodeApi } from '@silo/shared/api/node';
 import { LoginPayload, RegisterPayload } from '@silo/shared/types';
 
-const API_URL = import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const runtimeApiUrl = window.__APP_CONFIG__?.API_URL;
+const API_URL = runtimeApiUrl || import.meta.env.VITE_API_URL || 'http://localhost:3000';
 
 const sharedApiClient = createApiClient(API_URL);
 const getToken = () => localStorage.getItem('token');
@@ -43,6 +44,8 @@ export const authApi = {
   login: async (data: LoginPayload) =>
     wrapResponse(with401Redirect(sharedAuthApi.login(data))),
   me: async () => wrapResponse(with401Redirect(sharedAuthApi.me())),
+  oauthStartUrl: (provider: 'google' | 'apple', mode: 'login' | 'register' = 'login') =>
+    `${API_URL}/api/auth/oauth/${provider}/start?mode=${mode}`,
 };
 
 // Workflow API

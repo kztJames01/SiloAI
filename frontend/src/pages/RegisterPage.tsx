@@ -1,11 +1,13 @@
-import { useState, FormEvent } from 'react';
+import { useEffect, useState, FormEvent } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../lib/store';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/Card';
 import toast from 'react-hot-toast';
-import { Zap } from 'lucide-react';
+import { Apple, Chrome } from 'lucide-react';
+import { BrandLogo } from '../components/BrandLogo';
+import { authApi } from '../lib/api';
 
 export default function RegisterPage() {
   const navigate = useNavigate();
@@ -14,6 +16,26 @@ export default function RegisterPage() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
+  const [isOAuthLoading, setIsOAuthLoading] = useState(false);
+
+  useEffect(() => {
+    const params = new URLSearchParams(window.location.search);
+    const token = params.get('token');
+    if (!token) return;
+
+    (async () => {
+      try {
+        setIsOAuthLoading(true);
+        await useAuthStore.getState().loginWithToken(token);
+        toast.success('Account created successfully!');
+        navigate('/workflows');
+      } catch (error: any) {
+        toast.error(error?.response?.data?.error || 'Social signup failed');
+      } finally {
+        setIsOAuthLoading(false);
+      }
+    })();
+  }, [navigate]);
 
   const handleSubmit = async (e: FormEvent) => {
     e.preventDefault();
@@ -30,13 +52,16 @@ export default function RegisterPage() {
     }
   };
 
+  const handleSocialAuth = (provider: 'google' | 'apple') => {
+    const url = authApi.oauthStartUrl(provider, 'register');
+    window.location.href = url;
+  };
+
   return (
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted dark:from-slate-900 dark:to-slate-800 px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center h-16 w-16 bg-primary rounded-2xl mb-4">
-            <Zap className="h-8 w-8 text-primary-foreground" />
-          </div>
+          <BrandLogo className="flex justify-center mb-4" imageClassName="h-16 w-auto" />
           <h1 className="text-3xl font-bold text-foreground">Join Silo</h1>
           <p className="text-muted-foreground mt-2">Create your account to get started</p>
         </div>
@@ -72,10 +97,39 @@ export default function RegisterPage() {
                 required
                 minLength={6}
               />
-              <Button type="submit" className="w-full" disabled={isLoading}>
+              <Button type="submit" className="w-full" disabled={isLoading || isOAuthLoading}>
                 {isLoading ? 'Creating account...' : 'Create Account'}
               </Button>
             </form>
+
+            <div className="my-4 flex items-center gap-2 text-xs text-muted-foreground">
+              <div className="h-px bg-border flex-1"></div>
+              <span>or continue with</span>
+              <div className="h-px bg-border flex-1"></div>
+            </div>
+
+            <div className="space-y-2">
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                disabled={isOAuthLoading}
+                onClick={() => handleSocialAuth('google')}
+              >
+                <Chrome className="h-4 w-4 mr-2" />
+                Continue with Google
+              </Button>
+              <Button
+                type="button"
+                variant="outline"
+                className="w-full"
+                disabled={isOAuthLoading}
+                onClick={() => handleSocialAuth('apple')}
+              >
+                <Apple className="h-4 w-4 mr-2" />
+                Continue with Apple
+              </Button>
+            </div>
 
             <div className="mt-4 text-center text-sm">
               <span className="text-muted-foreground">Already have an account? </span>
