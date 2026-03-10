@@ -12,8 +12,8 @@
     --card-foreground: 222.2 47.4% 11.2%;
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 47.4% 11.2%;
-    --primary: 46 100% 50%;            /* #FFC300             */
-    --primary-foreground: 222.2 47.4% 11.2%; /* dark text      */
+    --primary: 215.3 25.1% 26.7%;            /* dark blue             */
+    --primary-foreground: 0 0% 100%; /* dark text      */
     --secondary: 160.9 93.5% 30.2%;   /* #059669  Emerald    */
     --secondary-foreground: 0 0% 100%;
     --muted: 210 40% 96.1%;            /* #F1F5F9  Slate 100  */
@@ -68,7 +68,7 @@
     --ring: 46 100% 50%;               /* #FFC300            */
     --input: 0 0 100% 
     /* Silo-specific semantic tokens */
-    --tertiary: 42.6 95.5% 56.1%;      /* #FBBF24  Amber     */
+    --tertiary: 37.7 92.1% 44.3%;      /* #D97706  Amber      */
     --tertiary-foreground: 222.2 47.4% 11.2%;
     --surface: 217.2 32.6% 17.5%;      /* #1E293B            */
     --surface-elevated: 215.3 25.1% 26.7%; /* #334155         */

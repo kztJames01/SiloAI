@@ -6,8 +6,13 @@ import { createIntegrationApi } from '@silo/shared/api/integration';
 import { createNodeApi } from '@silo/shared/api/node';
 import { LoginPayload, RegisterPayload } from '@silo/shared/types';
 
-const runtimeApiUrl = window.__APP_CONFIG__?.API_URL;
-const API_URL = runtimeApiUrl || import.meta.env.VITE_API_URL || 'http://localhost:3000';
+const runtimeApiUrl = window.__APP_CONFIG__?.API_URL?.trim();
+const envApiUrl = import.meta.env.VITE_API_URL?.trim();
+
+const API_URL =
+  import.meta.env.DEV
+    ? envApiUrl || runtimeApiUrl || 'http://localhost:5000'
+    : runtimeApiUrl || envApiUrl || 'http://localhost:5000';
 
 const sharedApiClient = createApiClient(API_URL);
 const getToken = () => localStorage.getItem('token');

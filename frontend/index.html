@@ -8,13 +8,20 @@
         document.documentElement.classList.add('dark');
       }
     </script>
-    <link rel="icon" type="image/png" href="/brand/logo-full.png" />
+    <link id="favicon" rel="icon" type="image/svg+xml" href="/brand/yellowLogo.svg" />
+    <script>
+      (function () {
+        var link = document.getElementById('favicon');
+        if (!link) return;
+        var isDark = document.documentElement.classList.contains('dark');
+        link.href = isDark ? '/brand/yellowLogo.svg' : '/brand/blueLogo.svg';
+      })();
+    </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Silo - AI Automation Platform</title>
   </head>
   <body>
     <div id="root"></div>
-    <script src="/env-config.js"></script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

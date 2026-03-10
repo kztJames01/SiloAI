@@ -9,6 +9,9 @@ import { Apple, Chrome } from 'lucide-react';
 import { BrandLogo } from '../components/BrandLogo';
 import { authApi } from '../lib/api';
 
+const getErrorMessage = (error: any, fallback: string) =>
+  error?.response?.data?.error || error?.message || fallback;
+
 export default function LoginPage() {
   const navigate = useNavigate();
   const { login } = useAuthStore();
@@ -29,7 +32,7 @@ export default function LoginPage() {
         toast.success('Logged in successfully!');
         navigate('/workflows');
       } catch (error: any) {
-        toast.error(error?.response?.data?.error || 'Social login failed');
+        toast.error(getErrorMessage(error, 'Social login failed'));
       } finally {
         setIsOAuthLoading(false);
       }
@@ -45,7 +48,7 @@ export default function LoginPage() {
       toast.success('Logged in successfully!');
       navigate('/workflows');
     } catch (error: any) {
-      toast.error(error.response?.data?.error || 'Login failed');
+      toast.error(getErrorMessage(error, 'Login failed'));
     } finally {
       setIsLoading(false);
     }
@@ -60,7 +63,12 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-background to-muted dark:from-slate-900 dark:to-slate-800 px-4">
       <div className="w-full max-w-md">
         <div className="text-center mb-8">
-          <BrandLogo className="flex justify-center mb-4" imageClassName="h-16 w-auto" />
+          <BrandLogo
+            className="flex items-center justify-center gap-3 mb-4"
+            imageClassName="h-16 w-auto"
+            showText
+            textClassName="text-3xl font-bold text-foreground dark:text-yellow-300"
+          />
           <h1 className="text-3xl font-bold text-foreground">Welcome to Silo</h1>
           <p className="text-muted-foreground mt-2">Sign in to your account</p>
         </div>

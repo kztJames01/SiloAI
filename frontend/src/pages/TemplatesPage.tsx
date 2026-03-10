@@ -20,11 +20,11 @@ const categories = [
 ];
 
 const useCases = [
-  { id: 'lead', label: 'Lead management', color: 'bg-teal-700' },
-  { id: 'sales', label: 'Sales pipeline', color: 'bg-amber-700' },
-  { id: 'marketing', label: 'Marketing campaigns', color: 'bg-slate-700' },
-  { id: 'support', label: 'Customer support', color: 'bg-stone-600' },
-  { id: 'data', label: 'Data management', color: 'bg-slate-600' },
+  { id: 'lead', label: 'Lead management', color: 'bg-secondary' },
+  { id: 'sales', label: 'Sales pipeline', color: 'bg-secondary' },
+  { id: 'marketing', label: 'Marketing campaigns', color: 'bg-secondary' },
+  { id: 'support', label: 'Customer support', color: 'bg-secondary' },
+  { id: 'data', label: 'Data management', color: 'bg-secondary' },
 ];
 
 const templates = [

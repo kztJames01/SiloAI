@@ -131,7 +131,12 @@ export function Layout() {
                   <Menu className="h-6 w-6" />
                 </button>
                 <Link to="/" className="flex items-center space-x-2">
-                  <BrandLogo imageClassName="h-9 w-auto" />
+                  <BrandLogo
+                    className="flex items-center gap-2"
+                    imageClassName="h-9 w-auto"
+                    showText
+                    textClassName="text-xl font-bold text-foreground dark:text-yellow-300"
+                  />
                 </Link>
               </div>
 

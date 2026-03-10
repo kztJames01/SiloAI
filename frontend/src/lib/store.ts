@@ -136,6 +136,12 @@ export const useUiStore = create<UiState>((set) => ({
       localStorage.setItem('ui_dark', String(next));
       if (next) document.documentElement.classList.add('dark');
       else document.documentElement.classList.remove('dark');
+
+      const link = document.getElementById('favicon') as HTMLLinkElement | null;
+      if (link) {
+        link.href = next ? '/brand/yellowLogo.svg' : '/brand/blueLogo.svg';
+      }
+
       return { isDark: next };
     }),
 }));
