@@ -18,10 +18,7 @@
     "dev:mobile:ios": "npm run ios --workspace=mobile",
     "dev:mobile:android": "npm run android --workspace=mobile",
     "mobile:web": "npm run web --workspace=mobile",
-    "build": "npm run build --workspaces",
-    "docker:up": "docker-compose up -d",
-    "docker:down": "docker-compose down",
-    "docker:build": "docker-compose build"
+    "build": "npm run build --workspaces"
   },
   "keywords": [
     "automation",

@@ -59,11 +59,11 @@ postgres-data/
 # Redis
 dump.rdb
 
+# Markdown files (except README)
+*.md
+!README.md
+!Readme.md
+!readme.md
 
-        AI_IMPLEMENTATION_SUMMARY.md
-        AI_INTEGRATION_GUIDE.md
-        AI_SETUP_INSTRUCTIONS.md
-        BACKEND_SUMMARY.md
-        COMPLETE_GUIDE.md
-        INTEGRATIONS_GUIDE.md
-        QUICK_START_AI.md
+.cursor/
+docs/

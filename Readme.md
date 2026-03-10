@@ -10,12 +10,7 @@ A powerful, self-hostable workflow automation platform that combines visual buil
 
 ## 🚀 Quick Start
 
-### 1. Start Services
-```bash
-docker-compose -f docker-compose.dev.yml up -d
-```
-
-### 2. Setup Backend
+### 1. Setup Backend
 ```bash
 cd backend
 npm install
@@ -25,7 +20,7 @@ npm run prisma:seed
 npm run dev
 ```
 
-### 3. Setup Web Frontend
+### 2. Setup Web Frontend
 ```bash
 cd frontend
 npm install
@@ -33,7 +28,7 @@ cp .env.example .env
 npm run dev
 ```
 
-### 4. Setup Mobile App
+### 3. Setup Mobile App
 ```bash
 cd mobile
 npm install
@@ -100,7 +95,6 @@ npm run start
 
 ### Prerequisites
 - Node.js 18+
-- Docker & Docker Compose
 - npm or yarn
 
 ### Installation
@@ -122,42 +116,25 @@ cp .env.example .env
 # Edit .env with your configuration
 ```
 
-4. Start the database and services:
-```bash
-npm run docker:up
-```
-
-5. Run database migrations:
+4. Run database migrations:
 ```bash
 cd backend
 npm run prisma:migrate
 ```
 
-6. Start development servers:
+5. Start development servers:
 ```bash
 npm run dev
 ```
 
-7. Start mobile app (optional in parallel):
+6. Start mobile app (optional in parallel):
 ```bash
 npm run dev:mobile
 ```
 
 The application will be available at:
 - Frontend: http://localhost:5173
-- Backend API: http://localhost:5000
-
-## 🐳 Docker Deployment
-
-### Development
-```bash
-docker-compose up
-```
-
-### Production
-```bash
-docker-compose -f docker-compose.prod.yml up -d
-```
+- Backend API: http://localhost:3000
 
 ## 📚 Project Structure
 
@@ -180,9 +157,8 @@ silo/
 ├── mobile/           # React Native (Expo) app
 │   ├── app/          # Expo Router screens
 │   └── ...
-├── shared/           # Shared API client/types for web + mobile
-│   └── src/
-└── docker-compose.yml
+└── shared/           # Shared API client/types for web + mobile
+    └── src/
 ```
 
 ## 🔧 Development
