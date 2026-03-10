@@ -34,7 +34,7 @@ export function NodeConfigPanel({ node, onUpdate, onDelete }: NodeConfigPanelPro
             variant="ghost"
             size="sm"
             onClick={() => onDelete(node.id)}
-            className="text-red-600 hover:text-red-700 hover:bg-red-50"
+            className="text-destructive hover:text-destructive hover:bg-destructive/10"
           >
             <Trash2 className="h-4 w-4" />
           </Button>
@@ -65,7 +65,7 @@ export function NodeConfigPanel({ node, onUpdate, onDelete }: NodeConfigPanelPro
                 <select
                   value={node.data.method || 'GET'}
                   onChange={(e) => handleInputChange('method', e.target.value)}
-                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-primary bg-background text-foreground"
+                  className="w-full px-3 py-2 border border-border rounded-md focus:outline-none focus:ring-2 focus:ring-ring bg-background text-foreground"
                 >
                   <option value="GET">GET</option>
                   <option value="POST">POST</option>

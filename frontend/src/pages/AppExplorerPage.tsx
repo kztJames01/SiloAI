@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Search, Check, Star, Zap, ArrowRight, Grid3x3, List } from 'lucide-react';
 import { api } from '../lib/api';
@@ -129,7 +129,7 @@ export default function AppExplorerPage() {
                 )}
                 <span>{cat.label}</span>
                 {active && (
-                  <span className="ml-auto bg-white/20 text-white text-xs px-1.5 py-0.5 rounded-md">
+                  <span className="ml-auto bg-white/20 text-primary-foreground text-xs px-1.5 py-0.5 rounded-md">
                     {filtered.length}
                   </span>
                 )}

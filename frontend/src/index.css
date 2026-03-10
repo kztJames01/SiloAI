@@ -3,7 +3,7 @@
 @tailwind utilities;
 
 @layer base {
-  /* ── Silo Design System — Light Mode ───────────────────────────────────── */
+  /* Light Mode */
   :root {
     /* shadcn/ui tokens mapped to Silo palette */
     --background: 210 40% 98%;          /* #F8FAFC  Slate 50  */
@@ -12,8 +12,8 @@
     --card-foreground: 222.2 47.4% 11.2%;
     --popover: 0 0% 100%;
     --popover-foreground: 222.2 47.4% 11.2%;
-    --primary: 224.3 71.4% 40%;        /* #1E40AF  Royal Blue */
-    --primary-foreground: 210 40% 98%; /* #F8FAFC             */
+    --primary: 46 100% 50%;            /* #FFC300             */
+    --primary-foreground: 222.2 47.4% 11.2%; /* dark text      */
     --secondary: 160.9 93.5% 30.2%;   /* #059669  Emerald    */
     --secondary-foreground: 0 0% 100%;
     --muted: 210 40% 96.1%;            /* #F1F5F9  Slate 100  */
@@ -24,7 +24,7 @@
     --destructive-foreground: 0 0% 100%;
     --border: 214.3 31.8% 91.4%;       /* #E2E8F0  Slate 200  */
     --input: 214.3 31.8% 91.4%;
-    --ring: 224.3 71.4% 40%;           /* #1E40AF             */
+    --ring: 46 100% 50%;               /* #FFC300             */
     --radius: 0.5rem;
     --input: 217.2 32.6% 17.5%; 
     /* Silo-specific semantic tokens */
@@ -40,11 +40,11 @@
     --warning-foreground: 222.2 47.4% 11.2%;
     --error: 0 84.2% 60.2%;            /* #EF4444             */
     --error-foreground: 0 0% 100%;
-    --info: 217.2 91.2% 59.8%;         /* #3B82F6             */
-    --info-foreground: 0 0% 100%;
+    --info: 46 100% 50%;               /* #FFC300             */
+    --info-foreground: 222.2 47.4% 11.2%;
   }
 
-  /* ── Silo Design System — Dark Mode ────────────────────────────────────── */
+  /*Dark Mode */
   .dark {
     /* shadcn/ui tokens */
     --background: 222.2 47.4% 11.2%;   /* #0F172A  Slate 900 */
@@ -53,7 +53,7 @@
     --card-foreground: 210 40% 98%;
     --popover: 217.2 32.6% 17.5%;
     --popover-foreground: 210 40% 98%;
-    --primary: 213.1 93.5% 68%;        /* #60A5FA  Sky Blue  */
+    --primary: 46 100% 50%;            /* #FFC300            */
     --primary-foreground: 222.2 47.4% 11.2%;
     --secondary: 160.9 60.7% 52.2%;    /* #34D399  Mint      */
     --secondary-foreground: 222.2 47.4% 11.2%;
@@ -65,8 +65,8 @@
     --destructive-foreground: 222.2 47.4% 11.2%;
     --border: 215.4 19.7% 34.5%;       /* #475569  Slate 600 */
     --input: 215.4 19.7% 34.5%;
-    --ring: 213.1 93.5% 68%;           /* #60A5FA            */
-    --input: 217.2 32.6% 17.5%; 
+    --ring: 46 100% 50%;               /* #FFC300            */
+    --input: 0 0 100% 
     /* Silo-specific semantic tokens */
     --tertiary: 42.6 95.5% 56.1%;      /* #FBBF24  Amber     */
     --tertiary-foreground: 222.2 47.4% 11.2%;
@@ -80,7 +80,7 @@
     --warning-foreground: 222.2 47.4% 11.2%;
     --error: 0 91.3% 71.6%;            /* #F87171            */
     --error-foreground: 222.2 47.4% 11.2%;
-    --info: 213.1 93.5% 68%;           /* #60A5FA            */
+    --info: 46 100% 50%;               /* #FFC300            */
     --info-foreground: 222.2 47.4% 11.2%;
   }
 }
