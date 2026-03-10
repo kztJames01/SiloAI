@@ -31,7 +31,7 @@ export default function RegisterPage() {
         setIsOAuthLoading(true);
         await useAuthStore.getState().loginWithToken(token);
         toast.success('Account created successfully!');
-        navigate('/workflows');
+        navigate('/dashboard');
       } catch (error: any) {
         toast.error(getErrorMessage(error, 'Social signup failed'));
       } finally {
@@ -47,7 +47,7 @@ export default function RegisterPage() {
     try {
       await register(email, password, name);
       toast.success('Account created successfully!');
-      navigate('/workflows');
+      navigate('/dashboard');
     } catch (error: any) {
       toast.error(getErrorMessage(error, 'Registration failed'));
     } finally {

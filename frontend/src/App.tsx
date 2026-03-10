@@ -5,6 +5,10 @@ import { useAuthStore, useUiStore, UserRole } from './lib/store';
 // Pages
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import WelcomePage from './pages/WelcomePage';
+import HelpPage from './pages/HelpPage';
+import ContactPage from './pages/ContactPage';
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import DashboardPage from './pages/DashboardPage';
 import TemplatesPage from './pages/TemplatesPage';
 import WorkflowEditorPage from './pages/WorkflowEditorPage';
@@ -35,7 +39,7 @@ function RoleGate({
   const { role } = useUiStore();
 
   if (!allowedRoles.includes(role)) {
-    return <Navigate to={role === 'field' ? '/field' : '/workflows'} replace />;
+    return <Navigate to={role === 'field' ? '/field' : '/dashboard'} replace />;
   }
 
   return <>{children}</>;
@@ -65,6 +69,10 @@ function App() {
 
   return (
     <Routes>
+      <Route path="/welcome" element={<WelcomePage />} />
+      <Route path="/help" element={<HelpPage />} />
+      <Route path="/contact" element={<ContactPage />} />
+      <Route path="/privacy" element={<PrivacyPolicyPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
 
@@ -121,7 +129,7 @@ function App() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<Navigate to={role === 'field' ? '/field' : '/workflows'} replace />} />
+        <Route index element={<Navigate to={role === 'field' ? '/field' : '/dashboard'} replace />} />
         <Route
           path="field"
           element={

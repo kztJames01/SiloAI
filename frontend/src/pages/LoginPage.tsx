@@ -30,7 +30,7 @@ export default function LoginPage() {
         setIsOAuthLoading(true);
         await useAuthStore.getState().loginWithToken(token);
         toast.success('Logged in successfully!');
-        navigate('/workflows');
+        navigate('/dashboard');
       } catch (error: any) {
         toast.error(getErrorMessage(error, 'Social login failed'));
       } finally {
@@ -46,7 +46,7 @@ export default function LoginPage() {
     try {
       await login(email, password);
       toast.success('Logged in successfully!');
-      navigate('/workflows');
+      navigate('/dashboard');
     } catch (error: any) {
       toast.error(getErrorMessage(error, 'Login failed'));
     } finally {
