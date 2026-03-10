@@ -1,19 +1,26 @@
 import { PrismaClient } from '@prisma/client';
 import { logger } from '../utils/logger';
 
+if (!process.env.DATABASE_URL) {
+  logger.error('❌ DATABASE_URL environment variable is not set!');
+  logger.error('Please set DATABASE_URL in your .env file');
+}
+
 const prismaClientSingleton = () => {
-  return new PrismaClient({
+  const client = new PrismaClient({
     log: [
       { level: 'query', emit: 'event' },
       { level: 'error', emit: 'stdout' },
       { level: 'warn', emit: 'stdout' },
     ],
-    datasources: {
-      db: {
-        url: process.env.DATABASE_URL,
-      },
-    },
   });
+
+  // Handle connection errors
+  client.$on('error' as never, (e: any) => {
+    logger.error('Prisma Client Error:', e);
+  });
+
+  return client;
 };
 
 declare global {

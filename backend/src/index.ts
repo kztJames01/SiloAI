@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
 import dotenv from 'dotenv';
+import path from 'path';
 import 'express-async-errors';
 import { createServer } from 'http';
 
@@ -21,8 +22,11 @@ import agentRoutes from './api/routes/agent.routes';
 import { errorHandler } from './api/middleware/error.middleware';
 import { rateLimiter } from './api/middleware/rateLimiter.middleware';
 import { logger } from './utils/logger';
+import prisma from './db/prisma';
 
-// Load environment variables
+// Load environment variables - try backend/.env first, then root .env
+dotenv.config({ path: path.resolve(__dirname, '../../.env') });
+dotenv.config({ path: path.resolve(__dirname, '../.env') });
 dotenv.config();
 
 const app = express();
@@ -46,8 +50,22 @@ app.use(express.urlencoded({ extended: true }));
 app.use(rateLimiter);
 
 // Health check
-app.get('/health', (_req, res) => {
-  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+app.get('/health', async (_req, res) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({ 
+      status: 'ok', 
+      database: 'connected',
+      timestamp: new Date().toISOString() 
+    });
+  } catch (error: any) {
+    res.status(503).json({ 
+      status: 'error', 
+      database: 'disconnected',
+      error: error.message,
+      timestamp: new Date().toISOString() 
+    });
+  }
 });
 
 // API routes
@@ -62,11 +80,38 @@ app.use('/api/agents', agentRoutes);
 // Error handling
 app.use(errorHandler);
 
+// Database connection test
+async function testDatabaseConnection() {
+  try {
+    await prisma.$connect();
+    logger.info('✅ Database connected successfully');
+    
+    // Test query
+    await prisma.$queryRaw`SELECT 1`;
+    logger.info('✅ Database query test passed');
+  } catch (error: any) {
+    logger.error('❌ Database connection failed:', error.message);
+    logger.error('DATABASE_URL:', process.env.DATABASE_URL ? 'Set (hidden)' : 'NOT SET');
+    process.exit(1);
+  }
+}
+
 // Start server
 const PORT = process.env.PORT || 3000;
-server.listen(PORT, () => {
-  logger.info(`🚀 Server running on port ${PORT}`);
-  logger.info(`📊 Environment: ${process.env.NODE_ENV}`);
+
+async function startServer() {
+  await testDatabaseConnection();
+  
+  server.listen(PORT, () => {
+    logger.info(`🚀 Server running on port ${PORT}`);
+    logger.info(`📊 Environment: ${process.env.NODE_ENV}`);
+    logger.info(`🔗 Database: ${process.env.DATABASE_URL ? 'Connected' : 'NOT CONFIGURED'}`);
+  });
+}
+
+startServer().catch((error) => {
+  logger.error('Failed to start server:', error);
+  process.exit(1);
 });
 
 // Graceful shutdown

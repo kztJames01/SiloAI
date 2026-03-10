@@ -108,28 +108,36 @@ router.post('/register', async (req, res) => {
 
 // Login
 router.post('/login', async (req, res) => {
-  const { email, password } = loginSchema.parse(req.body);
+  try {
+    const { email, password } = loginSchema.parse(req.body);
 
-  const user = await prisma.user.findUnique({ where: { email } });
-  if (!user) {
-    throw new AppError('Invalid credentials', 401);
+    const user = await prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      throw new AppError('Invalid credentials', 401);
+    }
+
+    const isValidPassword = await bcrypt.compare(password, user.password);
+    if (!isValidPassword) {
+      throw new AppError('Invalid credentials', 401);
+    }
+
+    const token = issueToken(user.id);
+
+    res.json({
+      user: {
+        id: user.id,
+        email: user.email,
+        name: user.name,
+      },
+      token,
+    });
+  } catch (error: any) {
+    if (error instanceof AppError) {
+      throw error;
+    }
+    console.error('Login error:', error);
+    throw new AppError('Login failed: ' + (error?.message || 'Unknown error'), 500);
   }
-
-  const isValidPassword = await bcrypt.compare(password, user.password);
-  if (!isValidPassword) {
-    throw new AppError('Invalid credentials', 401);
-  }
-
-  const token = issueToken(user.id);
-
-  res.json({
-    user: {
-      id: user.id,
-      email: user.email,
-      name: user.name,
-    },
-    token,
-  });
 });
 
 // Get current user
