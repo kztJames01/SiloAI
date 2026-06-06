@@ -1,8 +1,7 @@
+import './env';
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
-import dotenv from 'dotenv';
-import path from 'path';
 import 'express-async-errors';
 import { createServer } from 'http';
 
@@ -24,23 +23,26 @@ import { rateLimiter } from './api/middleware/rateLimiter.middleware';
 import { logger } from './utils/logger';
 import prisma from './db/prisma';
 
-// Load environment variables - try backend/.env first, then root .env
-dotenv.config({ path: path.resolve(__dirname, '../../.env') });
-dotenv.config({ path: path.resolve(__dirname, '../.env') });
-dotenv.config();
-
 const app = express();
 const server = createServer(app);
 
 // Middleware
 app.use(helmet());
+const allowedOrigins = [
+  process.env.FRONTEND_URL,
+].filter(Boolean) as string[];
+
 app.use(cors({
   origin: (origin, callback) => {
-    // Allow all localhost origins in development
-    if (!origin || origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:')) {
+    if (!origin) return callback(null, true);
+    if (
+      origin.startsWith('http://localhost:') ||
+      origin.startsWith('http://127.0.0.1:') ||
+      allowedOrigins.includes(origin)
+    ) {
       callback(null, true);
     } else {
-      callback(null, process.env.FRONTEND_URL || false);
+      callback(new Error('Not allowed by CORS'));
     }
   },
   credentials: true,
@@ -84,14 +86,18 @@ app.use(errorHandler);
 async function testDatabaseConnection() {
   try {
     await prisma.$connect();
-    logger.info('✅ Database connected successfully');
-    
     // Test query
     await prisma.$queryRaw`SELECT 1`;
-    logger.info('✅ Database query test passed');
+    logger.info('Database query test passed');
   } catch (error: any) {
     logger.error('❌ Database connection failed:', error.message);
     logger.error('DATABASE_URL:', process.env.DATABASE_URL ? 'Set (hidden)' : 'NOT SET');
+    const host = process.env.DATABASE_URL?.includes('db.') && process.env.DATABASE_URL?.includes('.supabase.co');
+    if (host) {
+      logger.error(
+        'Supabase direct host (db.*.supabase.co) is IPv6-only. If connect fails, use Session pooler URI from Supabase dashboard (IPv4) and add ?sslmode=require'
+      );
+    }
     process.exit(1);
   }
 }
@@ -103,9 +109,9 @@ async function startServer() {
   await testDatabaseConnection();
   
   server.listen(PORT, () => {
-    logger.info(`🚀 Server running on port ${PORT}`);
-    logger.info(`📊 Environment: ${process.env.NODE_ENV}`);
-    logger.info(`🔗 Database: ${process.env.DATABASE_URL ? 'Connected' : 'NOT CONFIGURED'}`);
+    logger.info(`Server running on port ${PORT}`);
+    logger.info(`Environment: ${process.env.NODE_ENV}`);
+    logger.info(`Database: ${process.env.DATABASE_URL ? 'Connected' : 'NOT CONFIGURED'}`);
   });
 }
 
