@@ -324,6 +324,7 @@ enum LLMProvider {
   ANTHROPIC
   GEMINI
   OLLAMA
+  OPENROUTER
   CUSTOM
 }
 

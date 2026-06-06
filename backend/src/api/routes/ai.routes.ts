@@ -10,11 +10,6 @@ const router = express.Router();
 
 // Apply auth middleware
 router.use(authenticate);
-
-/**
- * POST /api/ai/complete
- * Generate an LLM completion
- */
 router.post('/complete', async (req: AuthRequest, res) => {
   try {
     const { provider, model, apiKey, baseUrl, messages, temperature, maxTokens } = req.body;
@@ -234,7 +229,7 @@ router.get('/providers', async (_req, res) => {
       },
       gemini: {
         name: 'Google Gemini',
-        models: ['gemini-3.1-pro-preview', 'gemini-3-flash-preview', 'gemini-1.5-pro', 'gemini-1.5-flash'],
+        models: ['gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-pro'],
         requiresApiKey: true,
       },
       ollama: {
@@ -242,6 +237,22 @@ router.get('/providers', async (_req, res) => {
         models: ['llama3', 'mistral', 'codellama', 'phi'],
         requiresApiKey: false,
         requiresBaseUrl: true,
+      },
+      openrouter: {
+        name: 'OpenRouter',
+        models: [
+          'openai/gpt-4o',
+          'openai/gpt-4-turbo',
+          'anthropic/claude-3-5-sonnet',
+          'anthropic/claude-3-opus',
+          'google/gemini-pro-1.5',
+          'meta-llama/llama-3.1-70b-instruct',
+          'mistralai/mistral-large',
+          'qwen/qwen-2.5-72b-instruct',
+        ],
+        requiresApiKey: true,
+        baseUrl: 'https://openrouter.ai/api/v1',
+        description: 'Access 100+ models via a single OpenAI-compatible API',
       },
       custom: {
         name: 'Custom Endpoint',
