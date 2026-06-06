@@ -163,7 +163,6 @@ export default function AgentDetailPage() {
       isActive: agentData.isActive,
     });
     setDirty(false);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [agentData?.id]);
 
   // Fetch executions

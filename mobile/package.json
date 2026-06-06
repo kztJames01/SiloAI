@@ -2,6 +2,9 @@
   "name": "mobile",
   "version": "1.0.0",
   "private": true,
+  "engines": {
+    "node": ">=20 <21"
+  },
   "main": "expo-router/entry",
   "scripts": {
     "start": "expo start",
@@ -10,21 +13,24 @@
     "android:native": "expo run:android",
     "ios:native": "expo run:ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "build": "tsc --noEmit"
   },
   "dependencies": {
     "@expo/metro-runtime": "~4.0.1",
     "@react-native-async-storage/async-storage": "1.23.1",
     "@silo/shared": "*",
-    "expo": "~52.0.30",
+    "expo": "^56.0.9",
     "expo-router": "~4.0.17",
     "expo-status-bar": "~2.0.1",
+    
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "react-native": "0.76.9",
     "react-native-safe-area-context": "4.12.0",
     "react-native-screens": "~4.4.0",
-    "react-native-web": "~0.19.13"
+    "react-native-web": "~0.19.13",
+    "uuid": "14.0.0"
   },
   "devDependencies": {
     "@types/react": "~18.3.12",

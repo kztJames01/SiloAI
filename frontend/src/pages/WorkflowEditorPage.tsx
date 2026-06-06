@@ -525,7 +525,6 @@ export default function WorkflowEditorPage() {
       }
     }, 10 * 60 * 1000);
     return () => clearInterval(interval);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [autoSaveEnabled, hasUnsavedChanges, steps]);
 
   const saveMutation = useMutation({
