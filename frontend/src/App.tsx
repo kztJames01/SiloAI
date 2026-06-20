@@ -12,6 +12,7 @@ import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import DashboardPage from './pages/DashboardPage';
 import TemplatesPage from './pages/TemplatesPage';
 import WorkflowEditorPage from './pages/WorkflowEditorPage';
+import ExecutionsPage from './pages/ExecutionsPage';
 import ExecutionDetailPage from './pages/ExecutionDetailPage';
 import ProfilePage from './pages/ProfilePage';
 import FieldPage from './pages/FieldPage';
@@ -191,6 +192,14 @@ function App() {
           element={
             <RoleGate allowedRoles={['admin']}>
               <DataStoragePage />
+            </RoleGate>
+          }
+        />
+        <Route
+          path="executions"
+          element={
+            <RoleGate allowedRoles={['admin']}>
+              <ExecutionsPage />
             </RoleGate>
           }
         />

@@ -17,6 +17,12 @@ const API_URL =
 const sharedApiClient = createApiClient(API_URL);
 const getToken = () => localStorage.getItem('token');
 
+const normalizeApiPath = (path: string) => {
+  if (path.startsWith('http://') || path.startsWith('https://')) return path;
+  if (path.startsWith('/api/')) return path;
+  return `/api${path.startsWith('/') ? path : `/${path}`}`;
+};
+
 const wrapResponse = async (promise: Promise<unknown>) => ({
   data: (await promise) as any,
 });
@@ -128,19 +134,19 @@ export const agentApi = {
 // Generic API client for custom endpoints
 export const api = {
   get: async (path: string) => {
-    const data = await sharedApiClient.request<any>(path, { method: 'GET', token: getToken() ?? undefined });
+    const data = await sharedApiClient.request<any>(normalizeApiPath(path), { method: 'GET', token: getToken() ?? undefined });
     return { data };
   },
   post: async (path: string, body?: unknown) => {
-    const data = await sharedApiClient.request<any>(path, { method: 'POST', body, token: getToken() ?? undefined });
+    const data = await sharedApiClient.request<any>(normalizeApiPath(path), { method: 'POST', body, token: getToken() ?? undefined });
     return { data };
   },
   put: async (path: string, body?: unknown) => {
-    const data = await sharedApiClient.request<any>(path, { method: 'PUT', body, token: getToken() ?? undefined });
+    const data = await sharedApiClient.request<any>(normalizeApiPath(path), { method: 'PUT', body, token: getToken() ?? undefined });
     return { data };
   },
   delete: async (path: string, body?: unknown) => {
-    const data = await sharedApiClient.request<any>(path, { method: 'DELETE', body, token: getToken() ?? undefined });
+    const data = await sharedApiClient.request<any>(normalizeApiPath(path), { method: 'DELETE', body, token: getToken() ?? undefined });
     return { data };
   },
 };

@@ -22,8 +22,13 @@ export default function LoginPage() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const token = params.get('token');
+    const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
+    const token = params.get('token') || hashParams.get('token');
     if (!token) return;
+
+    if (hashParams.get('token')) {
+      window.history.replaceState(null, '', window.location.pathname + window.location.search);
+    }
 
     (async () => {
       try {
