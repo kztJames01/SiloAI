@@ -19,8 +19,9 @@ import agentRoutes from './api/routes/agent.routes';
 
 // Import middleware
 import { errorHandler } from './api/middleware/error.middleware';
-import { rateLimiter } from './api/middleware/rateLimiter.middleware';
+import { rateLimiter, authRateLimiter } from './api/middleware/rateLimiter.middleware';
 import { logger } from './utils/logger';
+import { formatDatabaseStartupError, getDatabaseUrlInfo, loadedEnvFiles } from './db/database-url';
 import prisma from './db/prisma';
 
 const app = express();
@@ -35,15 +36,17 @@ const allowedOrigins = [
 app.use(cors({
   origin: (origin, callback) => {
     if (!origin) return callback(null, true);
-    if (
-      origin.startsWith('http://localhost:') ||
-      origin.startsWith('http://127.0.0.1:') ||
-      allowedOrigins.includes(origin)
-    ) {
-      callback(null, true);
-    } else {
-      callback(new Error('Not allowed by CORS'));
+
+    const isProd = process.env.NODE_ENV === 'production';
+    if (!isProd && (origin.startsWith('http://localhost:') || origin.startsWith('http://127.0.0.1:'))) {
+      return callback(null, true);
     }
+
+    if (allowedOrigins.includes(origin)) {
+      return callback(null, true);
+    }
+
+    callback(new Error('Not allowed by CORS'));
   },
   credentials: true,
 }));
@@ -71,7 +74,7 @@ app.get('/health', async (_req, res) => {
 });
 
 // API routes
-app.use('/api/auth', authRoutes);
+app.use('/api/auth', authRateLimiter, authRoutes);
 app.use('/api/workflows', workflowRoutes);
 app.use('/api/executions', executionRoutes);
 app.use('/api/integrations', integrationRoutes);
@@ -90,20 +93,22 @@ async function testDatabaseConnection() {
     await prisma.$queryRaw`SELECT 1`;
     logger.info('Database query test passed');
   } catch (error: any) {
-    logger.error('❌ Database connection failed:', error.message);
-    logger.error('DATABASE_URL:', process.env.DATABASE_URL ? 'Set (hidden)' : 'NOT SET');
-    const host = process.env.DATABASE_URL?.includes('db.') && process.env.DATABASE_URL?.includes('.supabase.co');
-    if (host) {
-      logger.error(
-        'Supabase direct host (db.*.supabase.co) is IPv6-only. If connect fails, use Session pooler URI from Supabase dashboard (IPv4) and add ?sslmode=require'
-      );
+    const info = getDatabaseUrlInfo();
+    logger.error('Database connection failed');
+    logger.error('Env files:', loadedEnvFiles().join(', ') || 'none found');
+    logger.error('DATABASE_URL:', process.env.DATABASE_URL ? 'set' : 'NOT SET');
+    if (info) {
+      logger.error(`Target: ${info.user}@${info.host}:${info.port}/${info.database}`);
+    }
+    for (const line of formatDatabaseStartupError(error)) {
+      logger.error(line);
     }
     process.exit(1);
   }
 }
 
 // Start server
-const PORT = process.env.PORT || 3000;
+const PORT = process.env.PORT || 5000;
 
 async function startServer() {
   await testDatabaseConnection();

@@ -7,13 +7,14 @@ import { z } from 'zod';
 import prisma from '../../db/prisma';
 import { AppError } from '../middleware/error.middleware';
 import { authenticate, AuthRequest } from '../middleware/auth.middleware';
+import { signOAuthState, verifyOAuthState, verifyAppleIdToken } from '../../utils/security';
 
 const router = Router();
 
 // Validation schemas
 const registerSchema = z.object({
   email: z.string().email(),
-  password: z.string().min(6),
+  password: z.string().min(8),
   name: z.string().optional(),
 });
 
@@ -25,7 +26,7 @@ const loginSchema = z.object({
 const oauthModeSchema = z.enum(['login', 'register']);
 
 function getApiBaseUrl() {
-  return process.env.API_URL || `http://localhost:${process.env.PORT || 3000}`;
+  return process.env.API_URL || `http://localhost:${process.env.PORT || 5000}`;
 }
 
 function getFrontendBaseUrl() {
@@ -65,7 +66,7 @@ async function findOrCreateOAuthUser(email: string, name?: string) {
 function redirectAuthSuccess(res: any, token: string, mode: 'login' | 'register') {
   const frontendBaseUrl = getFrontendBaseUrl();
   const target = mode === 'register' ? '/register' : '/login';
-  res.redirect(`${frontendBaseUrl}${target}?token=${encodeURIComponent(token)}`);
+  res.redirect(`${frontendBaseUrl}${target}#token=${encodeURIComponent(token)}`);
 }
 
 function redirectAuthError(res: any, message: string) {
@@ -136,7 +137,7 @@ router.post('/login', async (req, res) => {
       throw error;
     }
     console.error('Login error:', error);
-    throw new AppError('Login failed: ' + (error?.message || 'Unknown error'), 500);
+    throw new AppError('Login failed', 500);
   }
 });
 
@@ -165,7 +166,7 @@ router.get('/oauth/google/start', async (req, res) => {
   }
 
   const redirectUri = `${getApiBaseUrl()}/api/auth/oauth/google/callback`;
-  const state = Buffer.from(JSON.stringify({ mode })).toString('base64url');
+  const state = signOAuthState({ mode });
   const params = new URLSearchParams({
     client_id: clientId,
     redirect_uri: redirectUri,
@@ -184,7 +185,7 @@ router.get('/oauth/google/callback', async (req, res) => {
     const rawState = String(req.query.state || '');
     if (!code || !rawState) throw new AppError('Google OAuth callback is invalid', 400);
 
-    const state = JSON.parse(Buffer.from(rawState, 'base64url').toString('utf8'));
+    const state = verifyOAuthState<{ mode?: string }>(rawState);
     const mode = oauthModeSchema.parse(state?.mode || 'login');
 
     const clientId = process.env.GOOGLE_CLIENT_ID;
@@ -212,8 +213,9 @@ router.get('/oauth/google/callback', async (req, res) => {
     });
 
     const email = profileResponse.data?.email;
+    const emailVerified = profileResponse.data?.email_verified;
     const name = profileResponse.data?.name;
-    if (!email) throw new AppError('Google account has no email', 400);
+    if (!email || emailVerified === false) throw new AppError('Google account email is not verified', 400);
 
     const user = await findOrCreateOAuthUser(email, name);
     const token = issueToken(user.id);
@@ -231,7 +233,7 @@ router.get('/oauth/apple/start', async (req, res) => {
   }
 
   const redirectUri = `${getApiBaseUrl()}/api/auth/oauth/apple/callback`;
-  const state = Buffer.from(JSON.stringify({ mode })).toString('base64url');
+  const state = signOAuthState({ mode });
   const params = new URLSearchParams({
     client_id: clientId,
     redirect_uri: redirectUri,
@@ -250,7 +252,7 @@ const appleCallbackHandler = async (req: any, res: any) => {
     const rawState = String(req.body?.state || req.query?.state || '');
     if (!code || !rawState) throw new AppError('Apple OAuth callback is invalid', 400);
 
-    const state = JSON.parse(Buffer.from(rawState, 'base64url').toString('utf8'));
+    const state = verifyOAuthState<{ mode?: string }>(rawState);
     const mode = oauthModeSchema.parse(state?.mode || 'login');
 
     const clientId = process.env.APPLE_CLIENT_ID;
@@ -273,9 +275,9 @@ const appleCallbackHandler = async (req: any, res: any) => {
     const idToken = tokenResponse.data?.id_token;
     if (!idToken) throw new AppError('Apple OAuth token exchange failed', 400);
 
-    const decoded: any = jwt.decode(idToken);
-    const email = decoded?.email;
-    const name = decoded?.name || 'Apple User';
+    const verified = await verifyAppleIdToken(idToken, clientId);
+    const email = verified?.email;
+    const name = verified?.name || 'Apple User';
     if (!email) throw new AppError('Apple account has no email', 400);
 
     const user = await findOrCreateOAuthUser(email, name);

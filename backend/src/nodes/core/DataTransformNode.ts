@@ -90,6 +90,9 @@ export class DataTransformNode implements INode {
   }
 
   private mapArray(obj: any, path: string, mapFn: string): any {
+    if (process.env.ALLOW_CODE_NODE !== 'true') {
+      throw new Error('Custom map functions are disabled');
+    }
     const arr = this.getPath(obj, path);
     if (!Array.isArray(arr)) return obj;
 
@@ -100,6 +103,9 @@ export class DataTransformNode implements INode {
   }
 
   private filterArray(obj: any, path: string, filterFn: string): any {
+    if (process.env.ALLOW_CODE_NODE !== 'true') {
+      throw new Error('Custom filter functions are disabled');
+    }
     const arr = this.getPath(obj, path);
     if (!Array.isArray(arr)) return obj;
 

@@ -9,6 +9,82 @@ import { logger } from '../../utils/logger';
 
 const router = Router();
 
+const frontendBase = () => process.env.FRONTEND_URL || 'http://localhost:5173';
+
+// OAuth2 callback must stay public (provider redirect has no JWT)
+router.get('/oauth/callback', async (req, res) => {
+  try {
+    const { code, state, error } = req.query;
+
+    if (error) {
+      logger.error('OAuth error', { error });
+      return res.redirect(`${frontendBase()}/integrations?error=oauth_failed`);
+    }
+
+    if (!code || !state) {
+      return res.status(400).json({ error: 'Missing code or state' });
+    }
+
+    const stateData = oauth2Handler.verifyState(state as string);
+    if (!stateData) {
+      return res.status(400).json({ error: 'Invalid or expired state' });
+    }
+
+    const { userId, provider } = stateData;
+    const integration = integrationRegistry.get(provider as IntegrationProvider);
+    if (!integration) {
+      return res.status(404).json({ error: 'Integration not found' });
+    }
+
+    const oauth2Config = getOAuth2Config(provider as IntegrationProvider);
+    if (!oauth2Config) {
+      return res.status(500).json({ error: 'OAuth2 not configured' });
+    }
+
+    const credentials = await oauth2Handler.exchangeCodeForToken(oauth2Config, code as string);
+
+    const testResult = await integration.testConnection(credentials);
+    if (!testResult.success) {
+      logger.error('OAuth connection test failed', { provider, error: testResult.message });
+      return res.redirect(`${frontendBase()}/integrations?error=connection_failed`);
+    }
+
+    const metadata = integration.getInfo().metadata;
+    let integrationRecord = await prisma.integration.findFirst({ where: { provider } });
+    if (!integrationRecord) {
+      integrationRecord = await prisma.integration.create({
+        data: {
+          provider,
+          name: metadata.name,
+          description: metadata.description || '',
+          category: metadata.category,
+          authType: 'OAUTH2',
+          logo: metadata.logo,
+          color: metadata.color,
+          docUrl: metadata.docUrl,
+          enabled: metadata.enabled,
+        },
+      });
+    }
+
+    await prisma.integrationConnection.create({
+      data: {
+        userId,
+        integrationId: integrationRecord.id,
+        name: `${metadata.name} Connection`,
+        credentials: credentialManager.encrypt(credentials),
+        status: 'ACTIVE',
+        lastTested: new Date(),
+      },
+    });
+
+    return res.redirect(`${frontendBase()}/integrations?success=true`);
+  } catch (error: any) {
+    logger.error('OAuth callback failed', { error: error.message });
+    return res.redirect(`${frontendBase()}/integrations?error=oauth_failed`);
+  }
+});
+
 router.use(authenticate);
 
 // List all available integrations
@@ -56,6 +132,26 @@ router.get('/connections/list', async (req: AuthRequest, res) => {
     res.json({ connections: masked });
   } catch (error: any) {
     logger.error('Failed to list connections', { error: error.message });
+    res.status(500).json({ error: 'Failed to list connections' });
+  }
+});
+
+router.get('/user', async (req: AuthRequest, res) => {
+  try {
+    const connections = await prisma.integrationConnection.findMany({
+      where: { userId: req.userId },
+      include: { integration: true },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    const masked = connections.map((conn: any) => ({
+      ...conn,
+      credentials: credentialManager.mask(credentialManager.decrypt(conn.credentials)),
+    }));
+
+    res.json({ connections: masked });
+  } catch (error: any) {
+    logger.error('Failed to list user integrations', { error: error.message });
     res.status(500).json({ error: 'Failed to list connections' });
   }
 });
@@ -140,80 +236,6 @@ router.post('/:provider/connect', async (req: AuthRequest, res) => {
   } catch (error: any) {
     logger.error('Failed to connect', { error: error.message });
     return res.status(500).json({ error: 'Failed to connect' });
-  }
-});
-
-// OAuth2 callback
-router.get('/oauth/callback', async (req, res) => {
-  try {
-    const { code, state, error } = req.query;
-
-    if (error) {
-      logger.error('OAuth error', { error });
-      return res.redirect('/integrations?error=oauth_failed');
-    }
-
-    if (!code || !state) {
-      return res.status(400).json({ error: 'Missing code or state' });
-    }
-
-    const stateData = oauth2Handler.verifyState(state as string);
-    if (!stateData) {
-      return res.status(400).json({ error: 'Invalid or expired state' });
-    }
-
-    const { userId, provider } = stateData;
-    const integration = integrationRegistry.get(provider as IntegrationProvider);
-    if (!integration) {
-      return res.status(404).json({ error: 'Integration not found' });
-    }
-
-    const oauth2Config = getOAuth2Config(provider as IntegrationProvider);
-    if (!oauth2Config) {
-      return res.status(500).json({ error: 'OAuth2 not configured' });
-    }
-
-    const credentials = await oauth2Handler.exchangeCodeForToken(oauth2Config, code as string);
-
-    const testResult = await integration.testConnection(credentials);
-    if (!testResult.success) {
-      logger.error('OAuth connection test failed', { provider, error: testResult.message });
-      return res.redirect('/integrations?error=connection_failed');
-    }
-
-    const metadata = integration.getInfo().metadata;
-    let integrationRecord = await prisma.integration.findFirst({ where: { provider } });
-    if (!integrationRecord) {
-      integrationRecord = await prisma.integration.create({
-        data: {
-          provider,
-          name: metadata.name,
-          description: metadata.description || '',
-          category: metadata.category,
-          authType: 'OAUTH2',
-          logo: metadata.logo,
-          color: metadata.color,
-          docUrl: metadata.docUrl,
-          enabled: metadata.enabled,
-        },
-      });
-    }
-
-    await prisma.integrationConnection.create({
-      data: {
-        userId,
-        integrationId: integrationRecord.id,
-        name: `${metadata.name} Connection`,
-        credentials: credentialManager.encrypt(credentials),
-        status: 'ACTIVE',
-        lastTested: new Date(),
-      },
-    });
-
-    return res.redirect('/integrations?success=true');
-  } catch (error: any) {
-    logger.error('OAuth callback failed', { error: error.message });
-    return res.redirect('/integrations?error=oauth_failed');
   }
 });
 
@@ -332,7 +354,7 @@ function getOAuth2Config(provider: IntegrationProvider): OAuth2Config | null {
       authorizationUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
       tokenUrl: 'https://oauth2.googleapis.com/token',
       scopes: ['https://www.googleapis.com/auth/gmail.send', 'https://www.googleapis.com/auth/gmail.readonly'],
-      redirectUri: `${process.env.API_URL || 'http://localhost:3000'}/api/integrations/oauth/callback`,
+      redirectUri: `${process.env.API_URL || 'http://localhost:5000'}/api/integrations/oauth/callback`,
     },
     [IntegrationProvider.SLACK]: {
       clientId: process.env.SLACK_CLIENT_ID!,
@@ -340,7 +362,7 @@ function getOAuth2Config(provider: IntegrationProvider): OAuth2Config | null {
       authorizationUrl: 'https://slack.com/oauth/v2/authorize',
       tokenUrl: 'https://slack.com/api/oauth.v2.access',
       scopes: ['chat:write', 'channels:read'],
-      redirectUri: `${process.env.API_URL || 'http://localhost:3000'}/api/integrations/oauth/callback`,
+      redirectUri: `${process.env.API_URL || 'http://localhost:5000'}/api/integrations/oauth/callback`,
     },
   };
 
