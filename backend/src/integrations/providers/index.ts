@@ -34,6 +34,25 @@ import {
   TypeformIntegration,
   ChatGPTIntegration,
 } from './integrations';
+import {
+  GoogleFormsIntegration,
+  GoogleMeetIntegration,
+  GoogleSlidesIntegration,
+  GoogleContactsIntegration,
+  MicrosoftWordIntegration,
+  MicrosoftPowerPointIntegration,
+  MicrosoftSharePointIntegration,
+  MicrosoftTodoIntegration,
+} from './suiteExtras';
+import {
+  ServiceTitanIntegration,
+  JobberIntegration,
+  HousecallProIntegration,
+  CompanyCamIntegration,
+  WorkizIntegration,
+  BuilderTrendIntegration,
+  ServiceM8Integration,
+} from './fieldServiceIntegrations';
 import { BaseIntegration } from '../base/BaseIntegration';
 import { IntegrationProvider } from '@silo/shared/types/integration';
 
@@ -71,11 +90,27 @@ class IntegrationRegistry {
     this.register(new GoogleCalendarIntegration());
     this.register(new GoogleDocsIntegration());
     this.register(new YouTubeIntegration());
+    this.register(new GoogleFormsIntegration());
+    this.register(new GoogleMeetIntegration());
+    this.register(new GoogleSlidesIntegration());
+    this.register(new GoogleContactsIntegration());
     // Microsoft Suite
     this.register(new MicrosoftOutlookIntegration());
     this.register(new MicrosoftTeamsIntegration());
     this.register(new MicrosoftExcelIntegration());
     this.register(new MicrosoftOneDriveIntegration());
+    this.register(new MicrosoftWordIntegration());
+    this.register(new MicrosoftPowerPointIntegration());
+    this.register(new MicrosoftSharePointIntegration());
+    this.register(new MicrosoftTodoIntegration());
+    // Field service / trades
+    this.register(new ServiceTitanIntegration());
+    this.register(new JobberIntegration());
+    this.register(new HousecallProIntegration());
+    this.register(new CompanyCamIntegration());
+    this.register(new WorkizIntegration());
+    this.register(new BuilderTrendIntegration());
+    this.register(new ServiceM8Integration());
     // Communication
     this.register(new DiscordIntegration());
     // Productivity
@@ -168,4 +203,19 @@ export {
   FacebookAdsIntegration,
   TypeformIntegration,
   ChatGPTIntegration,
+  GoogleFormsIntegration,
+  GoogleMeetIntegration,
+  GoogleSlidesIntegration,
+  GoogleContactsIntegration,
+  MicrosoftWordIntegration,
+  MicrosoftPowerPointIntegration,
+  MicrosoftSharePointIntegration,
+  MicrosoftTodoIntegration,
+  ServiceTitanIntegration,
+  JobberIntegration,
+  HousecallProIntegration,
+  CompanyCamIntegration,
+  WorkizIntegration,
+  BuilderTrendIntegration,
+  ServiceM8Integration,
 };
