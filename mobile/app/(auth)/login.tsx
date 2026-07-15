@@ -75,7 +75,9 @@ export default function LoginScreen() {
           Create an account
         </Link>
       </Text>
-      <Text style={[styles.api, { color: colors.textTertiary }]}>API: {DEFAULT_API_BASE_URL}</Text>
+      <Text style={[styles.api, { color: colors.textTertiary }]}>
+        {__DEV__ ? `API: ${DEFAULT_API_BASE_URL}` : ''}
+      </Text>
     </Screen>
   );
 }

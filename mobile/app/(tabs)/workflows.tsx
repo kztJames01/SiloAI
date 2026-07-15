@@ -21,7 +21,7 @@ export default function WorkflowsScreen() {
     try {
       setError('');
       const data = await api.list();
-      setWorkflows(data.workflows);
+      setWorkflows(data.workflows.filter((item) => !item.name.startsWith('__agent__')));
     } catch (err: any) {
       setError(err?.message || 'Could not load workflows');
     } finally {
