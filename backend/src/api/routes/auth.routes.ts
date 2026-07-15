@@ -156,6 +156,29 @@ router.get('/me', authenticate, async (req: AuthRequest, res) => {
   res.json({ user });
 });
 
+const changePasswordSchema = z.object({
+  currentPassword: z.string().min(1),
+  newPassword: z.string().min(8),
+});
+
+router.post('/change-password', authenticate, async (req: AuthRequest, res) => {
+  const { currentPassword, newPassword } = changePasswordSchema.parse(req.body);
+
+  const user = await prisma.user.findUnique({ where: { id: req.userId! } });
+  if (!user) throw new AppError('User not found', 404);
+
+  const ok = await bcrypt.compare(currentPassword, user.password);
+  if (!ok) throw new AppError('Current password is incorrect', 400);
+
+  const hashedPassword = await bcrypt.hash(newPassword, 10);
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { password: hashedPassword },
+  });
+
+  res.json({ success: true, message: 'Password updated' });
+});
+
 router.get('/oauth/google/start', async (req, res) => {
   const mode = oauthModeSchema.parse(req.query.mode || 'login');
   const clientId = process.env.GOOGLE_CLIENT_ID;

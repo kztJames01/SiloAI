@@ -582,7 +582,7 @@ export class DropboxIntegration extends BaseIntegration {
 
 export class TrelloIntegration extends BaseIntegration {
   getMetadata(): IntegrationMetadata {
-    return { provider: IntegrationProvider.TRELLO, name: 'Trello', description: 'Project management boards', category: IntegrationCategory.PRODUCTIVITY, authType: AuthType.API_KEY, color: '#0079BF', enabled: true };
+    return { provider: IntegrationProvider.TRELLO, name: 'Trello', description: 'Project management boards', category: IntegrationCategory.PRODUCTIVITY, authType: AuthType.API_KEY, color: '#0079BF', enabled: true, comingSoon: true };
   }
   getActions(): IntegrationAction[] {
     return [
@@ -697,7 +697,7 @@ export class SendGridIntegration extends BaseIntegration {
 
 export class HubSpotIntegration extends BaseIntegration {
   getMetadata(): IntegrationMetadata {
-    return { provider: IntegrationProvider.HUBSPOT, name: 'HubSpot', description: 'CRM and marketing automation', category: IntegrationCategory.MARKETING, authType: AuthType.OAUTH2, color: '#FF7A59', enabled: true };
+    return { provider: IntegrationProvider.HUBSPOT, name: 'HubSpot', description: 'CRM and marketing automation', category: IntegrationCategory.MARKETING, authType: AuthType.OAUTH2, color: '#FF7A59', enabled: true, comingSoon: true };
   }
   getActions(): IntegrationAction[] {
     return [
@@ -753,7 +753,7 @@ export class HubSpotIntegration extends BaseIntegration {
 
 export class ZoomIntegration extends BaseIntegration {
   getMetadata(): IntegrationMetadata {
-    return { provider: IntegrationProvider.ZOOM, name: 'Zoom', description: 'Video conferencing', category: IntegrationCategory.COMMUNICATION, authType: AuthType.OAUTH2, color: '#2D8CFF', enabled: true };
+    return { provider: IntegrationProvider.ZOOM, name: 'Zoom', description: 'Video conferencing', category: IntegrationCategory.COMMUNICATION, authType: AuthType.OAUTH2, color: '#2D8CFF', enabled: true, comingSoon: true };
   }
   getActions(): IntegrationAction[] {
     return [
@@ -1250,7 +1250,7 @@ export class ClickUpIntegration extends BaseIntegration {
 
 export class MailChimpIntegration extends BaseIntegration {
   getMetadata(): IntegrationMetadata {
-    return { provider: IntegrationProvider.MAILCHIMP, name: 'Mailchimp', description: 'Email marketing and campaigns', category: IntegrationCategory.MARKETING, authType: AuthType.API_KEY, color: '#FFE01B', enabled: true };
+    return { provider: IntegrationProvider.MAILCHIMP, name: 'Mailchimp', description: 'Email marketing and campaigns', category: IntegrationCategory.MARKETING, authType: AuthType.API_KEY, color: '#FFE01B', enabled: true, comingSoon: true };
   }
   getActions(): IntegrationAction[] {
     return [
@@ -1308,7 +1308,7 @@ export class MailChimpIntegration extends BaseIntegration {
 
 export class FacebookAdsIntegration extends BaseIntegration {
   getMetadata(): IntegrationMetadata {
-    return { provider: IntegrationProvider.FACEBOOK_ADS, name: 'Facebook Ads', description: 'Advertising campaigns on Facebook & Instagram', category: IntegrationCategory.MARKETING, authType: AuthType.OAUTH2, color: '#1877F2', enabled: true };
+    return { provider: IntegrationProvider.FACEBOOK_ADS, name: 'Facebook Ads', description: 'Advertising campaigns on Facebook & Instagram', category: IntegrationCategory.MARKETING, authType: AuthType.OAUTH2, color: '#1877F2', enabled: true, comingSoon: true };
   }
   getActions(): IntegrationAction[] {
     return [
@@ -1363,7 +1363,7 @@ export class FacebookAdsIntegration extends BaseIntegration {
 
 export class TypeformIntegration extends BaseIntegration {
   getMetadata(): IntegrationMetadata {
-    return { provider: IntegrationProvider.TYPEFORM, name: 'Typeform', description: 'Interactive forms and surveys', category: IntegrationCategory.FORMS, authType: AuthType.OAUTH2, color: '#262627', enabled: true };
+    return { provider: IntegrationProvider.TYPEFORM, name: 'Typeform', description: 'Interactive forms and surveys', category: IntegrationCategory.FORMS, authType: AuthType.OAUTH2, color: '#262627', enabled: true, comingSoon: true };
   }
   getActions(): IntegrationAction[] {
     return [

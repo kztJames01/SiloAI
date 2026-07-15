@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { INode, NodeDefinition } from '../NodeRegistry';
 import { ExecutionContext } from '../../engine/WorkflowEngine';
 
@@ -51,18 +52,16 @@ export class TimeClockNode implements INode {
     ],
   };
 
-  async execute(data: any, _context: ExecutionContext): Promise<any> {
+  async execute(data: any, context: ExecutionContext): Promise<any> {
     const { employeeId, action, location, jobSiteId } = data;
 
-    const recordId = `TIME-${Date.now()}`;
+    const recordId = `TIME-${crypto.randomUUID()}`;
     const timestamp = new Date().toISOString();
-
-    // Simulate hours calculation for clock out
-    const hoursWorked = action === 'out' ? 8.5 : 0;
+    const hoursWorked = action === 'out' ? Number(data.hoursWorked || 0) : 0;
 
     return {
       recordId,
-      employeeId,
+      employeeId: employeeId || context.data?.userId,
       action,
       timestamp,
       location,

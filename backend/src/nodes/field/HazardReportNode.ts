@@ -1,3 +1,4 @@
+import crypto from 'crypto';
 import { INode, NodeDefinition } from '../NodeRegistry';
 import { ExecutionContext } from '../../engine/WorkflowEngine';
 
@@ -57,16 +58,16 @@ export class HazardReportNode implements INode {
     ],
   };
 
-  async execute(data: any, _context: ExecutionContext): Promise<any> {
-    const { location, hazardType, severity, description, reportedBy } = data;
+  async execute(data: any, context: ExecutionContext): Promise<any> {
+    const { location, hazardType, severity, description, reportedBy, notifyEmails } = data;
 
-    const reportId = `HAZ-${Date.now()}`;
+    const reportId = `HAZ-${crypto.randomUUID()}`;
     const requiresImmediateAction = severity === 'high' || severity === 'critical';
-
-    const notificationsSent = [
-      'safety_officer@company.com',
-      ...(requiresImmediateAction ? ['supervisor@company.com', 'emergency_response@company.com'] : []),
-    ];
+    const notificationsSent = Array.isArray(notifyEmails)
+      ? notifyEmails
+      : requiresImmediateAction
+        ? (data.supervisorEmail ? [data.supervisorEmail] : [])
+        : [];
 
     return {
       reportId,
@@ -74,7 +75,7 @@ export class HazardReportNode implements INode {
       hazardType,
       severity,
       description,
-      reportedBy,
+      reportedBy: reportedBy || context.data?.userId,
       requiresImmediateAction,
       notificationsSent,
       timestamp: new Date().toISOString(),
