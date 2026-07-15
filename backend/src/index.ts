@@ -16,10 +16,16 @@ import integrationRoutes from './api/routes/integration.routes';
 import nodeRoutes from './api/routes/node.routes';
 import aiRoutes from './api/routes/ai.routes';
 import agentRoutes from './api/routes/agent.routes';
+import fieldRoutes from './api/routes/field.routes';
+import webhookRoutes from './api/routes/webhook.routes';
+import apiKeyRoutes from './api/routes/apiKey.routes';
 
 // Import middleware
 import { errorHandler } from './api/middleware/error.middleware';
+import { requestLogger } from './api/middleware/requestLogger.middleware';
 import { rateLimiter, authRateLimiter } from './api/middleware/rateLimiter.middleware';
+import metricsRoutes from './api/routes/metrics.routes';
+import { startScheduleRunner } from './services/scheduleRunner';
 import { logger } from './utils/logger';
 import { formatDatabaseStartupError, getDatabaseUrlInfo, loadedEnvFiles } from './db/database-url';
 import prisma from './db/prisma';
@@ -52,26 +58,38 @@ app.use(cors({
 }));
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(requestLogger);
 app.use(rateLimiter);
 
-// Health check
 app.get('/health', async (_req, res) => {
   try {
     await prisma.$queryRaw`SELECT 1`;
-    res.json({ 
-      status: 'ok', 
+    res.json({
+      status: 'ok',
       database: 'connected',
-      timestamp: new Date().toISOString() 
+      timestamp: new Date().toISOString(),
     });
-  } catch (error: any) {
-    res.status(503).json({ 
-      status: 'error', 
+  } catch {
+    res.status(503).json({
+      status: 'error',
       database: 'disconnected',
-      error: error.message,
-      timestamp: new Date().toISOString() 
+      timestamp: new Date().toISOString(),
     });
   }
 });
+
+app.get('/ready', async (_req, res) => {
+  try {
+    await prisma.$queryRaw`SELECT 1`;
+    res.json({ ready: true });
+  } catch {
+    res.status(503).json({ ready: false });
+  }
+});
+
+app.use('/metrics', metricsRoutes);
+
+app.use('/api/webhooks', webhookRoutes);
 
 // API routes
 app.use('/api/auth', authRateLimiter, authRoutes);
@@ -81,6 +99,8 @@ app.use('/api/integrations', integrationRoutes);
 app.use('/api/nodes', nodeRoutes);
 app.use('/api/ai', aiRoutes);
 app.use('/api/agents', agentRoutes);
+app.use('/api/field', fieldRoutes);
+app.use('/api/api-keys', apiKeyRoutes);
 
 // Error handling
 app.use(errorHandler);
@@ -112,6 +132,7 @@ const PORT = process.env.PORT || 5000;
 
 async function startServer() {
   await testDatabaseConnection();
+  await startScheduleRunner();
   
   server.listen(PORT, () => {
     logger.info(`Server running on port ${PORT}`);

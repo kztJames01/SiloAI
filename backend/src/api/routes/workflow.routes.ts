@@ -4,6 +4,7 @@ import prisma from '../../db/prisma';
 import { authenticate, AuthRequest } from '../middleware/auth.middleware';
 import { AppError } from '../middleware/error.middleware';
 import { WorkflowEngine } from '../../engine/WorkflowEngine';
+import { refreshScheduleForWorkflow } from '../../services/scheduleRunner';
 
 const router = Router();
 
@@ -71,6 +72,8 @@ router.post('/', async (req: AuthRequest, res) => {
     },
   });
 
+  refreshScheduleForWorkflow(workflow.id, workflow.trigger, workflow.isActive);
+
   res.status(201).json({ workflow });
 });
 
@@ -93,6 +96,8 @@ router.put('/:id', async (req: AuthRequest, res) => {
     where: { id: req.params.id },
     data,
   });
+
+  refreshScheduleForWorkflow(updated.id, updated.trigger, updated.isActive);
 
   res.json({ workflow: updated });
 });
@@ -134,6 +139,8 @@ router.patch('/:id/toggle', async (req: AuthRequest, res) => {
     where: { id: req.params.id },
     data: { isActive: !workflow.isActive },
   });
+
+  refreshScheduleForWorkflow(updated.id, updated.trigger, updated.isActive);
 
   res.json({ workflow: updated });
 });

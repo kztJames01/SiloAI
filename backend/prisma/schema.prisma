@@ -17,6 +17,7 @@ model User {
   name      String?
   apiKeys   ApiKey[]
   workflows Workflow[]
+  fieldActions FieldAction[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -65,6 +66,22 @@ model WorkflowExecution {
   error      String?
 
   @@map("workflow_executions")
+}
+
+model FieldAction {
+  id                  String   @id @default(uuid())
+  userId              String
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  actionType          String
+  notes               String?
+  jobType             String?
+  payload             Json?
+  workflowExecutionId String?
+  status              String   @default("saved")
+  createdAt           DateTime @default(now())
+
+  @@index([userId])
+  @@map("field_actions")
 }
 
 model ExecutionLog {

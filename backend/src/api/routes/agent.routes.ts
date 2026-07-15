@@ -413,6 +413,16 @@ router.post('/:id/run', async (req: AuthRequest, res) => {
   }
 
   const executionId = await engine.executeWorkflow(agentWorkflow as any, { task, context });
+
+  await prisma.aIAgentExecution.create({
+    data: {
+      agentId: agent.id,
+      input: typeof task === 'string' ? task : JSON.stringify(task),
+      steps: [{ workflowExecutionId: executionId }],
+      status: 'RUNNING',
+    },
+  });
+
   res.json({ executionId, message: 'Agent run started' });
 });
 
