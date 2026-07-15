@@ -1,7 +1,9 @@
 import { useMemo, useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Modal, Pressable, StyleSheet, Text, View, Alert } from 'react-native';
 import { Screen } from '../../src/components/Screen';
 import { AppButton, AppCard, AppInput } from '../../src/components/ui';
+import { useAuth } from '../../src/context/AuthContext';
+import { createMobileFieldApi } from '../../src/lib/field';
 import { useTheme } from '../../src/theme';
 
 const actions = [
@@ -13,20 +15,36 @@ const actions = [
 
 export default function FieldScreen() {
   const { colors } = useTheme();
+  const { token } = useAuth();
+  const fieldApi = useMemo(() => createMobileFieldApi(() => token), [token]);
   const [activeAction, setActiveAction] = useState<(typeof actions)[number] | null>(null);
   const [notes, setNotes] = useState('');
   const [jobType, setJobType] = useState('General');
   const [queued, setQueued] = useState(0);
+  const [submitting, setSubmitting] = useState(false);
 
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
     return hour < 12 ? 'Good morning' : hour < 18 ? 'Good afternoon' : 'Good evening';
   }, []);
 
-  const submit = () => {
-    setQueued((value) => value + 1);
-    setNotes('');
-    setActiveAction(null);
+  const submit = async () => {
+    if (!activeAction) return;
+    setSubmitting(true);
+    try {
+      await fieldApi.submit({
+        actionType: activeAction.id,
+        notes: notes.trim() || undefined,
+        jobType,
+      });
+      setQueued((value) => value + 1);
+      setNotes('');
+      setActiveAction(null);
+    } catch {
+      Alert.alert('Could not save', 'Check your connection and try again.');
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -107,7 +125,7 @@ export default function FieldScreen() {
             </View>
             <View style={styles.sheetActions}>
               <AppButton title="Cancel" variant="outline" onPress={() => setActiveAction(null)} style={styles.flex} />
-              <AppButton title="Save task" onPress={submit} style={styles.flex} />
+              <AppButton title={submitting ? 'Saving...' : 'Save task'} onPress={submit} disabled={submitting} style={styles.flex} />
             </View>
           </Pressable>
         </Pressable>
