@@ -24,6 +24,7 @@ import OrganizationDashboardPage from './pages/OrganizationDashboardPage';
 import DataStoragePage from './pages/DataStoragePage';
 import AgentsPage from './pages/AgentsPage';
 import AgentDetailPage from './pages/AgentDetailPage';
+import { AISettingsPage } from './pages/AISettingsPage';
 
 // Components
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -211,7 +212,14 @@ function App() {
             </RoleGate>
           }
         />
-        <Route path="ai-settings" element={<Navigate to="/agents" replace />} />
+        <Route
+          path="ai-settings"
+          element={
+            <RoleGate allowedRoles={['admin']}>
+              <AISettingsPage />
+            </RoleGate>
+          }
+        />
         <Route
           path="integrations"
           element={

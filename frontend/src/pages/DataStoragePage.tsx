@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { integrationApi } from '../lib/api';
 import {
   Database,
   Plus,
@@ -55,34 +57,12 @@ const STATUS_META: Record<DbStatus, { label: string; color: string; dot: string 
   provisioning: { label: 'Provisioning', color: 'text-amber-700 bg-amber-100',  dot: 'bg-amber-400 animate-pulse' },
 };
 
-const DEMO_CONNECTIONS: DbConnection[] = [
-  {
-    id: 'conn-1',
-    name: 'Silo Local Postgres',
-    engine: 'postgresql',
-    status: 'connected',
-    host: '127.0.0.1',
-    port: 5432,
-    database: 'silo_db',
-    username: 'silo_user',
-    isLocal: true,
-    createdAt: new Date('2026-02-01'),
-    lastUsed: new Date('2026-02-20'),
-    sizeBytes: 24 * 1024 * 1024,
-  },
-  {
-    id: 'conn-2',
-    name: 'Cache Store',
-    engine: 'redis',
-    status: 'connected',
-    host: '127.0.0.1',
-    port: 6379,
-    database: '0',
-    isLocal: true,
-    createdAt: new Date('2026-02-10'),
-    lastUsed: new Date('2026-02-19'),
-  },
-];
+const DEMO_CONNECTIONS: DbConnection[] = [];
+
+const API_BASE =
+  import.meta.env.VITE_API_URL?.trim() ||
+  window.__APP_CONFIG__?.API_URL?.trim() ||
+  'http://localhost:5000';
 
 function fmtSize(bytes?: number) {
   if (!bytes) return null;
@@ -404,6 +384,70 @@ export default function DataStoragePage() {
   const [connections, setConnections] = useState<DbConnection[]>(DEMO_CONNECTIONS);
   const [modal, setModal] = useState<ModalMode>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
+
+  const { data: userIntegrations = [] } = useQuery({
+    queryKey: ['storage-integrations'],
+    queryFn: async () => {
+      const res = await integrationApi.listUser();
+      return res.data.userIntegrations || [];
+    },
+  });
+
+  useEffect(() => {
+    const load = async () => {
+      let dbConn: DbConnection | null = null;
+      try {
+        const res = await fetch(`${API_BASE}/health`);
+        const health = await res.json();
+        dbConn = {
+          id: 'app-db',
+          name: 'Application Database',
+          engine: 'postgresql',
+          status: health.database === 'connected' ? 'connected' : 'error',
+          host: 'managed',
+          port: 5432,
+          database: 'postgres',
+          isLocal: false,
+          createdAt: new Date(),
+          lastUsed: new Date(),
+        };
+      } catch {
+        dbConn = {
+          id: 'app-db',
+          name: 'Application Database',
+          engine: 'postgresql',
+          status: 'disconnected',
+          host: 'managed',
+          port: 5432,
+          database: 'postgres',
+          isLocal: false,
+          createdAt: new Date(),
+        };
+      }
+
+      const integrationConns: DbConnection[] = userIntegrations
+        .filter((item: any) => ['google_drive', 'dropbox', 'onedrive', 'airtable'].includes(item.provider))
+        .map((item: any) => ({
+          id: `int-${item.id}`,
+          name: item.provider,
+          engine: 'mongodb' as DbEngine,
+          status: item.status === 'active' ? 'connected' : 'disconnected',
+          host: item.provider,
+          port: 0,
+          database: item.provider,
+          isLocal: false,
+          createdAt: new Date(item.createdAt || Date.now()),
+          lastUsed: item.updatedAt ? new Date(item.updatedAt) : undefined,
+        }));
+
+      setConnections((prev) => {
+        const manual = prev.filter((c) => !c.id.startsWith('app-db') && !c.id.startsWith('int-'));
+        return [...(dbConn ? [dbConn] : []), ...integrationConns, ...manual];
+      });
+    };
+
+    load();
+  }, [userIntegrations]);
 
   const handleSave = (conn: DbConnection) => {
     setConnections(prev => [conn, ...prev]);

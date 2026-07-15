@@ -1,5 +1,7 @@
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import { useQuery } from '@tanstack/react-query';
+import { executionApi, workflowApi } from '../lib/api';
 import {
   Zap,
   Calendar,
@@ -121,21 +123,37 @@ const TRENDING_AGENTS: TrendingAgent[] = [
 ];
 
 export default function OrganizationDashboardPage() {
+  const { data: workflows = [] } = useQuery({
+    queryKey: ['org-workflows'],
+    queryFn: async () => {
+      const res = await workflowApi.list();
+      return res.data.workflows || [];
+    },
+  });
+
+  const { data: executions = [] } = useQuery({
+    queryKey: ['org-executions'],
+    queryFn: async () => {
+      const res = await executionApi.list();
+      return res.data.executions || [];
+    },
+  });
+
+  const activeWorkflows = workflows.filter((w: any) => w.isActive).length;
+  const totalWorkflows = workflows.length;
+
+  const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+  const recentRuns = executions.filter((e: any) => new Date(e.startedAt).getTime() >= weekAgo);
+  const averageDailyUsage = Math.round(recentRuns.length / 7);
+
   const [stats] = useState({
-    averageDailyUsage: 0,
-    percentageUsage: 0,
     creditsLeft: 1000,
     totalCredits: 1000,
     resetDate: '3/18/26, 2:07 AM',
     resetDays: 28,
-    activeWorkflows: 0,
-    totalWorkflows: 2,
   });
 
-  useEffect(() => {
-    // Fetch organization stats here
-    // For now using mock data
-  }, []);
+  useEffect(() => {}, []);
 
   return (
     <div className="min-h-screen bg-background">
@@ -176,8 +194,8 @@ export default function OrganizationDashboardPage() {
                   <StatCard
                     icon={<Zap className="h-6 w-6 text-primary" />}
                     label="Average daily usage"
-                    value={stats.averageDailyUsage}
-                    badge={`${stats.percentageUsage}%`}
+                    value={averageDailyUsage}
+                    badge={`${executions.length} total runs`}
                     color="bg-primary/10"
                     linkIcon
                   />
@@ -199,8 +217,8 @@ export default function OrganizationDashboardPage() {
                   <StatCard
                     icon={<Play className="h-6 w-6 text-primary" />}
                     label="Active Workflows"
-                    value={stats.activeWorkflows}
-                    subValue={`/ ${stats.totalWorkflows}`}
+                    value={activeWorkflows}
+                    subValue={`/ ${totalWorkflows}`}
                     color="bg-primary/10"
                   />
                 </div>

@@ -371,6 +371,7 @@ export const APP_INTEGRATIONS: AppIntegration[] = [
     color: '#2D8CFF',
     icon: '🎥',
     enabled: true,
+    comingSoon: true,
     tags: ['Video', 'Meetings'],
   },
   {
@@ -407,6 +408,7 @@ export const APP_INTEGRATIONS: AppIntegration[] = [
     color: '#0052CC',
     icon: '📋',
     enabled: true,
+    comingSoon: true,
     tags: ['Boards', 'Tasks'],
   },
   {
@@ -443,6 +445,7 @@ export const APP_INTEGRATIONS: AppIntegration[] = [
     color: '#FFE01B',
     icon: '🐒',
     enabled: true,
+    comingSoon: true,
     tags: ['Email', 'Campaigns'],
   },
   {
@@ -455,6 +458,7 @@ export const APP_INTEGRATIONS: AppIntegration[] = [
     icon: '🧡',
     enabled: true,
     popular: true,
+    comingSoon: true,
     tags: ['CRM', 'Marketing', 'Sales'],
   },
   {
@@ -466,6 +470,7 @@ export const APP_INTEGRATIONS: AppIntegration[] = [
     color: '#1877F2',
     icon: '📣',
     enabled: true,
+    comingSoon: true,
     tags: ['Ads', 'Social Media'],
   },
   {
@@ -477,6 +482,7 @@ export const APP_INTEGRATIONS: AppIntegration[] = [
     color: '#262627',
     icon: '📝',
     enabled: true,
+    comingSoon: true,
     tags: ['Forms', 'Surveys'],
   },
 

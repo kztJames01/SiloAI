@@ -55,8 +55,54 @@ export const authApi = {
   login: async (data: LoginPayload) =>
     wrapResponse(with401Redirect(sharedAuthApi.login(data))),
   me: async () => wrapResponse(with401Redirect(sharedAuthApi.me())),
+  changePassword: async (data: { currentPassword: string; newPassword: string }) =>
+    wrapResponse(
+      with401Redirect(
+        sharedApiClient.request<any>('/api/auth/change-password', {
+          method: 'POST',
+          body: data,
+          token: getToken() ?? undefined,
+        })
+      )
+    ),
   oauthStartUrl: (provider: 'google' | 'apple', mode: 'login' | 'register' = 'login') =>
     `${API_URL}/api/auth/oauth/${provider}/start?mode=${mode}`,
+};
+
+export const fieldApi = {
+  list: async () =>
+    wrapResponse(
+      with401Redirect(
+        sharedApiClient.request<any>('/api/field', { method: 'GET', token: getToken() ?? undefined })
+      )
+    ),
+  submit: async (data: { actionType: string; notes?: string; jobType?: string; payload?: Record<string, unknown> }) =>
+    wrapResponse(
+      with401Redirect(
+        sharedApiClient.request<any>('/api/field', { method: 'POST', body: data, token: getToken() ?? undefined })
+      )
+    ),
+};
+
+export const apiKeyApi = {
+  list: async () =>
+    wrapResponse(
+      with401Redirect(
+        sharedApiClient.request<any>('/api/api-keys', { method: 'GET', token: getToken() ?? undefined })
+      )
+    ),
+  create: async (name: string) =>
+    wrapResponse(
+      with401Redirect(
+        sharedApiClient.request<any>('/api/api-keys', { method: 'POST', body: { name }, token: getToken() ?? undefined })
+      )
+    ),
+  delete: async (id: string) =>
+    wrapResponse(
+      with401Redirect(
+        sharedApiClient.request<any>(`/api/api-keys/${id}`, { method: 'DELETE', token: getToken() ?? undefined })
+      )
+    ),
 };
 
 // Workflow API

@@ -1,6 +1,9 @@
 import { useMemo, useRef, useState } from 'react';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 import { Button } from '../components/ui/Button';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
+import { fieldApi } from '../lib/api';
 import { Mic, Camera, Wifi, WifiOff, Loader2 } from 'lucide-react';
 
 type SyncState = 'online' | 'saving' | 'syncing';
@@ -13,6 +16,7 @@ const fieldActions = [
 ];
 
 export default function FieldPage() {
+  const queryClient = useQueryClient();
   const [activeAction, setActiveAction] = useState<string | null>(null);
   const [notes, setNotes] = useState('');
   const [jobType, setJobType] = useState('General');
@@ -20,6 +24,37 @@ export default function FieldPage() {
   const cameraInputRef = useRef<HTMLInputElement | null>(null);
 
   const online = typeof navigator !== 'undefined' ? navigator.onLine : true;
+
+  const { data: recentActions } = useQuery({
+    queryKey: ['field-actions'],
+    queryFn: async () => {
+      const res = await fieldApi.list();
+      return res.data.actions || [];
+    },
+  });
+
+  const submitMutation = useMutation({
+    mutationFn: async (payload: { actionType: string; notes?: string; jobType?: string }) => {
+      return fieldApi.submit(payload);
+    },
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ['field-actions'] });
+      if (res.data.status === 'workflow_started') {
+        toast.success('Action saved and workflow started');
+      } else {
+        toast.success('Action saved');
+      }
+      setActiveAction(null);
+      setNotes('');
+      setQueuedTasks(0);
+    },
+    onError: () => {
+      setQueuedTasks((c) => c + 1);
+      toast.error('Saved offline — will retry when back online');
+      setActiveAction(null);
+      setNotes('');
+    },
+  });
 
   const syncState: SyncState = useMemo(() => {
     if (!online) {
@@ -36,9 +71,19 @@ export default function FieldPage() {
   };
 
   const submitTask = () => {
-    setQueuedTasks((current) => current + 1);
-    setActiveAction(null);
-    setNotes('');
+    if (!activeAction) return;
+    if (!online) {
+      setQueuedTasks((current) => current + 1);
+      setActiveAction(null);
+      setNotes('');
+      toast('Saved locally — connect to sync');
+      return;
+    }
+    submitMutation.mutate({
+      actionType: activeAction,
+      notes: notes.trim() || undefined,
+      jobType,
+    });
   };
 
   const syncLabel =
@@ -78,6 +123,22 @@ export default function FieldPage() {
           </button>
         ))}
       </div>
+
+      {(recentActions?.length || 0) > 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-base">Recent actions</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-2">
+            {recentActions!.slice(0, 5).map((item: any) => (
+              <div key={item.id} className="text-sm border border-border rounded-md p-2">
+                <p className="font-medium">{item.actionType}</p>
+                <p className="text-muted-foreground text-xs">{item.status}</p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      )}
 
       {activeAction && (
         <div className="fixed inset-0 z-50 bg-black/40 flex items-end sm:items-center sm:justify-center">
@@ -139,7 +200,9 @@ export default function FieldPage() {
                   <Button variant="outline" onClick={() => setActiveAction(null)}>
                     Cancel
                   </Button>
-                  <Button onClick={submitTask}>Submit</Button>
+                  <Button onClick={submitTask} disabled={submitMutation.isPending}>
+                    {submitMutation.isPending ? 'Submitting...' : 'Submit'}
+                  </Button>
                 </div>
               </div>
             </CardContent>

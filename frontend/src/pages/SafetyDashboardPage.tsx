@@ -1,10 +1,12 @@
 import { useMemo, useState } from 'react';
-import { useQuery } from '@tanstack/react-query';
-import { executionApi } from '../lib/api';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { apiKeyApi, executionApi } from '../lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
 import { useUiStore } from '../lib/store';
 import { formatDate } from '../lib/utils';
-import { Eye, EyeOff, Copy, Check, UserCheck, UserX } from 'lucide-react';
+import { Eye, EyeOff, Copy, Check, UserCheck, UserX, Plus, Trash2 } from 'lucide-react';
+import { Button } from '../components/ui/Button';
+import toast from 'react-hot-toast';
 
 const employees = [
   { id: '1', name: 'Ava Nurse' },
@@ -25,11 +27,6 @@ const maskValue = (value: string, enabled: boolean) => {
   return value.replace(/[A-Za-z0-9]/g, '*');
 };
 
-const API_KEYS = {
-  public: 'pk_live_4f8a2b1c9d3e7f6a5b0c8d2e1f4a7b3c',
-  private: 'sk_live_9d3e7f6a5b0c8d2e1f4a7b3c4f8a2b1c',
-};
-
 type RequestStatus = 'pending' | 'approved' | 'rejected';
 interface ConnectionRequest { id: string; name: string; email: string; status: RequestStatus; }
 
@@ -40,11 +37,39 @@ const INITIAL_REQUESTS: ConnectionRequest[] = [
 ];
 
 export default function SafetyDashboardPage() {
+  const queryClient = useQueryClient();
   const { isMaskingEnabled } = useUiStore();
   const [permissions, setPermissions] = useState<Record<string, { run: boolean; build: boolean; sensitive: boolean }>>({
     '1': { run: true, build: false, sensitive: false },
     '2': { run: true, build: true, sensitive: false },
     '3': { run: true, build: true, sensitive: true },
+  });
+
+  const { data: keyData } = useQuery({
+    queryKey: ['api-keys'],
+    queryFn: async () => {
+      const res = await apiKeyApi.list();
+      return res.data.keys || [];
+    },
+  });
+
+  const createKeyMutation = useMutation({
+    mutationFn: async () => apiKeyApi.create('Safety key'),
+    onSuccess: (res) => {
+      queryClient.invalidateQueries({ queryKey: ['api-keys'] });
+      if (res.data.key?.secret) {
+        setNewSecret(res.data.key.secret);
+        toast.success('API key created — copy it now');
+      }
+    },
+  });
+
+  const deleteKeyMutation = useMutation({
+    mutationFn: async (id: string) => apiKeyApi.delete(id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['api-keys'] });
+      toast.success('Key deleted');
+    },
   });
 
   const { data } = useQuery({
@@ -75,15 +100,15 @@ export default function SafetyDashboardPage() {
     });
   }, [data]);
 
-  const [showPublicKey, setShowPublicKey]   = useState(false);
-  const [showPrivateKey, setShowPrivateKey] = useState(false);
-  const [copiedKey, setCopiedKey]           = useState<'public' | 'private' | null>(null);
-  const [requests, setRequests]             = useState<ConnectionRequest[]>(INITIAL_REQUESTS);
+  const [showKeyId, setShowKeyId] = useState<string | null>(null);
+  const [copiedKeyId, setCopiedKeyId] = useState<string | null>(null);
+  const [newSecret, setNewSecret] = useState<string | null>(null);
+  const [requests, setRequests] = useState<ConnectionRequest[]>(INITIAL_REQUESTS);
 
-  const copyKey = async (type: 'public' | 'private') => {
-    await navigator.clipboard.writeText(API_KEYS[type]);
-    setCopiedKey(type);
-    setTimeout(() => setCopiedKey(null), 2000);
+  const copyKey = async (value: string, id: string) => {
+    await navigator.clipboard.writeText(value);
+    setCopiedKeyId(id);
+    setTimeout(() => setCopiedKeyId(null), 2000);
   };
 
   const resolveRequest = (id: string, action: 'approved' | 'rejected') => {
@@ -191,48 +216,45 @@ export default function SafetyDashboardPage() {
         {/* API Keys */}
         <Card>
           <CardHeader>
-            <CardTitle>API Keys</CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle>API Keys</CardTitle>
+              <Button size="sm" onClick={() => createKeyMutation.mutate()} disabled={createKeyMutation.isPending}>
+                <Plus className="h-4 w-4 mr-1" />
+                New key
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="space-y-4">
-            {(['public', 'private'] as const).map((type) => {
-              const isVisible = type === 'public' ? showPublicKey : showPrivateKey;
-              const toggle    = type === 'public' ? () => setShowPublicKey(v => !v) : () => setShowPrivateKey(v => !v);
-              const isCopied  = copiedKey === type;
-              const masked    = '•'.repeat(32);
-              return (
-                <div key={type}>
-                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-1.5">
-                    {type === 'public' ? 'Public Key' : 'Private Key'}
-                  </p>
-                  <div className="flex items-center gap-2 bg-muted border border-border rounded-lg px-3 py-2.5">
-                    <code className="flex-1 text-xs font-mono text-foreground truncate select-all">
-                      {isVisible ? API_KEYS[type] : masked}
-                    </code>
-                    <button
-                      onClick={toggle}
-                      className="p-1 text-muted-foreground hover:text-foreground transition-colors flex-shrink-0"
-                      title={isVisible ? 'Hide' : 'Reveal'}
-                    >
-                      {isVisible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            {newSecret && (
+              <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                <p className="text-xs font-semibold text-amber-800 mb-1">New key (shown once)</p>
+                <code className="text-xs break-all">{newSecret}</code>
+              </div>
+            )}
+            {(keyData || []).length === 0 ? (
+              <p className="text-sm text-muted-foreground">No API keys yet</p>
+            ) : (
+              (keyData || []).map((key: any) => {
+                const visible = showKeyId === key.id;
+                return (
+                  <div key={key.id} className="flex items-center gap-2 bg-muted border border-border rounded-lg px-3 py-2.5">
+                    <div className="flex-1 min-w-0">
+                      <p className="text-sm font-medium">{key.name}</p>
+                      <code className="text-xs font-mono text-muted-foreground">{visible ? key.prefix : '••••••••'}</code>
+                    </div>
+                    <button onClick={() => setShowKeyId(visible ? null : key.id)} className="p-1 text-muted-foreground">
+                      {visible ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
                     </button>
-                    <button
-                      onClick={() => copyKey(type)}
-                      className={`p-1 flex-shrink-0 transition-colors ${
-                        isCopied ? 'text-green-600' : 'text-muted-foreground hover:text-foreground'
-                      }`}
-                      title={isCopied ? 'Copied!' : 'Copy'}
-                    >
-                      {isCopied ? <Check className="h-4 w-4" /> : <Copy className="h-4 w-4" />}
+                    <button onClick={() => copyKey(key.prefix, key.id)} className="p-1 text-muted-foreground">
+                      {copiedKeyId === key.id ? <Check className="h-4 w-4 text-green-600" /> : <Copy className="h-4 w-4" />}
+                    </button>
+                    <button onClick={() => deleteKeyMutation.mutate(key.id)} className="p-1 text-muted-foreground hover:text-red-600">
+                      <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
-                  {type === 'private' && (
-                    <p className="text-[10px] text-muted-foreground mt-1">
-                      Never share your private key. It grants full API access.
-                    </p>
-                  )}
-                </div>
-              );
-            })}
+                );
+              })
+            )}
           </CardContent>
         </Card>
 
