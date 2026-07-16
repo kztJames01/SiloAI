@@ -1,6 +1,6 @@
 import { WorkflowExecution } from '../../../shared/src/types';
 import { useLocalSearchParams } from 'expo-router';
-import { useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { Screen } from '../../src/components/Screen';
 import { AppCard, StatusPill } from '../../src/components/ui';
@@ -16,14 +16,35 @@ export default function ExecutionDetailScreen() {
   const [execution, setExecution] = useState<WorkflowExecution | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  useEffect(() => {
+  const load = useCallback(() => {
     if (!id) return;
-    api.get(id)
+    return api.get(id)
       .then((data) => setExecution(data.execution))
       .catch((err: any) => setError(err?.message || 'Could not load execution'))
       .finally(() => setLoading(false));
   }, [id, api]);
+
+  useEffect(() => {
+    load();
+  }, [load]);
+
+  useEffect(() => {
+    const isRunning = execution?.status === 'RUNNING' || execution?.status === 'PENDING';
+    if (isRunning && !pollRef.current) {
+      pollRef.current = setInterval(load, 3000);
+    } else if (!isRunning && pollRef.current) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+    return () => {
+      if (pollRef.current) {
+        clearInterval(pollRef.current);
+        pollRef.current = null;
+      }
+    };
+  }, [execution?.status, load]);
 
   if (loading) {
     return (

@@ -1,6 +1,6 @@
 import { WorkflowExecution } from '../../../shared/src/types';
 import { router } from 'expo-router';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { Screen } from '../../src/components/Screen';
 import { AppCard, EmptyState, StatusPill } from '../../src/components/ui';
@@ -19,6 +19,7 @@ export default function ExecutionsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
+  const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -36,6 +37,24 @@ export default function ExecutionsScreen() {
   useEffect(() => {
     load();
   }, [load]);
+
+  // Keep polling while at least one run is still in flight, so status
+  // updates without the user having to pull-to-refresh.
+  useEffect(() => {
+    const hasRunning = items.some((item) => item.status === 'RUNNING' || item.status === 'PENDING');
+    if (hasRunning && !pollRef.current) {
+      pollRef.current = setInterval(load, 4000);
+    } else if (!hasRunning && pollRef.current) {
+      clearInterval(pollRef.current);
+      pollRef.current = null;
+    }
+    return () => {
+      if (pollRef.current) {
+        clearInterval(pollRef.current);
+        pollRef.current = null;
+      }
+    };
+  }, [items, load]);
 
   return (
     <Screen title="Runs" subtitle="Workflow execution history" scroll={false} contentStyle={styles.content}>
