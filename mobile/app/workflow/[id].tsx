@@ -10,7 +10,8 @@ import { useTheme } from '../../src/theme';
 
 export default function WorkflowDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
+  const canManage = user?.role !== 'FIELD';
   const { colors } = useTheme();
   const api = useMemo(() => createMobileWorkflowApi(() => token), [token]);
   const [workflow, setWorkflow] = useState<Workflow | null>(null);
@@ -44,7 +45,7 @@ export default function WorkflowDetailScreen() {
         { text: 'OK' },
       ]);
     } catch (err: any) {
-      Alert.alert('Could not run workflow', err?.message || 'Please try again');
+      Alert.alert('Could not run workflow', err?.data?.error || err?.message || 'Please try again');
     } finally {
       setWorking(false);
     }
@@ -57,7 +58,7 @@ export default function WorkflowDetailScreen() {
       const response = await api.toggle(id);
       setWorkflow(response.workflow);
     } catch (err: any) {
-      Alert.alert('Could not update workflow', err?.message || 'Please try again');
+      Alert.alert('Could not update workflow', err?.data?.error || err?.message || 'Please try again');
     } finally {
       setWorking(false);
     }
@@ -123,16 +124,22 @@ export default function WorkflowDetailScreen() {
         )}
       </AppCard>
 
-      <View style={styles.actions}>
-        <AppButton title="Run now" onPress={run} loading={working} style={styles.flex} />
-        <AppButton
-          title={workflow.isActive ? 'Pause' : 'Activate'}
-          variant="outline"
-          onPress={toggle}
-          disabled={working}
-          style={styles.flex}
-        />
-      </View>
+      {canManage ? (
+        <View style={styles.actions}>
+          <AppButton title="Run now" onPress={run} loading={working} style={styles.flex} />
+          <AppButton
+            title={workflow.isActive ? 'Pause' : 'Activate'}
+            variant="outline"
+            onPress={toggle}
+            disabled={working}
+            style={styles.flex}
+          />
+        </View>
+      ) : (
+        <Text style={[styles.noSteps, { color: colors.textSecondary, marginTop: 14 }]}>
+          Field accounts can view workflows but can't run or edit them. Ask an admin if you need changes.
+        </Text>
+      )}
     </Screen>
   );
 }
