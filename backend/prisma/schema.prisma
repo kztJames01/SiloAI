@@ -15,6 +15,7 @@ model User {
   email     String   @unique
   password  String
   name      String?
+  role      UserRole @default(ADMIN)
   apiKeys   ApiKey[]
   workflows Workflow[]
   fieldActions FieldAction[]
@@ -22,6 +23,11 @@ model User {
   updatedAt DateTime @updatedAt
 
   @@map("users")
+}
+
+enum UserRole {
+  ADMIN
+  FIELD
 }
 
 model ApiKey {

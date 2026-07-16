@@ -4,6 +4,7 @@ import prisma from '../../db/prisma';
 
 export interface AuthRequest extends Request {
   userId?: string;
+  userRole?: 'ADMIN' | 'FIELD';
   user?: any;
 }
 
@@ -30,7 +31,7 @@ export const authenticate = async (
     
     const user = await prisma.user.findUnique({
       where: { id: decoded.userId },
-      select: { id: true, email: true, name: true },
+      select: { id: true, email: true, name: true, role: true },
     });
 
     if (!user) {
@@ -39,6 +40,7 @@ export const authenticate = async (
     }
 
     req.userId = user.id;
+    req.userRole = user.role;
     req.user = user;
     next();
   } catch (error) {
@@ -48,4 +50,14 @@ export const authenticate = async (
     }
     next(error);
   }
+};
+
+// Blocks FIELD-role accounts from admin-only mutations (workflow authoring, etc).
+// Ownership checks in each route still apply on top of this.
+export const requireAdmin = (req: AuthRequest, res: Response, next: NextFunction): void => {
+  if (req.userRole !== 'ADMIN') {
+    res.status(403).json({ error: 'This action requires an admin account' });
+    return;
+  }
+  next();
 };

@@ -1,7 +1,10 @@
+export type UserRole = 'ADMIN' | 'FIELD';
+
 export interface AuthUser {
   id: string;
   email: string;
   name: string | null;
+  role?: UserRole;
   createdAt?: string;
 }
 
@@ -9,6 +12,7 @@ export interface RegisterPayload {
   email: string;
   password: string;
   name?: string;
+  role?: UserRole;
 }
 
 export interface LoginPayload {

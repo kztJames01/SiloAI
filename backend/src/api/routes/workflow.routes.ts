@@ -1,7 +1,7 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import prisma from '../../db/prisma';
-import { authenticate, AuthRequest } from '../middleware/auth.middleware';
+import { authenticate, requireAdmin, AuthRequest } from '../middleware/auth.middleware';
 import { AppError } from '../middleware/error.middleware';
 import { WorkflowEngine } from '../../engine/WorkflowEngine';
 import { refreshScheduleForWorkflow } from '../../services/scheduleRunner';
@@ -62,7 +62,7 @@ router.get('/:id', async (req: AuthRequest, res) => {
 });
 
 // Create workflow
-router.post('/', async (req: AuthRequest, res) => {
+router.post('/', requireAdmin, async (req: AuthRequest, res) => {
   const data = workflowSchema.parse(req.body);
 
   const workflow = await prisma.workflow.create({
@@ -78,7 +78,7 @@ router.post('/', async (req: AuthRequest, res) => {
 });
 
 // Update workflow
-router.put('/:id', async (req: AuthRequest, res) => {
+router.put('/:id', requireAdmin, async (req: AuthRequest, res) => {
   const data = workflowSchema.partial().parse(req.body);
 
   const workflow = await prisma.workflow.findFirst({
@@ -103,7 +103,7 @@ router.put('/:id', async (req: AuthRequest, res) => {
 });
 
 // Delete workflow
-router.delete('/:id', async (req: AuthRequest, res) => {
+router.delete('/:id', requireAdmin, async (req: AuthRequest, res) => {
   const workflow = await prisma.workflow.findFirst({
     where: {
       id: req.params.id,
@@ -123,7 +123,7 @@ router.delete('/:id', async (req: AuthRequest, res) => {
 });
 
 // Toggle workflow active status
-router.patch('/:id/toggle', async (req: AuthRequest, res) => {
+router.patch('/:id/toggle', requireAdmin, async (req: AuthRequest, res) => {
   const workflow = await prisma.workflow.findFirst({
     where: {
       id: req.params.id,
@@ -146,7 +146,7 @@ router.patch('/:id/toggle', async (req: AuthRequest, res) => {
 });
 
 // Execute workflow manually
-router.post('/:id/execute', async (req: AuthRequest, res) => {
+router.post('/:id/execute', requireAdmin, async (req: AuthRequest, res) => {
   const workflow = await prisma.workflow.findFirst({
     where: {
       id: req.params.id,
