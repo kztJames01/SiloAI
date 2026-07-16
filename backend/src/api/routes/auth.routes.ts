@@ -16,6 +16,7 @@ const registerSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
   name: z.string().optional(),
+  role: z.enum(['ADMIN', 'FIELD']).optional(),
 });
 
 const loginSchema = z.object({
@@ -24,6 +25,11 @@ const loginSchema = z.object({
 });
 
 const oauthModeSchema = z.enum(['login', 'register']);
+const oauthPlatformSchema = z.enum(['web', 'mobile']);
+
+function getMobileAppScheme() {
+  return process.env.MOBILE_APP_SCHEME || 'silomobile';
+}
 
 function getApiBaseUrl() {
   return process.env.API_URL || `http://localhost:${process.env.PORT || 5000}`;
@@ -63,20 +69,30 @@ async function findOrCreateOAuthUser(email: string, name?: string) {
   return user;
 }
 
-function redirectAuthSuccess(res: any, token: string, mode: 'login' | 'register') {
+function redirectAuthSuccess(res: any, token: string, mode: 'login' | 'register', platform: 'web' | 'mobile' = 'web') {
+  if (platform === 'mobile') {
+    const scheme = getMobileAppScheme();
+    res.redirect(`${scheme}://oauth-callback?token=${encodeURIComponent(token)}`);
+    return;
+  }
   const frontendBaseUrl = getFrontendBaseUrl();
   const target = mode === 'register' ? '/register' : '/login';
   res.redirect(`${frontendBaseUrl}${target}#token=${encodeURIComponent(token)}`);
 }
 
-function redirectAuthError(res: any, message: string) {
+function redirectAuthError(res: any, message: string, platform: 'web' | 'mobile' = 'web') {
+  if (platform === 'mobile') {
+    const scheme = getMobileAppScheme();
+    res.redirect(`${scheme}://oauth-callback?error=${encodeURIComponent(message)}`);
+    return;
+  }
   const frontendBaseUrl = getFrontendBaseUrl();
   res.redirect(`${frontendBaseUrl}/login?error=${encodeURIComponent(message)}`);
 }
 
 // Register
 router.post('/register', async (req, res) => {
-  const { email, password, name } = registerSchema.parse(req.body);
+  const { email, password, name, role } = registerSchema.parse(req.body);
 
   const existingUser = await prisma.user.findUnique({ where: { email } });
   if (existingUser) {
@@ -90,11 +106,13 @@ router.post('/register', async (req, res) => {
       email,
       password: hashedPassword,
       name,
+      role: role || 'ADMIN',
     },
     select: {
       id: true,
       email: true,
       name: true,
+      role: true,
       createdAt: true,
     },
   });
@@ -129,6 +147,7 @@ router.post('/login', async (req, res) => {
         id: user.id,
         email: user.email,
         name: user.name,
+        role: user.role,
       },
       token,
     });
@@ -149,6 +168,7 @@ router.get('/me', authenticate, async (req: AuthRequest, res) => {
       id: true,
       email: true,
       name: true,
+      role: true,
       createdAt: true,
     },
   });
@@ -181,6 +201,7 @@ router.post('/change-password', authenticate, async (req: AuthRequest, res) => {
 
 router.get('/oauth/google/start', async (req, res) => {
   const mode = oauthModeSchema.parse(req.query.mode || 'login');
+  const platform = oauthPlatformSchema.parse(req.query.platform || 'web');
   const clientId = process.env.GOOGLE_CLIENT_ID;
   const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
 
@@ -189,7 +210,7 @@ router.get('/oauth/google/start', async (req, res) => {
   }
 
   const redirectUri = `${getApiBaseUrl()}/api/auth/oauth/google/callback`;
-  const state = signOAuthState({ mode });
+  const state = signOAuthState({ mode, platform });
   const params = new URLSearchParams({
     client_id: clientId,
     redirect_uri: redirectUri,
@@ -208,8 +229,9 @@ router.get('/oauth/google/callback', async (req, res) => {
     const rawState = String(req.query.state || '');
     if (!code || !rawState) throw new AppError('Google OAuth callback is invalid', 400);
 
-    const state = verifyOAuthState<{ mode?: string }>(rawState);
+    const state = verifyOAuthState<{ mode?: string; platform?: string }>(rawState);
     const mode = oauthModeSchema.parse(state?.mode || 'login');
+    const platform = oauthPlatformSchema.parse(state?.platform || 'web');
 
     const clientId = process.env.GOOGLE_CLIENT_ID;
     const clientSecret = process.env.GOOGLE_CLIENT_SECRET;
@@ -242,21 +264,30 @@ router.get('/oauth/google/callback', async (req, res) => {
 
     const user = await findOrCreateOAuthUser(email, name);
     const token = issueToken(user.id);
-    redirectAuthSuccess(res, token, mode);
+    redirectAuthSuccess(res, token, mode, platform);
   } catch (error: any) {
-    redirectAuthError(res, error?.message || 'Google OAuth failed');
+    const platform = (() => {
+      try {
+        const state = verifyOAuthState<{ platform?: string }>(String(req.query.state || ''));
+        return oauthPlatformSchema.parse(state?.platform || 'web');
+      } catch {
+        return 'web' as const;
+      }
+    })();
+    redirectAuthError(res, error?.message || 'Google OAuth failed', platform);
   }
 });
 
 router.get('/oauth/apple/start', async (req, res) => {
   const mode = oauthModeSchema.parse(req.query.mode || 'login');
+  const platform = oauthPlatformSchema.parse(req.query.platform || 'web');
   const clientId = process.env.APPLE_CLIENT_ID;
   if (!clientId) {
     throw new AppError('Apple OAuth is not configured', 500);
   }
 
   const redirectUri = `${getApiBaseUrl()}/api/auth/oauth/apple/callback`;
-  const state = signOAuthState({ mode });
+  const state = signOAuthState({ mode, platform });
   const params = new URLSearchParams({
     client_id: clientId,
     redirect_uri: redirectUri,
@@ -275,8 +306,9 @@ const appleCallbackHandler = async (req: any, res: any) => {
     const rawState = String(req.body?.state || req.query?.state || '');
     if (!code || !rawState) throw new AppError('Apple OAuth callback is invalid', 400);
 
-    const state = verifyOAuthState<{ mode?: string }>(rawState);
+    const state = verifyOAuthState<{ mode?: string; platform?: string }>(rawState);
     const mode = oauthModeSchema.parse(state?.mode || 'login');
+    const platform = oauthPlatformSchema.parse(state?.platform || 'web');
 
     const clientId = process.env.APPLE_CLIENT_ID;
     const clientSecret = process.env.APPLE_CLIENT_SECRET;
@@ -305,9 +337,18 @@ const appleCallbackHandler = async (req: any, res: any) => {
 
     const user = await findOrCreateOAuthUser(email, name);
     const token = issueToken(user.id);
-    redirectAuthSuccess(res, token, mode);
+    redirectAuthSuccess(res, token, mode, platform);
   } catch (error: any) {
-    redirectAuthError(res, error?.message || 'Apple OAuth failed');
+    const platform = (() => {
+      try {
+        const rawState = String(req.body?.state || req.query?.state || '');
+        const state = verifyOAuthState<{ platform?: string }>(rawState);
+        return oauthPlatformSchema.parse(state?.platform || 'web');
+      } catch {
+        return 'web' as const;
+      }
+    })();
+    redirectAuthError(res, error?.message || 'Apple OAuth failed', platform);
   }
 };
 

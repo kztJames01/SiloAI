@@ -7,12 +7,13 @@ import { useAuth } from '../../src/context/AuthContext';
 import { useTheme } from '../../src/theme';
 
 export default function RegisterScreen() {
-  const { register } = useAuth();
+  const { register, loginWithOAuth } = useAuth();
   const { colors } = useTheme();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [oauthProvider, setOauthProvider] = useState<'google' | 'apple' | null>(null);
   const [error, setError] = useState('');
 
   const submit = async () => {
@@ -29,6 +30,19 @@ export default function RegisterScreen() {
       setError(err?.data?.error || err?.message || 'Could not create account');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const submitOAuth = async (provider: 'google' | 'apple') => {
+    setOauthProvider(provider);
+    setError('');
+    try {
+      await loginWithOAuth(provider);
+      router.replace('/(tabs)/field' as any);
+    } catch (err: any) {
+      setError(err?.message || `Could not sign up with ${provider}`);
+    } finally {
+      setOauthProvider(null);
     }
   };
 
@@ -64,9 +78,28 @@ export default function RegisterScreen() {
           title="Create account"
           onPress={submit}
           loading={submitting}
-          disabled={!email.trim() || password.length < 8}
+          disabled={!email.trim() || password.length < 8 || !!oauthProvider}
         />
       </AppCard>
+
+      <View style={styles.oauthRow}>
+        <AppButton
+          title="Google"
+          variant="outline"
+          onPress={() => submitOAuth('google')}
+          loading={oauthProvider === 'google'}
+          disabled={submitting || (!!oauthProvider && oauthProvider !== 'google')}
+          style={styles.flex}
+        />
+        <AppButton
+          title="Apple"
+          variant="outline"
+          onPress={() => submitOAuth('apple')}
+          loading={oauthProvider === 'apple'}
+          disabled={submitting || (!!oauthProvider && oauthProvider !== 'apple')}
+          style={styles.flex}
+        />
+      </View>
 
       <Text style={[styles.switchText, { color: colors.textSecondary }]}>
         Already have an account?{' '}
@@ -86,4 +119,6 @@ const styles = StyleSheet.create({
   subtitle: { fontSize: 15, lineHeight: 22, marginTop: 8 },
   error: { fontSize: 13, marginBottom: 12 },
   switchText: { textAlign: 'center', marginTop: 20, fontSize: 14 },
+  oauthRow: { flexDirection: 'row', gap: 10, marginTop: 6 },
+  flex: { flex: 1 },
 });

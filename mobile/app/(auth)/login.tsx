@@ -8,11 +8,12 @@ import { DEFAULT_API_BASE_URL } from '../../src/lib/auth';
 import { useTheme } from '../../src/theme';
 
 export default function LoginScreen() {
-  const { login } = useAuth();
+  const { login, loginWithOAuth } = useAuth();
   const { colors } = useTheme();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [submitting, setSubmitting] = useState(false);
+  const [oauthProvider, setOauthProvider] = useState<'google' | 'apple' | null>(null);
   const [error, setError] = useState('');
 
   const submit = async () => {
@@ -25,6 +26,19 @@ export default function LoginScreen() {
       setError(err?.data?.error || err?.message || 'Could not sign in');
     } finally {
       setSubmitting(false);
+    }
+  };
+
+  const submitOAuth = async (provider: 'google' | 'apple') => {
+    setOauthProvider(provider);
+    setError('');
+    try {
+      await loginWithOAuth(provider);
+      router.replace('/(tabs)/field' as any);
+    } catch (err: any) {
+      setError(err?.message || `Could not sign in with ${provider}`);
+    } finally {
+      setOauthProvider(null);
     }
   };
 
@@ -65,14 +79,52 @@ export default function LoginScreen() {
           title="Sign in"
           onPress={submit}
           loading={submitting}
-          disabled={!email.trim() || !password}
+          disabled={!email.trim() || !password || !!oauthProvider}
         />
       </AppCard>
+
+      <View style={styles.divider}>
+        <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+        <Text style={[styles.dividerText, { color: colors.textTertiary }]}>or continue with</Text>
+        <View style={[styles.dividerLine, { backgroundColor: colors.border }]} />
+      </View>
+
+      <View style={styles.oauthRow}>
+        <AppButton
+          title="Google"
+          variant="outline"
+          onPress={() => submitOAuth('google')}
+          loading={oauthProvider === 'google'}
+          disabled={submitting || (!!oauthProvider && oauthProvider !== 'google')}
+          style={styles.flex}
+        />
+        <AppButton
+          title="Apple"
+          variant="outline"
+          onPress={() => submitOAuth('apple')}
+          loading={oauthProvider === 'apple'}
+          disabled={submitting || (!!oauthProvider && oauthProvider !== 'apple')}
+          style={styles.flex}
+        />
+      </View>
 
       <Text style={[styles.switchText, { color: colors.textSecondary }]}>
         New to Silo?{' '}
         <Link href={'/(auth)/register' as any} style={{ color: colors.primary, fontWeight: '700' }}>
           Create an account
+        </Link>
+      </Text>
+      <Text style={[styles.switchText, { color: colors.textSecondary, marginTop: 6 }]}>
+        <Link href={'/(marketing)/help' as any} style={{ color: colors.textTertiary }}>
+          Help
+        </Link>
+        {'  ·  '}
+        <Link href={'/(marketing)/contact' as any} style={{ color: colors.textTertiary }}>
+          Contact
+        </Link>
+        {'  ·  '}
+        <Link href={'/(marketing)/privacy' as any} style={{ color: colors.textTertiary }}>
+          Privacy
         </Link>
       </Text>
       <Text style={[styles.api, { color: colors.textTertiary }]}>
@@ -94,4 +146,9 @@ const styles = StyleSheet.create({
   error: { fontSize: 13, marginBottom: 12 },
   switchText: { textAlign: 'center', marginTop: 20, fontSize: 14 },
   api: { textAlign: 'center', marginTop: 18, fontSize: 11 },
+  divider: { flexDirection: 'row', alignItems: 'center', gap: 10, marginTop: 22 },
+  dividerLine: { flex: 1, height: 1 },
+  dividerText: { fontSize: 12, fontWeight: '600' },
+  oauthRow: { flexDirection: 'row', gap: 10, marginTop: 16 },
+  flex: { flex: 1 },
 });

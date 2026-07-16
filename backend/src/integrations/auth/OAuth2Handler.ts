@@ -14,14 +14,14 @@ import { logger } from '../../utils/logger';
  * OAuth2 handler for managing OAuth2 authentication flows
  */
 export class OAuth2Handler {
-  private stateStore: Map<string, { userId: string; provider: string; timestamp: number }> = new Map();
+  private stateStore: Map<string, { userId: string; provider: string; platform: string; timestamp: number }> = new Map();
   private readonly STATE_EXPIRY_MS = 10 * 60 * 1000; // 10 minutes
 
   /**
    * Generate authorization URL for OAuth2 flow
    */
-  generateAuthorizationUrl(config: OAuth2Config, userId: string, provider: string): string {
-    const state = this.generateState(userId, provider);
+  generateAuthorizationUrl(config: OAuth2Config, userId: string, provider: string, platform: 'web' | 'mobile' = 'web'): string {
+    const state = this.generateState(userId, provider, platform);
 
     const params = new URLSearchParams({
       client_id: config.clientId,
@@ -39,9 +39,9 @@ export class OAuth2Handler {
   /**
    * Generate and store state parameter for CSRF protection
    */
-  private generateState(userId: string, provider: string): string {
+  private generateState(userId: string, provider: string, platform: 'web' | 'mobile' = 'web'): string {
     const state = crypto.randomBytes(32).toString('hex');
-    this.stateStore.set(state, { userId, provider, timestamp: Date.now() });
+    this.stateStore.set(state, { userId, provider, platform, timestamp: Date.now() });
 
     // Clean up expired states
     this.cleanExpiredStates();
@@ -52,7 +52,7 @@ export class OAuth2Handler {
   /**
    * Verify state parameter
    */
-  verifyState(state: string): { userId: string; provider: string } | null {
+  verifyState(state: string): { userId: string; provider: string; platform: 'web' | 'mobile' } | null {
     const stored = this.stateStore.get(state);
 
     if (!stored) {
@@ -67,7 +67,7 @@ export class OAuth2Handler {
     }
 
     this.stateStore.delete(state);
-    return { userId: stored.userId, provider: stored.provider };
+    return { userId: stored.userId, provider: stored.provider, platform: (stored.platform as 'web' | 'mobile') || 'web' };
   }
 
   /**

@@ -1,9 +1,13 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import * as WebBrowser from 'expo-web-browser';
+import * as Linking from 'expo-linking';
 import { AuthUser, LoginPayload, RegisterPayload } from '../../../shared/src/types';
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { createMobileAuthApi, DEFAULT_API_BASE_URL } from '../lib/auth';
+import { getSecureItem, removeSecureItem, setSecureItem } from '../lib/secureStorage';
 
 const TOKEN_KEY = 'silo.mobile.token';
+const LEGACY_TOKEN_KEY = TOKEN_KEY; // same key was previously stored in AsyncStorage
 
 type AuthContextValue = {
   token: string | null;
@@ -13,6 +17,7 @@ type AuthContextValue = {
   register: (data: RegisterPayload) => Promise<void>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
+  loginWithOAuth: (provider: 'google' | 'apple') => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -26,13 +31,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     const restore = async () => {
       try {
-        const saved = await AsyncStorage.getItem(TOKEN_KEY);
+        let saved = await getSecureItem(TOKEN_KEY);
+
+        // One-time migration: earlier builds stored the JWT in plain AsyncStorage.
+        if (!saved) {
+          const legacy = await AsyncStorage.getItem(LEGACY_TOKEN_KEY);
+          if (legacy) {
+            saved = legacy;
+            await setSecureItem(TOKEN_KEY, legacy);
+          }
+        }
+        await AsyncStorage.removeItem(LEGACY_TOKEN_KEY);
+
         if (!saved) return;
         const data = await api.me(saved);
         setToken(saved);
         setUser(data.user);
       } catch {
-        await AsyncStorage.removeItem(TOKEN_KEY);
+        await removeSecureItem(TOKEN_KEY);
       } finally {
         setLoading(false);
       }
@@ -41,7 +57,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [api]);
 
   const saveSession = async (nextToken: string, nextUser: AuthUser) => {
-    await AsyncStorage.setItem(TOKEN_KEY, nextToken);
+    await setSecureItem(TOKEN_KEY, nextToken);
     setToken(nextToken);
     setUser(nextUser);
   };
@@ -57,7 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = async () => {
-    await AsyncStorage.removeItem(TOKEN_KEY);
+    await removeSecureItem(TOKEN_KEY);
     setToken(null);
     setUser(null);
   };
@@ -68,8 +84,38 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(response.user);
   };
 
+  // Note: the backend redirects back using the fixed "silomobile://" scheme
+  // registered in app.json, not whatever Linking.createURL() resolves to. That
+  // means this flow completes automatically in a dev-client/standalone build,
+  // but not in plain Expo Go (which uses its own exp:// scheme and can't be
+  // deep-linked into from an arbitrary custom scheme).
+  const loginWithOAuth = async (provider: 'google' | 'apple') => {
+    const redirectUrl = Linking.createURL('oauth-callback');
+    const authUrl = `${DEFAULT_API_BASE_URL}/api/auth/oauth/${provider}/start?mode=login&platform=mobile`;
+
+    const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUrl);
+    if (result.type !== 'success' || !result.url) {
+      if (result.type === 'dismiss' || result.type === 'cancel') return;
+      throw new Error(`Could not sign in with ${provider}`);
+    }
+
+    const parsed = Linking.parse(result.url);
+    const oauthToken = parsed.queryParams?.token;
+    const oauthError = parsed.queryParams?.error;
+
+    if (oauthError) throw new Error(String(oauthError));
+    if (!oauthToken || typeof oauthToken !== 'string') {
+      throw new Error(`${provider} sign-in did not return a token`);
+    }
+
+    const data = await api.me(oauthToken);
+    await saveSession(oauthToken, data.user);
+  };
+
   return (
-    <AuthContext.Provider value={{ token, user, loading, login, register, logout, refreshUser }}>
+    <AuthContext.Provider
+      value={{ token, user, loading, login, register, logout, refreshUser, loginWithOAuth }}
+    >
       {children}
     </AuthContext.Provider>
   );

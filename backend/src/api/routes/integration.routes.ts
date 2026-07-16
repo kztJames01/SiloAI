@@ -10,6 +10,16 @@ import { logger } from '../../utils/logger';
 const router = Router();
 
 const frontendBase = () => process.env.FRONTEND_URL || 'http://localhost:5173';
+const mobileScheme = () => process.env.MOBILE_APP_SCHEME || 'silomobile';
+
+function integrationRedirect(platform: 'web' | 'mobile', status: 'success' | 'error', detail?: string) {
+  if (platform === 'mobile') {
+    const params = new URLSearchParams({ [status]: detail || 'true' });
+    return `${mobileScheme()}://integration-callback?${params.toString()}`;
+  }
+  const params = new URLSearchParams({ [status]: detail || 'true' });
+  return `${frontendBase()}/integrations?${params.toString()}`;
+}
 
 // OAuth2 callback must stay public (provider redirect has no JWT)
 router.get('/oauth/callback', async (req, res) => {
@@ -18,7 +28,7 @@ router.get('/oauth/callback', async (req, res) => {
 
     if (error) {
       logger.error('OAuth error', { error });
-      return res.redirect(`${frontendBase()}/integrations?error=oauth_failed`);
+      return res.redirect(integrationRedirect('web', 'error', 'oauth_failed'));
     }
 
     if (!code || !state) {
@@ -30,7 +40,7 @@ router.get('/oauth/callback', async (req, res) => {
       return res.status(400).json({ error: 'Invalid or expired state' });
     }
 
-    const { userId, provider } = stateData;
+    const { userId, provider, platform } = stateData;
     const integration = integrationRegistry.get(provider as IntegrationProvider);
     if (!integration) {
       return res.status(404).json({ error: 'Integration not found' });
@@ -46,7 +56,7 @@ router.get('/oauth/callback', async (req, res) => {
     const testResult = await integration.testConnection(credentials);
     if (!testResult.success) {
       logger.error('OAuth connection test failed', { provider, error: testResult.message });
-      return res.redirect(`${frontendBase()}/integrations?error=connection_failed`);
+      return res.redirect(integrationRedirect(platform, 'error', 'connection_failed'));
     }
 
     const metadata = integration.getInfo().metadata;
@@ -78,10 +88,10 @@ router.get('/oauth/callback', async (req, res) => {
       },
     });
 
-    return res.redirect(`${frontendBase()}/integrations?success=true`);
+    return res.redirect(integrationRedirect(platform, 'success'));
   } catch (error: any) {
     logger.error('OAuth callback failed', { error: error.message });
-    return res.redirect(`${frontendBase()}/integrations?error=oauth_failed`);
+    return res.redirect(integrationRedirect('web', 'error', 'oauth_failed'));
   }
 });
 
@@ -160,7 +170,8 @@ router.get('/user', async (req: AuthRequest, res) => {
 router.post('/:provider/connect', async (req: AuthRequest, res) => {
   try {
     const { provider } = req.params;
-    const { credentials, name } = req.body;
+    const { credentials, name, platform } = req.body;
+    const oauthPlatform: 'web' | 'mobile' = platform === 'mobile' ? 'mobile' : 'web';
 
     const integration = integrationRegistry.get(provider as IntegrationProvider);
     if (!integration) {
@@ -176,7 +187,7 @@ router.post('/:provider/connect', async (req: AuthRequest, res) => {
         return res.status(500).json({ error: 'OAuth2 not configured' });
       }
 
-      const authUrl = oauth2Handler.generateAuthorizationUrl(oauth2Config, req.userId!, provider);
+      const authUrl = oauth2Handler.generateAuthorizationUrl(oauth2Config, req.userId!, provider, oauthPlatform);
       return res.json({ authUrl, requiresOAuth: true });
     }
 
