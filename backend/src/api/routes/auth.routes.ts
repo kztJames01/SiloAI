@@ -16,7 +16,6 @@ const registerSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
   name: z.string().optional(),
-  role: z.enum(['ADMIN', 'FIELD']).optional(),
 });
 
 const loginSchema = z.object({
@@ -63,6 +62,7 @@ async function findOrCreateOAuthUser(email: string, name?: string) {
         email,
         name,
         password: hashedPassword,
+        role: 'FIELD',
       },
     });
   }
@@ -92,7 +92,7 @@ function redirectAuthError(res: any, message: string, platform: 'web' | 'mobile'
 
 // Register
 router.post('/register', async (req, res) => {
-  const { email, password, name, role } = registerSchema.parse(req.body);
+  const { email, password, name } = registerSchema.parse(req.body);
 
   const existingUser = await prisma.user.findUnique({ where: { email } });
   if (existingUser) {
@@ -106,7 +106,7 @@ router.post('/register', async (req, res) => {
       email,
       password: hashedPassword,
       name,
-      role: role || 'ADMIN',
+      role: 'FIELD',
     },
     select: {
       id: true,

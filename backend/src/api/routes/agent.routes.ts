@@ -1,5 +1,5 @@
 import express from 'express';
-import { authenticate, AuthRequest } from '../middleware/auth.middleware';
+import { authenticate, requireAdmin, AuthRequest } from '../middleware/auth.middleware';
 import prisma from '../../db/prisma';
 import { WorkflowEngine } from '../../engine/WorkflowEngine';
 import { AppError } from '../middleware/error.middleware';
@@ -305,7 +305,7 @@ router.get('/:id', async (req: AuthRequest, res) => {
 });
 
 // ─── POST /api/agents ────────────────────────────────────────────────────────
-router.post('/', async (req: AuthRequest, res) => {
+router.post('/', requireAdmin, async (req: AuthRequest, res) => {
   const data = agentSchema.parse(req.body);
 
   const agent = await prisma.aIAgent.create({
@@ -320,7 +320,7 @@ router.post('/', async (req: AuthRequest, res) => {
 });
 
 // ─── PUT /api/agents/:id ──────────────────────────────────────────────────────
-router.put('/:id', async (req: AuthRequest, res) => {
+router.put('/:id', requireAdmin, async (req: AuthRequest, res) => {
   const existing = await prisma.aIAgent.findFirst({
     where: { id: req.params.id, userId: req.userId! },
   });
@@ -337,7 +337,7 @@ router.put('/:id', async (req: AuthRequest, res) => {
 });
 
 // ─── DELETE /api/agents/:id ───────────────────────────────────────────────────
-router.delete('/:id', async (req: AuthRequest, res) => {
+router.delete('/:id', requireAdmin, async (req: AuthRequest, res) => {
   const existing = await prisma.aIAgent.findFirst({
     where: { id: req.params.id, userId: req.userId! },
   });
@@ -349,7 +349,7 @@ router.delete('/:id', async (req: AuthRequest, res) => {
 
 // ─── POST /api/agents/:id/run ─────────────────────────────────────────────────
 // Creates an ephemeral workflow with a single AIAgent node and runs it
-router.post('/:id/run', async (req: AuthRequest, res) => {
+router.post('/:id/run', requireAdmin, async (req: AuthRequest, res) => {
   const agent = await prisma.aIAgent.findFirst({
     where: { id: req.params.id, userId: req.userId! },
   });

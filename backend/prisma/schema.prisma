@@ -15,7 +15,7 @@ model User {
   email     String   @unique
   password  String
   name      String?
-  role      UserRole @default(ADMIN)
+  role      UserRole @default(FIELD)
   apiKeys   ApiKey[]
   workflows Workflow[]
   fieldActions FieldAction[]

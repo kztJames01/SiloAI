@@ -108,24 +108,7 @@ router.get('/', async (_req: AuthRequest, res) => {
   }
 });
 
-// Get integration details
-router.get('/:provider', async (req: AuthRequest, res) => {
-  try {
-    const { provider } = req.params;
-    const integration = integrationRegistry.get(provider as IntegrationProvider);
-
-    if (!integration) {
-      return res.status(404).json({ error: 'Integration not found' });
-    }
-
-    return res.json(integration.getInfo());
-  } catch (error: any) {
-    logger.error('Failed to get integration', { error: error.message });
-    return res.status(500).json({ error: 'Failed to get integration' });
-  }
-});
-
-// List user connections
+// List user connections — must be registered before /:provider or "user" is treated as a provider slug
 router.get('/connections/list', async (req: AuthRequest, res) => {
   try {
     const connections = await prisma.integrationConnection.findMany({
@@ -163,6 +146,23 @@ router.get('/user', async (req: AuthRequest, res) => {
   } catch (error: any) {
     logger.error('Failed to list user integrations', { error: error.message });
     res.status(500).json({ error: 'Failed to list connections' });
+  }
+});
+
+// Get integration details
+router.get('/:provider', async (req: AuthRequest, res) => {
+  try {
+    const { provider } = req.params;
+    const integration = integrationRegistry.get(provider as IntegrationProvider);
+
+    if (!integration) {
+      return res.status(404).json({ error: 'Integration not found' });
+    }
+
+    return res.json(integration.getInfo());
+  } catch (error: any) {
+    logger.error('Failed to get integration', { error: error.message });
+    return res.status(500).json({ error: 'Failed to get integration' });
   }
 });
 
@@ -258,10 +258,15 @@ router.post('/:provider/test', async (req: AuthRequest, res) => {
 
     const connection = await prisma.integrationConnection.findFirst({
       where: { id: connectionId, userId: req.userId },
+      include: { integration: true },
     });
 
     if (!connection) {
       return res.status(404).json({ error: 'Connection not found' });
+    }
+
+    if (connection.integration.provider !== provider) {
+      return res.status(400).json({ error: 'Connection does not belong to this provider' });
     }
 
     const integration = integrationRegistry.get(provider as IntegrationProvider);
@@ -300,10 +305,15 @@ router.post('/:provider/execute', async (req: AuthRequest, res) => {
 
     const connection = await prisma.integrationConnection.findFirst({
       where: { id: connectionId, userId: req.userId },
+      include: { integration: true },
     });
 
     if (!connection) {
       return res.status(404).json({ error: 'Connection not found' });
+    }
+
+    if (connection.integration.provider !== provider) {
+      return res.status(400).json({ error: 'Connection does not belong to this provider' });
     }
 
     const integration = integrationRegistry.get(provider as IntegrationProvider);
@@ -345,10 +355,17 @@ router.post('/:provider/execute', async (req: AuthRequest, res) => {
 router.delete('/:provider/disconnect', async (req: AuthRequest, res) => {
   try {
     const { connectionId } = req.body;
+    if (!connectionId) {
+      return res.status(400).json({ error: 'connectionId is required' });
+    }
 
-    await prisma.integrationConnection.deleteMany({
+    const deleted = await prisma.integrationConnection.deleteMany({
       where: { id: connectionId, userId: req.userId },
     });
+
+    if (!deleted.count) {
+      return res.status(404).json({ error: 'Connection not found' });
+    }
 
     res.json({ success: true });
   } catch (error: any) {

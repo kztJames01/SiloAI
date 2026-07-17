@@ -19,11 +19,13 @@ router.all('/:workflowId', async (req, res) => {
   }
 
   const expectedSecret = trigger?.config?.secret;
-  if (expectedSecret) {
-    const provided = req.headers['x-webhook-secret'] || req.query.secret;
-    if (provided !== expectedSecret) {
-      return res.status(401).json({ error: 'Invalid webhook secret' });
-    }
+  if (!expectedSecret) {
+    return res.status(503).json({ error: 'Webhook secret is not configured for this workflow' });
+  }
+
+  const provided = req.headers['x-webhook-secret'];
+  if (!provided || provided !== expectedSecret) {
+    return res.status(401).json({ error: 'Invalid webhook secret' });
   }
 
   try {
