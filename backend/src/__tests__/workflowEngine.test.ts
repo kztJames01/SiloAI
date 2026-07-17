@@ -1,5 +1,7 @@
 import { WorkflowEngine } from '../engine/WorkflowEngine';
 
+jest.mock('uuid', () => ({ v4: () => 'test-uuid-0001' }));
+
 // mock prisma so tests don't need a real db
 jest.mock('../db/prisma', () => ({
   __esModule: true,
