@@ -1,5 +1,6 @@
 import express from 'express';
 import { authenticate, AuthRequest } from '../middleware/auth.middleware';
+import { AppError } from '../middleware/error.middleware';
 import { LLMProviderFactory } from '../../ai/providers';
 import { PromptLibrary } from '../../ai/PromptTemplateEngine';
 import { tokenTracker } from '../../ai/TokenUsageTracker';
@@ -15,6 +16,15 @@ router.use(authenticate);
 router.post('/complete', async (req: AuthRequest, res) => {
   try {
     const { provider, model, apiKey, baseUrl, messages, temperature, maxTokens } = req.body;
+    const isAdmin = req.userRole === 'ADMIN';
+    const selfHosted = provider === 'ollama' || provider === 'custom';
+
+    if (selfHosted && !isAdmin) {
+      throw new AppError('Self-hosted AI endpoints require admin', 403);
+    }
+    if (!apiKey && !isAdmin) {
+      throw new AppError('API key required for non-admin accounts', 403);
+    }
 
     if (baseUrl) {
       assertSafeOutboundUrl(baseUrl);
@@ -23,7 +33,7 @@ router.post('/complete', async (req: AuthRequest, res) => {
     const config = {
       provider,
       model,
-      apiKey,
+      apiKey: apiKey || undefined,
       baseUrl,
       temperature,
       maxTokens,
@@ -49,6 +59,7 @@ router.post('/complete', async (req: AuthRequest, res) => {
       latency,
     });
   } catch (error) {
+    if (error instanceof AppError) throw error;
     console.error('AI completion error:', error);
     res.status(500).json({ error: 'Failed to generate completion' });
   }

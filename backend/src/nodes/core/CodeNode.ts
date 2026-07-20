@@ -28,8 +28,8 @@ export class CodeNode implements INode {
   async execute(data: any, context: ExecutionContext): Promise<any> {
     const { code } = data;
 
-    if (process.env.ALLOW_CODE_NODE !== 'true') {
-      throw new Error('Code node is disabled. Set ALLOW_CODE_NODE=true to enable (not recommended in production).');
+    if (process.env.NODE_ENV === 'production' || process.env.ALLOW_CODE_NODE !== 'true') {
+      throw new Error('Code node is disabled in production. Set ALLOW_CODE_NODE=true only in local dev.');
     }
 
     const func = new Function('context', 'data', code);

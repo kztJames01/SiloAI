@@ -1,4 +1,4 @@
-import { assertSafeOutboundUrl, signOAuthState, verifyOAuthState } from '../utils/security';
+import { assertSafeOutboundUrl, signOAuthState, verifyOAuthState, signOAuthExchangeCode, verifyOAuthExchangeCode } from '../utils/security';
 import { AppError } from '../api/middleware/error.middleware';
 
 describe('SSRF guards (assertSafeOutboundUrl)', () => {
@@ -10,6 +10,8 @@ describe('SSRF guards (assertSafeOutboundUrl)', () => {
     'http://192.168.1.50/camera',
     'http://169.254.169.254/latest/meta-data/',
     'http://app.local/',
+    'http://[::1]/',
+    'http://metadata.google.internal/computeMetadata/v1/',
     'file:///etc/passwd',
     'ftp://evil.com/x',
     'not-a-url',
@@ -35,23 +37,12 @@ describe('SSRF guards (assertSafeOutboundUrl)', () => {
     expect(() => assertSafeOutboundUrl('http://2130706433/')).toThrow(AppError);
   });
 
-  // known gaps — tests document what still slips through
-  it('KNOWN GAP: bracket IPv6 loopback may pass hostname-only check', () => {
-    // if this starts throwing after a fix, delete this test
-    try {
-      assertSafeOutboundUrl('http://[::1]/');
-      // still open today
-    } catch {
-      // fixed — good
-    }
+  it('blocks bracket IPv6 loopback', () => {
+    expect(() => assertSafeOutboundUrl('http://[::1]/')).toThrow(AppError);
   });
 
-  it('KNOWN GAP: metadata.google.internal is not blocked by hostname rules', () => {
-    try {
-      assertSafeOutboundUrl('http://metadata.google.internal/');
-    } catch {
-      // fixed — good
-    }
+  it('blocks metadata.google.internal', () => {
+    expect(() => assertSafeOutboundUrl('http://metadata.google.internal/')).toThrow(AppError);
   });
 });
 
@@ -94,5 +85,22 @@ describe('OAuth state signing', () => {
     payload.userId = 'victim-id';
     const forged = `${Buffer.from(JSON.stringify(payload)).toString('base64url')}.${sig}`;
     expect(() => verifyOAuthState(forged)).toThrow('Invalid OAuth state');
+  });
+});
+
+describe('OAuth exchange codes', () => {
+  beforeEach(() => {
+    process.env.JWT_SECRET = 'oauth-exchange-test-secret';
+  });
+
+  it('round-trips a user id through sign/verify', () => {
+    const code = signOAuthExchangeCode('user-123');
+    expect(verifyOAuthExchangeCode(code)).toBe('user-123');
+  });
+
+  it('rejects forged exchange codes', () => {
+    const code = signOAuthExchangeCode('user-123');
+    const [data] = code.split('.');
+    expect(() => verifyOAuthExchangeCode(`${data}.bad-sig`)).toThrow('Invalid OAuth exchange code');
   });
 });

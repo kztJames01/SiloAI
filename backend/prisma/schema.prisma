@@ -35,7 +35,8 @@ model ApiKey {
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   name      String
-  key       String   @unique
+  keyHash   String   @unique @map("key")
+  keyPrefix String   @default("")
   lastUsed  DateTime?
   createdAt DateTime @default(now())
 

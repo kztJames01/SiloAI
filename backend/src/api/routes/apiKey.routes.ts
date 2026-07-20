@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import prisma from '../../db/prisma';
 import { authenticate, AuthRequest } from '../middleware/auth.middleware';
 import { AppError } from '../middleware/error.middleware';
+import { hashApiKey } from '../../utils/security';
 
 const router = Router();
 router.use(authenticate);
@@ -17,7 +18,7 @@ router.get('/', async (req: AuthRequest, res) => {
     keys: keys.map((k) => ({
       id: k.id,
       name: k.name,
-      prefix: k.key.slice(0, 8) + '...',
+      prefix: k.keyPrefix || 'sk_...',
       lastUsed: k.lastUsed,
       createdAt: k.createdAt,
     })),
@@ -33,7 +34,8 @@ router.post('/', async (req: AuthRequest, res) => {
     data: {
       userId: req.userId!,
       name,
-      key: raw,
+      keyHash: hashApiKey(raw),
+      keyPrefix: `${raw.slice(0, 11)}...`,
     },
   });
 

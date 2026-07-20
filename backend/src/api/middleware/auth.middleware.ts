@@ -1,6 +1,7 @@
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 import prisma from '../../db/prisma';
+import { hashApiKey } from '../../utils/security';
 
 export interface AuthRequest extends Request {
   userId?: string;
@@ -24,6 +25,27 @@ export const authenticate = async (
     const token = authHeader.split(' ')[1];
     if (!token) {
       res.status(401).json({ error: 'Invalid authorization format' });
+      return;
+    }
+
+    if (token.startsWith('sk_')) {
+      const keyHash = hashApiKey(token);
+      const record = await prisma.apiKey.findUnique({
+        where: { keyHash },
+        include: { user: { select: { id: true, email: true, name: true, role: true } } },
+      });
+      if (!record) {
+        res.status(401).json({ error: 'Invalid API key' });
+        return;
+      }
+      await prisma.apiKey.update({
+        where: { id: record.id },
+        data: { lastUsed: new Date() },
+      });
+      req.userId = record.user.id;
+      req.userRole = record.user.role;
+      req.user = record.user;
+      next();
       return;
     }
 
