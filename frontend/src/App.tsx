@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { useAuthStore, useUiStore, UserRole } from './lib/store';
+import { useAuthStore, useUiStore, UserRole, dbRoleToUi } from './lib/store';
 
 // Pages
 import LoginPage from './pages/LoginPage';
@@ -38,7 +38,8 @@ function RoleGate({
   allowedRoles: UserRole[];
   children: React.ReactNode;
 }) {
-  const { role } = useUiStore();
+  const user = useAuthStore((s) => s.user);
+  const role = dbRoleToUi(user?.role);
 
   if (!allowedRoles.includes(role)) {
     return <Navigate to={role === 'field' ? '/field' : '/dashboard'} replace />;
@@ -48,8 +49,9 @@ function RoleGate({
 }
 
 function App() {
-  const { checkAuth, isLoading } = useAuthStore();
-  const { role, isDark } = useUiStore();
+  const { checkAuth, isLoading, user } = useAuthStore();
+  const { isDark } = useUiStore();
+  const role = dbRoleToUi(user?.role);
 
   useEffect(() => {
     checkAuth();
