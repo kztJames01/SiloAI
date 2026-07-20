@@ -7,7 +7,7 @@ import { z } from 'zod';
 import prisma from '../../db/prisma';
 import { AppError } from '../middleware/error.middleware';
 import { authenticate, AuthRequest } from '../middleware/auth.middleware';
-import { signOAuthState, verifyOAuthState, verifyAppleIdToken } from '../../utils/security';
+import { signOAuthState, verifyOAuthState, verifyAppleIdToken, signOAuthExchangeCode, verifyOAuthExchangeCode } from '../../utils/security';
 
 const router = Router();
 
@@ -69,15 +69,16 @@ async function findOrCreateOAuthUser(email: string, name?: string) {
   return user;
 }
 
-function redirectAuthSuccess(res: any, token: string, mode: 'login' | 'register', platform: 'web' | 'mobile' = 'web') {
+function redirectAuthSuccess(res: any, userId: string, mode: 'login' | 'register', platform: 'web' | 'mobile' = 'web') {
+  const exchangeCode = signOAuthExchangeCode(userId);
   if (platform === 'mobile') {
     const scheme = getMobileAppScheme();
-    res.redirect(`${scheme}://oauth-callback?token=${encodeURIComponent(token)}`);
+    res.redirect(`${scheme}://oauth-callback?code=${encodeURIComponent(exchangeCode)}`);
     return;
   }
   const frontendBaseUrl = getFrontendBaseUrl();
   const target = mode === 'register' ? '/register' : '/login';
-  res.redirect(`${frontendBaseUrl}${target}#token=${encodeURIComponent(token)}`);
+  res.redirect(`${frontendBaseUrl}${target}?oauth_code=${encodeURIComponent(exchangeCode)}`);
 }
 
 function redirectAuthError(res: any, message: string, platform: 'web' | 'mobile' = 'web') {
@@ -263,8 +264,7 @@ router.get('/oauth/google/callback', async (req, res) => {
     if (!email || emailVerified === false) throw new AppError('Google account email is not verified', 400);
 
     const user = await findOrCreateOAuthUser(email, name);
-    const token = issueToken(user.id);
-    redirectAuthSuccess(res, token, mode, platform);
+    redirectAuthSuccess(res, user.id, mode, platform);
   } catch (error: any) {
     const platform = (() => {
       try {
@@ -336,8 +336,7 @@ const appleCallbackHandler = async (req: any, res: any) => {
     if (!email) throw new AppError('Apple account has no email', 400);
 
     const user = await findOrCreateOAuthUser(email, name);
-    const token = issueToken(user.id);
-    redirectAuthSuccess(res, token, mode, platform);
+    redirectAuthSuccess(res, user.id, mode, platform);
   } catch (error: any) {
     const platform = (() => {
       try {
@@ -354,5 +353,21 @@ const appleCallbackHandler = async (req: any, res: any) => {
 
 router.post('/oauth/apple/callback', appleCallbackHandler);
 router.get('/oauth/apple/callback', appleCallbackHandler);
+
+const oauthExchangeSchema = z.object({ code: z.string().min(1) });
+
+router.post('/oauth/exchange', async (req, res) => {
+  const { code } = oauthExchangeSchema.parse(req.body);
+  const userId = verifyOAuthExchangeCode(code);
+
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { id: true, email: true, name: true, role: true },
+  });
+  if (!user) throw new AppError('User not found', 404);
+
+  const token = issueToken(user.id);
+  res.json({ user, token });
+});
 
 export default router;

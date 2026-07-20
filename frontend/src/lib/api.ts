@@ -5,6 +5,7 @@ import { createExecutionApi } from '@silo/shared/api/execution';
 import { createIntegrationApi } from '@silo/shared/api/integration';
 import { createNodeApi } from '@silo/shared/api/node';
 import { LoginPayload, RegisterPayload } from '@silo/shared/types';
+import { clearToken, getToken } from './tokenStorage';
 
 const runtimeApiUrl = window.__APP_CONFIG__?.API_URL?.trim();
 const envApiUrl = import.meta.env.VITE_API_URL?.trim();
@@ -15,7 +16,6 @@ const API_URL =
     : runtimeApiUrl || envApiUrl || 'http://localhost:5000';
 
 const sharedApiClient = createApiClient(API_URL);
-const getToken = () => localStorage.getItem('token');
 
 const normalizeApiPath = (path: string) => {
   if (path.startsWith('http://') || path.startsWith('https://')) return path;
@@ -32,7 +32,7 @@ const with401Redirect = async <T>(promise: Promise<T>) => {
     return await promise;
   } catch (error: any) {
     if (error?.response?.status === 401) {
-      localStorage.removeItem('token');
+      clearToken();
       window.location.href = '/login';
     }
     throw error;
@@ -55,6 +55,8 @@ export const authApi = {
   login: async (data: LoginPayload) =>
     wrapResponse(with401Redirect(sharedAuthApi.login(data))),
   me: async () => wrapResponse(with401Redirect(sharedAuthApi.me())),
+  exchangeOAuthCode: async (code: string) =>
+    wrapResponse(with401Redirect(sharedAuthApi.exchangeOAuthCode(code))),
   changePassword: async (data: { currentPassword: string; newPassword: string }) =>
     wrapResponse(
       with401Redirect(

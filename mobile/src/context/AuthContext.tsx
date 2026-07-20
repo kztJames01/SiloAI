@@ -100,16 +100,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
 
     const parsed = Linking.parse(result.url);
-    const oauthToken = parsed.queryParams?.token;
+    const oauthCode = parsed.queryParams?.code;
     const oauthError = parsed.queryParams?.error;
 
     if (oauthError) throw new Error(String(oauthError));
-    if (!oauthToken || typeof oauthToken !== 'string') {
-      throw new Error(`${provider} sign-in did not return a token`);
+    if (!oauthCode || typeof oauthCode !== 'string') {
+      throw new Error(`${provider} sign-in did not return a code`);
     }
 
-    const data = await api.me(oauthToken);
-    await saveSession(oauthToken, data.user);
+    const response = await api.exchangeOAuthCode(oauthCode);
+    await saveSession(response.token, response.user);
   };
 
   return (

@@ -35,12 +35,74 @@ export function assertSafeOutboundUrl(rawUrl: string): URL {
     throw new AppError('Only http/https URLs are allowed', 400);
   }
 
-  const host = parsed.hostname.toLowerCase();
-  if (BLOCKED_HOSTS.has(host) || isPrivateIp(host) || host.endsWith('.local')) {
+  let host = parsed.hostname.toLowerCase();
+  // [::1] -> ::1
+  if (host.startsWith('[') && host.endsWith(']')) {
+    host = host.slice(1, -1);
+  }
+
+  if (
+    BLOCKED_HOSTS.has(host) ||
+    isPrivateIp(host) ||
+    host.endsWith('.local') ||
+    host.endsWith('.internal') ||
+    host === 'metadata.google.internal'
+  ) {
+    throw new AppError('Blocked URL target', 400);
+  }
+
+  // block bare decimal/octal/hex IP literals that bypass dotted checks
+  if (/^\d+$/.test(host) || /^0x[0-9a-f]+$/i.test(host) || /^0[0-7]+$/.test(host)) {
     throw new AppError('Blocked URL target', 400);
   }
 
   return parsed;
+}
+
+// axios instance that won't follow redirects (SSRF via redirect)
+export function createSafeAxios() {
+  return axios.create({
+    maxRedirects: 0,
+    timeout: 30000,
+    validateStatus: (status) => status >= 200 && status < 400,
+  });
+}
+
+const OAUTH_EXCHANGE_TTL_MS = 60 * 1000;
+
+export function signOAuthExchangeCode(userId: string): string {
+  if (!process.env.JWT_SECRET) throw new AppError('JWT secret is not defined', 500);
+  const data = Buffer.from(
+    JSON.stringify({ userId, nonce: crypto.randomBytes(12).toString('hex'), ts: Date.now(), kind: 'oauth_exchange' })
+  ).toString('base64url');
+  const sig = crypto.createHmac('sha256', process.env.JWT_SECRET).update(data).digest('base64url');
+  return `${data}.${sig}`;
+}
+
+export function verifyOAuthExchangeCode(code: string): string {
+  if (!process.env.JWT_SECRET) throw new AppError('JWT secret is not defined', 500);
+  const [data, sig] = code.split('.');
+  if (!data || !sig) throw new AppError('Invalid OAuth exchange code', 400);
+
+  const expected = crypto.createHmac('sha256', process.env.JWT_SECRET).update(data).digest('base64url');
+  if (sig !== expected) throw new AppError('Invalid OAuth exchange code', 400);
+
+  const payload = JSON.parse(Buffer.from(data, 'base64url').toString('utf8')) as {
+    userId?: string;
+    ts?: number;
+    kind?: string;
+  };
+  if (payload.kind !== 'oauth_exchange' || !payload.userId || !payload.ts) {
+    throw new AppError('Invalid OAuth exchange code', 400);
+  }
+  if (Date.now() - payload.ts > OAUTH_EXCHANGE_TTL_MS) {
+    throw new AppError('OAuth exchange code expired', 400);
+  }
+  return payload.userId;
+}
+
+export function hashApiKey(rawKey: string): string {
+  return crypto.createHash('sha256').update(rawKey).digest('hex');
 }
 
 export function signOAuthState(payload: Record<string, unknown>): string {
