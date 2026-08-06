@@ -100,9 +100,11 @@ function DbModal({ mode, onClose, onSave }: CreateModalProps) {
   const testConnection = async () => {
     setIsTesting(true);
     setTestResult(null);
-    await new Promise(r => setTimeout(r, 1200));
-    // Simulate: success if host provided
-    setTestResult(host.trim() ? 'ok' : 'fail');
+    const ok =
+      engine === 'sqlite'
+        ? !!database.trim()
+        : !!host.trim() && !!database.trim() && port > 0;
+    setTestResult(ok ? 'ok' : 'fail');
     setIsTesting(false);
   };
 
@@ -452,15 +454,14 @@ export default function DataStoragePage() {
   const handleSave = (conn: DbConnection) => {
     setConnections(prev => [conn, ...prev]);
     setModal(null);
-    // Simulate provisioning completing
     if (conn.status === 'provisioning') {
-      setTimeout(() => {
-        setConnections(prev =>
-          prev.map(c => c.id === conn.id ? { ...c, status: 'connected' as DbStatus } : c)
-        );
-        toast.success(`${conn.name} is ready`);
-      }, 3000);
+      toast('Saved locally — cloud DB provisioning is not available yet');
+      setConnections(prev =>
+        prev.map(c => (c.id === conn.id ? { ...c, status: 'disconnected' as DbStatus } : c))
+      );
+      return;
     }
+    toast.success(conn.status === 'connected' ? 'Connection added' : 'Connection saved locally');
   };
 
   const handleDelete = (id: string) => {
@@ -497,6 +498,10 @@ export default function DataStoragePage() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+
+      <div className="rounded-lg border border-amber-300 bg-amber-50 text-amber-900 px-4 py-3 text-sm">
+        Preview feature: connections are saved in this browser only. Managed database provisioning and workflow database nodes are not wired to a backend yet.
+      </div>
 
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -623,7 +628,7 @@ export default function DataStoragePage() {
             <p className="text-sm font-bold text-foreground mb-1">Use in Workflows</p>
             <p className="text-xs text-muted-foreground leading-relaxed">
               Every connected database is available as a data source inside the Workflow Editor.
-              Add a <strong>Database Query</strong> or <strong>Database Write</strong> node and select your connection from the dropdown.
+              Use integration database apps (Airtable, Google Sheets, etc.) inside workflows today. Direct SQL connection nodes are planned.
               No cloud credentials needed — everything stays local.
             </p>
           </div>

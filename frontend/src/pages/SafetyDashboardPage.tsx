@@ -2,22 +2,16 @@ import { useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { apiKeyApi, executionApi } from '../lib/api';
 import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card';
-import { useUiStore } from '../lib/store';
+import { useUiStore, useAuthStore, dbRoleToUi } from '../lib/store';
 import { formatDate } from '../lib/utils';
-import { Eye, EyeOff, Copy, Check, UserCheck, UserX, Plus, Trash2 } from 'lucide-react';
+import { Eye, EyeOff, Copy, Check, Plus, Trash2 } from 'lucide-react';
 import { Button } from '../components/ui/Button';
 import toast from 'react-hot-toast';
-
-const employees = [
-  { id: '1', name: 'Ava Nurse' },
-  { id: '2', name: 'Ben Field Lead' },
-  { id: '3', name: 'Chris Admin' },
-];
 
 const statusClass: Record<string, string> = {
   Success: 'bg-green-100 text-green-700',
   Failed: 'bg-red-100 text-red-700',
-  'Requires Human': 'bg-orange-100 text-orange-700',
+  Running: 'bg-blue-100 text-blue-700',
 };
 
 const maskValue = (value: string, enabled: boolean) => {
@@ -27,23 +21,11 @@ const maskValue = (value: string, enabled: boolean) => {
   return value.replace(/[A-Za-z0-9]/g, '*');
 };
 
-type RequestStatus = 'pending' | 'approved' | 'rejected';
-interface ConnectionRequest { id: string; name: string; email: string; status: RequestStatus; }
-
-const INITIAL_REQUESTS: ConnectionRequest[] = [
-  { id: 'r1', name: 'Jordan Lee',   email: 'jordan.lee@acme.com',   status: 'pending' },
-  { id: 'r2', name: 'Morgan Smith', email: 'morgan.smith@corp.io',  status: 'pending' },
-  { id: 'r3', name: 'Riley Chen',   email: 'riley.chen@techlab.co', status: 'pending' },
-];
-
 export default function SafetyDashboardPage() {
   const queryClient = useQueryClient();
   const { isMaskingEnabled } = useUiStore();
-  const [permissions, setPermissions] = useState<Record<string, { run: boolean; build: boolean; sensitive: boolean }>>({
-    '1': { run: true, build: false, sensitive: false },
-    '2': { run: true, build: true, sensitive: false },
-    '3': { run: true, build: true, sensitive: true },
-  });
+  const user = useAuthStore((s) => s.user);
+  const roleLabel = dbRoleToUi(user?.role) === 'admin' ? 'Admin' : 'Field Worker';
 
   const { data: keyData } = useQuery({
     queryKey: ['api-keys'],
@@ -87,7 +69,7 @@ export default function SafetyDashboardPage() {
         execution.status === 'FAILED'
           ? 'Failed'
           : execution.status === 'RUNNING'
-          ? 'Requires Human'
+          ? 'Running'
           : 'Success';
 
       return {
@@ -103,26 +85,11 @@ export default function SafetyDashboardPage() {
   const [showKeyId, setShowKeyId] = useState<string | null>(null);
   const [copiedKeyId, setCopiedKeyId] = useState<string | null>(null);
   const [newSecret, setNewSecret] = useState<string | null>(null);
-  const [requests, setRequests] = useState<ConnectionRequest[]>(INITIAL_REQUESTS);
 
   const copyKey = async (value: string, id: string) => {
     await navigator.clipboard.writeText(value);
     setCopiedKeyId(id);
     setTimeout(() => setCopiedKeyId(null), 2000);
-  };
-
-  const resolveRequest = (id: string, action: 'approved' | 'rejected') => {
-    setRequests((prev) => prev.map((r) => r.id === id ? { ...r, status: action } : r));
-  };
-
-  const toggleCell = (employeeId: string, key: 'run' | 'build' | 'sensitive') => {
-    setPermissions((current) => ({
-      ...current,
-      [employeeId]: {
-        ...current[employeeId],
-        [key]: !current[employeeId][key],
-      },
-    }));
   };
 
   return (
@@ -161,60 +128,18 @@ export default function SafetyDashboardPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Access Control List</CardTitle>
+          <CardTitle>Access Control</CardTitle>
         </CardHeader>
-        <CardContent>
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm">
-              <thead>
-                <tr className="border-b">
-                  <th className="text-left py-2">Employee</th>
-                  <th className="text-left py-2">Can Run Workflows</th>
-                  <th className="text-left py-2">Can Build Workflows</th>
-                  <th className="text-left py-2">Can View Sensitive Data</th>
-                </tr>
-              </thead>
-              <tbody>
-                {employees.map((employee) => (
-                  <tr key={employee.id} className="border-b">
-                    <td className="py-3">{maskValue(employee.name, isMaskingEnabled)}</td>
-                    <td className="py-3">
-                      <input
-                        type="checkbox"
-                        checked={permissions[employee.id].run}
-                        onChange={() => toggleCell(employee.id, 'run')}
-                        className="h-4 w-4"
-                      />
-                    </td>
-                    <td className="py-3">
-                      <input
-                        type="checkbox"
-                        checked={permissions[employee.id].build}
-                        onChange={() => toggleCell(employee.id, 'build')}
-                        className="h-4 w-4"
-                      />
-                    </td>
-                    <td className="py-3">
-                      <input
-                        type="checkbox"
-                        checked={permissions[employee.id].sensitive}
-                        onChange={() => toggleCell(employee.id, 'sensitive')}
-                        className="h-4 w-4"
-                      />
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+        <CardContent className="space-y-2 text-sm text-muted-foreground">
+          <p>
+            Your account role: <span className="font-semibold text-foreground">{roleLabel}</span>
+          </p>
+          <p>Workflow authoring and agent management require an Admin account. Field accounts can run assigned workflows and submit field actions.</p>
+          <p>Role changes are managed by your organization administrator in the database.</p>
         </CardContent>
       </Card>
 
-      {/* Keys + Connection Requests */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-
-        {/* API Keys */}
-        <Card>
+      <Card>
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle>API Keys</CardTitle>
@@ -257,72 +182,6 @@ export default function SafetyDashboardPage() {
             )}
           </CardContent>
         </Card>
-
-        {/* Connection Requests */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Connection Requests</CardTitle>
-          </CardHeader>
-          <CardContent>
-            {requests.length === 0 ? (
-              <p className="text-sm text-muted-foreground">No pending requests.</p>
-            ) : (
-              <div className="space-y-3">
-                {requests.map((req) => (
-                  <div
-                    key={req.id}
-                    className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
-                      req.status === 'approved'
-                        ? 'bg-green-500/10 border-green-500/30'
-                        : req.status === 'rejected'
-                        ? 'bg-red-500/10 border-red-500/30'
-                        : 'bg-muted/40 border-border'
-                    }`}
-                  >
-                    {/* Avatar */}
-                    <div className="w-9 h-9 rounded-full bg-primary/20 text-primary flex items-center justify-center text-xs font-bold flex-shrink-0">
-                      {req.name.split(' ').map(w => w[0]).join('').slice(0,2)}
-                    </div>
-                    {/* Info */}
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-semibold text-foreground truncate">{req.name}</p>
-                      <p className="text-xs text-muted-foreground truncate">{req.email}</p>
-                    </div>
-                    {/* Actions */}
-                    {req.status === 'pending' ? (
-                      <div className="flex items-center gap-1.5 flex-shrink-0">
-                        <button
-                          onClick={() => resolveRequest(req.id, 'approved')}
-                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-green-600 text-white text-xs font-semibold hover:bg-green-700 transition-colors"
-                        >
-                          <UserCheck className="h-3.5 w-3.5" />
-                          Approve
-                        </button>
-                        <button
-                          onClick={() => resolveRequest(req.id, 'rejected')}
-                          className="flex items-center gap-1 px-2.5 py-1.5 rounded-lg bg-red-100 text-red-700 text-xs font-semibold hover:bg-red-200 transition-colors"
-                        >
-                          <UserX className="h-3.5 w-3.5" />
-                          Decline
-                        </button>
-                      </div>
-                    ) : (
-                      <span className={`text-xs font-semibold px-2.5 py-1 rounded-full flex-shrink-0 ${
-                        req.status === 'approved'
-                          ? 'bg-green-100 text-green-700'
-                          : 'bg-red-100 text-red-700'
-                      }`}>
-                        {req.status === 'approved' ? 'Approved' : 'Declined'}
-                      </span>
-                    )}
-                  </div>
-                ))}
-              </div>
-            )}
-          </CardContent>
-        </Card>
-
-      </div>
       </div>
     </div>
   );

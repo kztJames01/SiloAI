@@ -86,6 +86,16 @@ export const fieldApi = {
     ),
 };
 
+export const contactApi = {
+  submit: async (data: { name: string; email: string; message: string; source?: 'web' | 'mobile' }) =>
+    wrapResponse(
+      sharedApiClient.request<any>('/api/contact', {
+        method: 'POST',
+        body: data,
+      })
+    ),
+};
+
 export const apiKeyApi = {
   list: async () =>
     wrapResponse(

@@ -1,19 +1,30 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
+import toast from 'react-hot-toast';
+import { contactApi } from '../lib/api';
 
 export default function ContactPage() {
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [message, setMessage] = useState('');
   const [sent, setSent] = useState(false);
+  const [sending, setSending] = useState(false);
 
-  const onSubmit = (e: React.FormEvent) => {
+  const onSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!name || !email || !message) return;
-    setSent(true);
-    setName('');
-    setEmail('');
-    setMessage('');
+    setSending(true);
+    try {
+      await contactApi.submit({ name, email, message, source: 'web' });
+      setSent(true);
+      setName('');
+      setEmail('');
+      setMessage('');
+    } catch {
+      toast.error('Could not send message. Try again later.');
+    } finally {
+      setSending(false);
+    }
   };
 
   return (
@@ -44,12 +55,16 @@ export default function ContactPage() {
               rows={5}
               className="w-full px-3 py-2 rounded-lg border border-border bg-white/70 dark:bg-slate-900/60"
             />
-            <button className="px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90">
-              Send Message
+            <button
+              type="submit"
+              disabled={sending}
+              className="px-4 py-2 rounded-lg bg-primary text-primary-foreground hover:bg-primary/90 disabled:opacity-60"
+            >
+              {sending ? 'Sending...' : 'Send Message'}
             </button>
           </form>
 
-          {sent && <p className="mt-4 text-sm text-emerald-600">Message sent. We will get back soon.</p>}
+          {sent && <p className="mt-4 text-sm text-emerald-600">Message received. We will get back soon.</p>}
 
           <div className="mt-8 flex items-center gap-4 text-sm">
             <Link to="/welcome" className="text-primary hover:underline">

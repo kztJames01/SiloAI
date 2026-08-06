@@ -1,4 +1,3 @@
-import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { executionApi, workflowApi } from '../lib/api';
@@ -104,12 +103,10 @@ const TRENDING_AGENTS: TrendingAgent[] = [
   {
     name: 'Sales Outreach Agent',
     apps: resolveApps(['gmail', 'chatgpt', 'google_sheets']),
-    count: 2,
   },
   {
     name: 'Social Media Comment Responder',
     apps: resolveApps(['facebook_ads', 'slack', 'chatgpt']),
-    count: 1,
   },
   {
     name: 'Inventory and Order Management Agent',
@@ -118,7 +115,6 @@ const TRENDING_AGENTS: TrendingAgent[] = [
   {
     name: 'Market Research Analyst',
     apps: resolveApps(['hubspot', 'chatgpt', 'notion']),
-    count: 2,
   },
 ];
 
@@ -145,15 +141,15 @@ export default function OrganizationDashboardPage() {
   const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
   const recentRuns = executions.filter((e: any) => new Date(e.startedAt).getTime() >= weekAgo);
   const averageDailyUsage = Math.round(recentRuns.length / 7);
+  const successRuns = recentRuns.filter((e: any) => e.status === 'SUCCESS').length;
+  const failedRuns = recentRuns.filter((e: any) => e.status === 'FAILED').length;
 
-  const [stats] = useState({
-    creditsLeft: 1000,
-    totalCredits: 1000,
-    resetDate: '3/18/26, 2:07 AM',
-    resetDays: 28,
-  });
-
-  useEffect(() => {}, []);
+  const stats = {
+    runsThisWeek: recentRuns.length,
+    successRate: recentRuns.length ? Math.round((successRuns / recentRuns.length) * 100) : 0,
+    failedRuns,
+    averageDailyUsage,
+  };
 
   return (
     <div className="min-h-screen bg-background">
@@ -201,17 +197,17 @@ export default function OrganizationDashboardPage() {
                   />
                   <StatCard
                     icon={<Sparkles className="h-6 w-6 text-primary" />}
-                    label="Credits left"
-                    value={stats.creditsLeft.toLocaleString()}
-                    subValue={`/ ${stats.totalCredits.toLocaleString()}`}
+                    label="Runs this week"
+                    value={stats.runsThisWeek}
+                    subValue={`${stats.successRate}% success`}
                     color="bg-primary/10"
                     linkIcon
                   />
                   <StatCard
                     icon={<Calendar className="h-6 w-6 text-primary" />}
-                    label="Usage reset in"
-                    value={`${stats.resetDays} days`}
-                    subValue={stats.resetDate}
+                    label="Failed runs (7d)"
+                    value={stats.failedRuns}
+                    subValue="from your account"
                     color="bg-primary/10"
                   />
                   <StatCard
@@ -293,11 +289,6 @@ export default function OrganizationDashboardPage() {
                                 <AppIcon name={app.name} icon={app.icon} color={app.color} size="sm" />
                               </div>
                             ))}
-                            {agent.count && (
-                              <div className="ml-2 w-8 h-8 rounded-full bg-muted flex items-center justify-center text-xs font-semibold text-muted-foreground">
-                                +{agent.count}
-                              </div>
-                            )}
                           </div>
                           <ArrowRight className="h-4 w-4 text-muted-foreground group-hover:text-primary transition-colors" />
                         </div>
