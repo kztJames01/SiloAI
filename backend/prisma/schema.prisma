@@ -43,6 +43,18 @@ model ApiKey {
   @@map("api_keys")
 }
 
+model ContactMessage {
+  id        String   @id @default(uuid())
+  name      String
+  email     String
+  message   String
+  source    String   @default("web")
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("contact_messages")
+}
+
 model Workflow {
   id          String            @id @default(uuid())
   userId      String
