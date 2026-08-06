@@ -3,6 +3,7 @@ import { authenticate, requireAdmin, AuthRequest } from '../middleware/auth.midd
 import prisma from '../../db/prisma';
 import { WorkflowEngine } from '../../engine/WorkflowEngine';
 import { AppError } from '../middleware/error.middleware';
+import { watchAgentExecution } from '../../services/executionSync';
 import { z } from 'zod';
 
 const router = express.Router();
@@ -414,7 +415,7 @@ router.post('/:id/run', requireAdmin, async (req: AuthRequest, res) => {
 
   const executionId = await engine.executeWorkflow(agentWorkflow as any, { task, context });
 
-  await prisma.aIAgentExecution.create({
+  const agentExecution = await prisma.aIAgentExecution.create({
     data: {
       agentId: agent.id,
       input: typeof task === 'string' ? task : JSON.stringify(task),
@@ -423,7 +424,9 @@ router.post('/:id/run', requireAdmin, async (req: AuthRequest, res) => {
     },
   });
 
-  res.json({ executionId, message: 'Agent run started' });
+  watchAgentExecution(agentExecution.id, executionId);
+
+  res.json({ executionId, agentExecutionId: agentExecution.id, message: 'Agent run started' });
 });
 
 // ─── GET /api/agents/:id/executions ──────────────────────────────────────────

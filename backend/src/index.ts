@@ -25,7 +25,9 @@ import { errorHandler } from './api/middleware/error.middleware';
 import { requestLogger } from './api/middleware/requestLogger.middleware';
 import { rateLimiter, authRateLimiter } from './api/middleware/rateLimiter.middleware';
 import metricsRoutes from './api/routes/metrics.routes';
+import contactRoutes from './api/routes/contact.routes';
 import { startScheduleRunner } from './services/scheduleRunner';
+import { startExecutionReconciler } from './services/executionSync';
 import { logger } from './utils/logger';
 import { formatDatabaseStartupError, getDatabaseUrlInfo, loadedEnvFiles } from './db/database-url';
 import prisma from './db/prisma';
@@ -101,6 +103,7 @@ app.use('/api/ai', aiRoutes);
 app.use('/api/agents', agentRoutes);
 app.use('/api/field', fieldRoutes);
 app.use('/api/api-keys', apiKeyRoutes);
+app.use('/api/contact', contactRoutes);
 
 // Error handling
 app.use(errorHandler);
@@ -133,6 +136,7 @@ const PORT = process.env.PORT || 5000;
 async function startServer() {
   await testDatabaseConnection();
   await startScheduleRunner();
+  startExecutionReconciler();
   
   server.listen(PORT, () => {
     logger.info(`Server running on port ${PORT}`);
