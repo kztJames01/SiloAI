@@ -1,9 +1,10 @@
-import { useMemo, useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View, Alert } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { Alert, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Screen } from '../../src/components/Screen';
 import { AppButton, AppCard, AppInput } from '../../src/components/ui';
 import { useAuth } from '../../src/context/AuthContext';
 import { createMobileFieldApi } from '../../src/lib/field';
+import { dequeueFieldAction, enqueueFieldAction, loadFieldQueue } from '../../src/lib/fieldQueue';
 import { useTheme } from '../../src/theme';
 
 const actions = [
@@ -22,6 +23,35 @@ export default function FieldScreen() {
   const [jobType, setJobType] = useState('General');
   const [queued, setQueued] = useState(0);
   const [submitting, setSubmitting] = useState(false);
+  const [syncing, setSyncing] = useState(false);
+
+  useEffect(() => {
+    loadFieldQueue().then((q) => setQueued(q.length));
+    flushQueue();
+  }, [token]);
+
+  const flushQueue = async () => {
+    if (syncing || !token) return;
+    const queue = await loadFieldQueue();
+    if (!queue.length) return;
+
+    setSyncing(true);
+    let remaining = queue.length;
+    for (const item of queue) {
+      try {
+        await fieldApi.submit({
+          actionType: item.actionType,
+          notes: item.notes,
+          jobType: item.jobType,
+        });
+        remaining = await dequeueFieldAction(item.id);
+      } catch {
+        break;
+      }
+    }
+    setQueued(remaining);
+    setSyncing(false);
+  };
 
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
@@ -30,18 +60,23 @@ export default function FieldScreen() {
 
   const submit = async () => {
     if (!activeAction) return;
+    const payload = {
+      actionType: activeAction.id,
+      notes: notes.trim() || undefined,
+      jobType,
+    };
+
     setSubmitting(true);
     try {
-      await fieldApi.submit({
-        actionType: activeAction.id,
-        notes: notes.trim() || undefined,
-        jobType,
-      });
-      setQueued((value) => value + 1);
+      await fieldApi.submit(payload);
       setNotes('');
       setActiveAction(null);
     } catch {
-      Alert.alert('Could not save', 'Check your connection and try again.');
+      const count = await enqueueFieldAction(payload);
+      setQueued(count);
+      setNotes('');
+      setActiveAction(null);
+      Alert.alert('Saved offline', 'Could not reach the server. Queued for sync.');
     } finally {
       setSubmitting(false);
     }
@@ -52,9 +87,11 @@ export default function FieldScreen() {
       <View style={styles.statusRow}>
         <View style={[styles.online, { backgroundColor: `${colors.success}18` }]}>
           <View style={[styles.dot, { backgroundColor: colors.success }]} />
-          <Text style={[styles.onlineText, { color: colors.success }]}>Online</Text>
+          <Text style={[styles.onlineText, { color: colors.success }]}>Field sync</Text>
         </View>
-        <Text style={[styles.queueText, { color: colors.textSecondary }]}>{queued} saved tasks</Text>
+        <Text style={[styles.queueText, { color: colors.textSecondary }]}>
+          {syncing ? 'Syncing...' : `${queued} queued`}
+        </Text>
       </View>
 
       <View style={styles.grid}>
@@ -79,12 +116,6 @@ export default function FieldScreen() {
           );
         })}
       </View>
-
-      <AppCard style={styles.recent}>
-        <Text style={[styles.recentTitle, { color: colors.textPrimary }]}>Today</Text>
-        <Text style={[styles.recentNumber, { color: colors.primary }]}>{queued}</Text>
-        <Text style={[styles.recentLabel, { color: colors.textSecondary }]}>field updates recorded</Text>
-      </AppCard>
 
       <Modal visible={!!activeAction} transparent animationType="slide" onRequestClose={() => setActiveAction(null)}>
         <Pressable style={styles.overlay} onPress={() => setActiveAction(null)}>
@@ -146,10 +177,6 @@ const styles = StyleSheet.create({
   actionIconText: { fontSize: 20, fontWeight: '800' },
   actionTitle: { fontSize: 16, fontWeight: '800' },
   actionHint: { fontSize: 12, marginTop: 5 },
-  recent: { marginTop: 18, alignItems: 'center' },
-  recentTitle: { fontSize: 14, fontWeight: '700' },
-  recentNumber: { fontSize: 34, fontWeight: '900', marginTop: 5 },
-  recentLabel: { fontSize: 13 },
   overlay: { flex: 1, backgroundColor: '#00000070', justifyContent: 'flex-end' },
   sheet: { borderTopLeftRadius: 26, borderTopRightRadius: 26, padding: 20, paddingBottom: 35 },
   handle: { width: 42, height: 5, borderRadius: 5, alignSelf: 'center', marginBottom: 18 },

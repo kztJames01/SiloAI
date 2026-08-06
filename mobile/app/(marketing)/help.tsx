@@ -14,7 +14,7 @@ const tutorialSlides = [
 const faqs = [
   { q: 'How do I start quickly?', a: 'Ask your admin for access to a few workflows, then run them from the Workflows tab.' },
   { q: 'Where can I debug failed runs?', a: 'Open Runs and tap into any execution to see logs, status, and output.' },
-  { q: 'Can I use this offline?', a: 'Field actions are saved locally and synced once you are back online.' },
+  { q: 'Can I use this offline?', a: 'Field actions queue locally when the server is unreachable and sync on the next successful connection.' },
 ];
 
 export default function HelpScreen() {
