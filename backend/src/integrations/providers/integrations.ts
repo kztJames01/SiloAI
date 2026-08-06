@@ -597,8 +597,16 @@ export class TrelloIntegration extends BaseIntegration {
     ];
   }
   getTriggers(): IntegrationTrigger[] { return []; }
-  async testConnection(_credentials: IntegrationCredentials): Promise<IntegrationTestResult> {
-    return { success: true, message: 'Connected' };
+  async testConnection(credentials: IntegrationCredentials): Promise<IntegrationTestResult> {
+    try {
+      const key = credentials.apiKey;
+      const token = credentials.apiSecret || credentials.accessToken;
+      if (!key || !token) return { success: false, message: 'Trello API key and token are required' };
+      await this.makeRequest({ url: 'https://api.trello.com/1/members/me', method: 'GET', params: { key, token } }, credentials);
+      return { success: true, message: 'Connected to Trello' };
+    } catch (error: any) {
+      return { success: false, message: error.message };
+    }
   }
   async executeAction(actionId: string, parameters: Record<string, any>, credentials: IntegrationCredentials): Promise<IntegrationResult> {
     try {
@@ -712,12 +720,14 @@ export class HubSpotIntegration extends BaseIntegration {
     ];
   }
   getTriggers(): IntegrationTrigger[] { return []; }
-  async testConnection(_credentials: IntegrationCredentials): Promise<IntegrationTestResult> {
-    return { success: true, message: 'Connected' };
-  }
-  async executeAction(actionId: string, parameters: Record<string, any>, credentials: IntegrationCredentials): Promise<IntegrationResult> {
+  async testConnection(credentials: IntegrationCredentials): Promise<IntegrationTestResult> {
     try {
-      if (actionId === 'create_contact') {
+      await this.makeRequest({ url: 'https://api.hubapi.com/crm/v3/objects/contacts?limit=1', method: 'GET' }, credentials);
+      return { success: true, message: 'Connected to HubSpot' };
+    } catch (error: any) {
+      return { success: false, message: error.message };
+    }
+  }
         const data = await this.makeRequest({
           url: 'https://api.hubapi.com/crm/v3/objects/contacts',
           method: 'POST',
@@ -766,12 +776,14 @@ export class ZoomIntegration extends BaseIntegration {
     ];
   }
   getTriggers(): IntegrationTrigger[] { return []; }
-  async testConnection(_credentials: IntegrationCredentials): Promise<IntegrationTestResult> {
-    return { success: true, message: 'Connected' };
-  }
-  async executeAction(actionId: string, parameters: Record<string, any>, credentials: IntegrationCredentials): Promise<IntegrationResult> {
+  async testConnection(credentials: IntegrationCredentials): Promise<IntegrationTestResult> {
     try {
-      if (actionId === 'create_meeting') {
+      await this.makeRequest({ url: 'https://api.zoom.us/v2/users/me', method: 'GET' }, credentials);
+      return { success: true, message: 'Connected to Zoom' };
+    } catch (error: any) {
+      return { success: false, message: error.message };
+    }
+  }
         const data = await this.makeRequest({
           url: 'https://api.zoom.us/v2/users/me/meetings',
           method: 'POST',
@@ -1036,8 +1048,13 @@ export class MicrosoftOutlookIntegration extends BaseIntegration {
     ];
   }
   getTriggers(): IntegrationTrigger[] { return []; }
-  async testConnection(_credentials: IntegrationCredentials): Promise<IntegrationTestResult> {
-    return { success: true, message: 'Connected to Outlook' };
+  async testConnection(credentials: IntegrationCredentials): Promise<IntegrationTestResult> {
+    try {
+      await this.makeRequest({ url: 'https://graph.microsoft.com/v1.0/me', method: 'GET' }, credentials);
+      return { success: true, message: 'Connected to Outlook' };
+    } catch (error: any) {
+      return { success: false, message: error.message };
+    }
   }
   async executeAction(actionId: string, parameters: Record<string, any>, credentials: IntegrationCredentials): Promise<IntegrationResult> {
     try {
@@ -1085,8 +1102,13 @@ export class MicrosoftTeamsIntegration extends BaseIntegration {
     ];
   }
   getTriggers(): IntegrationTrigger[] { return []; }
-  async testConnection(_credentials: IntegrationCredentials): Promise<IntegrationTestResult> {
-    return { success: true, message: 'Connected to Teams' };
+  async testConnection(credentials: IntegrationCredentials): Promise<IntegrationTestResult> {
+    try {
+      await this.makeRequest({ url: 'https://graph.microsoft.com/v1.0/me', method: 'GET' }, credentials);
+      return { success: true, message: 'Connected to Teams' };
+    } catch (error: any) {
+      return { success: false, message: error.message };
+    }
   }
   async executeAction(actionId: string, parameters: Record<string, any>, credentials: IntegrationCredentials): Promise<IntegrationResult> {
     try {
@@ -1119,8 +1141,13 @@ export class MicrosoftExcelIntegration extends BaseIntegration {
     ];
   }
   getTriggers(): IntegrationTrigger[] { return []; }
-  async testConnection(_credentials: IntegrationCredentials): Promise<IntegrationTestResult> {
-    return { success: true, message: 'Connected to Excel' };
+  async testConnection(credentials: IntegrationCredentials): Promise<IntegrationTestResult> {
+    try {
+      await this.makeRequest({ url: 'https://graph.microsoft.com/v1.0/me', method: 'GET' }, credentials);
+      return { success: true, message: 'Connected to Excel' };
+    } catch (error: any) {
+      return { success: false, message: error.message };
+    }
   }
   async executeAction(actionId: string, parameters: Record<string, any>, credentials: IntegrationCredentials): Promise<IntegrationResult> {
     try {
@@ -1265,8 +1292,16 @@ export class MailChimpIntegration extends BaseIntegration {
     ];
   }
   getTriggers(): IntegrationTrigger[] { return []; }
-  async testConnection(_credentials: IntegrationCredentials): Promise<IntegrationTestResult> {
-    return { success: true, message: 'Connected to Mailchimp' };
+  async testConnection(credentials: IntegrationCredentials): Promise<IntegrationTestResult> {
+    try {
+      const apiKey = credentials.apiKey || '';
+      if (!apiKey) return { success: false, message: 'Mailchimp API key is required' };
+      const baseUrl = this.getBaseUrl(apiKey);
+      await this.makeRequest({ url: `${baseUrl}/ping`, method: 'GET', auth: { username: 'anystring', password: apiKey } }, credentials);
+      return { success: true, message: 'Connected to Mailchimp' };
+    } catch (error: any) {
+      return { success: false, message: error.message };
+    }
   }
   private getBaseUrl(apiKey: string): string {
     const datacenter = apiKey.split('-')[1] || 'us1';
@@ -1324,8 +1359,13 @@ export class FacebookAdsIntegration extends BaseIntegration {
     ];
   }
   getTriggers(): IntegrationTrigger[] { return []; }
-  async testConnection(_credentials: IntegrationCredentials): Promise<IntegrationTestResult> {
-    return { success: true, message: 'Connected to Facebook Ads' };
+  async testConnection(credentials: IntegrationCredentials): Promise<IntegrationTestResult> {
+    try {
+      await this.makeRequest({ url: 'https://graph.facebook.com/v20.0/me/adaccounts?limit=1', method: 'GET' }, credentials);
+      return { success: true, message: 'Connected to Facebook Ads' };
+    } catch (error: any) {
+      return { success: false, message: error.message };
+    }
   }
   async executeAction(actionId: string, parameters: Record<string, any>, credentials: IntegrationCredentials): Promise<IntegrationResult> {
     try {
@@ -1376,8 +1416,13 @@ export class TypeformIntegration extends BaseIntegration {
     ];
   }
   getTriggers(): IntegrationTrigger[] { return []; }
-  async testConnection(_credentials: IntegrationCredentials): Promise<IntegrationTestResult> {
-    return { success: true, message: 'Connected to Typeform' };
+  async testConnection(credentials: IntegrationCredentials): Promise<IntegrationTestResult> {
+    try {
+      await this.makeRequest({ url: 'https://api.typeform.com/me', method: 'GET' }, credentials);
+      return { success: true, message: 'Connected to Typeform' };
+    } catch (error: any) {
+      return { success: false, message: error.message };
+    }
   }
   async executeAction(actionId: string, parameters: Record<string, any>, credentials: IntegrationCredentials): Promise<IntegrationResult> {
     try {
