@@ -1,4 +1,4 @@
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, router } from 'expo-router';
 import * as WebBrowser from 'expo-web-browser';
 import * as Linking from 'expo-linking';
 import { useCallback, useEffect, useMemo, useState } from 'react';
@@ -8,11 +8,12 @@ import { AppButton, AppCard, AppInput } from '../../src/components/ui';
 import { useAuth } from '../../src/context/AuthContext';
 import { createMobileIntegrationApi } from '../../src/lib/integration';
 import { DEFAULT_API_BASE_URL } from '../../src/lib/auth';
+import { isAdmin } from '../../src/lib/role';
 import { useTheme } from '../../src/theme';
 
 export default function IntegrationDetailScreen() {
   const { provider } = useLocalSearchParams<{ provider: string }>();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const { colors } = useTheme();
   const api = useMemo(() => createMobileIntegrationApi(() => token), [token]);
   const [info, setInfo] = useState<any>(null);
@@ -21,6 +22,10 @@ export default function IntegrationDetailScreen() {
   const [working, setWorking] = useState(false);
   const [apiKey, setApiKey] = useState('');
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!isAdmin(user?.role)) router.replace('/(tabs)/field' as any);
+  }, [user?.role]);
 
   const load = useCallback(async () => {
     if (!provider) return;

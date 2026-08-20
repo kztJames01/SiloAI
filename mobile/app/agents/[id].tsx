@@ -5,11 +5,12 @@ import { Screen } from '../../src/components/Screen';
 import { AppButton, AppCard, AppInput, StatusPill } from '../../src/components/ui';
 import { useAuth } from '../../src/context/AuthContext';
 import { createMobileAgentApi } from '../../src/lib/agent';
+import { executionIdFromAgentRun, isAdmin } from '../../src/lib/role';
 import { useTheme } from '../../src/theme';
 
 export default function AgentDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const { colors } = useTheme();
   const api = useMemo(() => createMobileAgentApi(() => token), [token]);
   const [agent, setAgent] = useState<any>(null);
@@ -19,6 +20,10 @@ export default function AgentDetailScreen() {
   const [running, setRunning] = useState(false);
   const [error, setError] = useState('');
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (!isAdmin(user?.role)) router.replace('/(tabs)/field' as any);
+  }, [user?.role]);
 
   const load = useCallback(async () => {
     if (!id) return;
@@ -107,8 +112,19 @@ export default function AgentDetailScreen() {
       <AppCard style={styles.executions}>
         <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Recent runs</Text>
         {executions.length ? (
-          executions.map((exec) => (
-            <Pressable key={exec.id} onPress={() => router.push(`/execution/${exec.steps?.[0]?.workflowExecutionId || exec.id}` as any)}>
+          executions.map((exec) => {
+            const wfExecId = executionIdFromAgentRun(exec);
+            return (
+            <Pressable
+              key={exec.id}
+              onPress={() => {
+                if (!wfExecId) {
+                  Alert.alert('Run in progress', 'This agent run has not finished yet.');
+                  return;
+                }
+                router.push(`/execution/${wfExecId}` as any);
+              }}
+            >
               <View style={[styles.execRow, { borderBottomColor: colors.border }]}>
                 <View style={styles.execText}>
                   <Text style={[styles.execInput, { color: colors.textPrimary }]} numberOfLines={1}>{exec.input}</Text>
@@ -119,7 +135,8 @@ export default function AgentDetailScreen() {
                 <StatusPill status={exec.status} />
               </View>
             </Pressable>
-          ))
+            );
+          })
         ) : (
           <Text style={[styles.body, { color: colors.textSecondary }]}>No runs yet.</Text>
         )}

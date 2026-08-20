@@ -1,22 +1,27 @@
 import { WorkflowExecution } from '../../../shared/src/types';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
 import { Screen } from '../../src/components/Screen';
 import { AppCard, StatusPill } from '../../src/components/ui';
 import { useAuth } from '../../src/context/AuthContext';
 import { createMobileExecutionApi } from '../../src/lib/execution';
+import { isAdmin } from '../../src/lib/role';
 import { useTheme } from '../../src/theme';
 
 export default function ExecutionDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const { colors } = useTheme();
   const api = useMemo(() => createMobileExecutionApi(() => token), [token]);
   const [execution, setExecution] = useState<WorkflowExecution | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
+  useEffect(() => {
+    if (!isAdmin(user?.role)) router.replace('/(tabs)/field' as any);
+  }, [user?.role]);
 
   const load = useCallback(() => {
     if (!id) return;

@@ -4,6 +4,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { Screen } from '../../src/components/Screen';
 import { AppButton, AppCard, AppInput } from '../../src/components/ui';
 import { useAuth } from '../../src/context/AuthContext';
+import { homeTabPath } from '../../src/lib/role';
 import { useTheme } from '../../src/theme';
 
 export default function RegisterScreen() {
@@ -24,8 +25,8 @@ export default function RegisterScreen() {
     setSubmitting(true);
     setError('');
     try {
-      await register({ name: name.trim() || undefined, email: email.trim(), password });
-      router.replace('/(tabs)/field' as any);
+      const signedIn = await register({ name: name.trim() || undefined, email: email.trim(), password });
+      router.replace(homeTabPath(signedIn.role) as any);
     } catch (err: any) {
       setError(err?.data?.error || err?.message || 'Could not create account');
     } finally {
@@ -37,8 +38,8 @@ export default function RegisterScreen() {
     setOauthProvider(provider);
     setError('');
     try {
-      await loginWithOAuth(provider);
-      router.replace('/(tabs)/field' as any);
+      const signedIn = await loginWithOAuth(provider);
+      router.replace(homeTabPath(signedIn.role) as any);
     } catch (err: any) {
       setError(err?.message || `Could not sign up with ${provider}`);
     } finally {

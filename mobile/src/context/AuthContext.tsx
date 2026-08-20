@@ -13,11 +13,11 @@ type AuthContextValue = {
   token: string | null;
   user: AuthUser | null;
   loading: boolean;
-  login: (data: LoginPayload) => Promise<void>;
-  register: (data: RegisterPayload) => Promise<void>;
+  login: (data: LoginPayload) => Promise<AuthUser>;
+  register: (data: RegisterPayload) => Promise<AuthUser>;
   logout: () => Promise<void>;
   refreshUser: () => Promise<void>;
-  loginWithOAuth: (provider: 'google' | 'apple') => Promise<void>;
+  loginWithOAuth: (provider: 'google' | 'apple') => Promise<AuthUser>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -65,11 +65,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const login = async (data: LoginPayload) => {
     const response = await api.login(data);
     await saveSession(response.token, response.user);
+    return response.user;
   };
 
   const register = async (data: RegisterPayload) => {
     const response = await api.register(data);
     await saveSession(response.token, response.user);
+    return response.user;
   };
 
   const logout = async () => {
@@ -95,7 +97,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const result = await WebBrowser.openAuthSessionAsync(authUrl, redirectUrl);
     if (result.type !== 'success' || !result.url) {
-      if (result.type === 'dismiss' || result.type === 'cancel') return;
+      if (result.type === 'dismiss' || result.type === 'cancel') {
+        throw new Error('Sign in cancelled');
+      }
       throw new Error(`Could not sign in with ${provider}`);
     }
 
@@ -110,6 +114,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
     const response = await api.exchangeOAuthCode(oauthCode);
     await saveSession(response.token, response.user);
+    return response.user;
   };
 
   return (

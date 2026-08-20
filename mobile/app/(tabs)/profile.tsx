@@ -8,6 +8,7 @@ import { createMobileExecutionApi } from '../../src/lib/execution';
 import { createMobileIntegrationApi } from '../../src/lib/integration';
 import { createMobileWorkflowApi } from '../../src/lib/workflow';
 import { createMobileAuthApi } from '../../src/lib/auth';
+import { isAdmin } from '../../src/lib/role';
 import { useTheme } from '../../src/theme';
 
 function NavRow({ label, hint, onPress, color }: { label: string; hint: string; onPress: () => void; color: string }) {
@@ -55,6 +56,7 @@ export default function ProfileScreen() {
     : 'Silo member';
 
   const roleLabel = user?.role === 'FIELD' ? 'Field worker' : 'Admin';
+  const admin = isAdmin(user?.role);
 
   const changePassword = async () => {
     if (!token) return;
@@ -110,8 +112,12 @@ export default function ProfileScreen() {
 
       <AppCard style={styles.settings}>
         <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>More</Text>
-        <NavRow label="Apps & Integrations" hint="Browse, connect, and manage" color={colors.primary} onPress={() => router.push('/integrations' as any)} />
-        <NavRow label="AI Agents" hint="View and run your agents" color={colors.primary} onPress={() => router.push('/agents' as any)} />
+        {admin ? (
+          <>
+            <NavRow label="Apps & Integrations" hint="Browse, connect, and manage" color={colors.primary} onPress={() => router.push('/integrations' as any)} />
+            <NavRow label="AI Agents" hint="View and run your agents" color={colors.primary} onPress={() => router.push('/agents' as any)} />
+          </>
+        ) : null}
         <NavRow label="Help Center" hint="Tutorials and FAQs" color={colors.textTertiary} onPress={() => router.push('/(marketing)/help' as any)} />
         <NavRow label="Contact Us" hint="Reach the Silo team" color={colors.textTertiary} onPress={() => router.push('/(marketing)/contact' as any)} />
         <NavRow label="Privacy Policy" hint="How we handle your data" color={colors.textTertiary} onPress={() => router.push('/(marketing)/privacy' as any)} />

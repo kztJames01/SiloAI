@@ -1,14 +1,15 @@
 import { router } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Pressable, RefreshControl, StyleSheet, Text, TextInput, View } from 'react-native';
 import { Screen } from '../../src/components/Screen';
 import { AppCard, EmptyState } from '../../src/components/ui';
 import { useAuth } from '../../src/context/AuthContext';
 import { createMobileIntegrationApi } from '../../src/lib/integration';
+import { isAdmin } from '../../src/lib/role';
 import { useTheme } from '../../src/theme';
 
 export default function IntegrationsScreen() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const { colors } = useTheme();
   const api = useMemo(() => createMobileIntegrationApi(() => token), [token]);
   const [integrations, setIntegrations] = useState<any[]>([]);
@@ -16,6 +17,12 @@ export default function IntegrationsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
+  const [query, setQuery] = useState('');
+  const [connectedOnly, setConnectedOnly] = useState(false);
+
+  useEffect(() => {
+    if (!isAdmin(user?.role)) router.replace('/(tabs)/field' as any);
+  }, [user?.role]);
 
   const load = useCallback(async () => {
     try {
@@ -37,6 +44,13 @@ export default function IntegrationsScreen() {
 
   const connectedProviders = new Set(connections.map((c) => c.provider || c.integration?.provider));
 
+  const filtered = integrations.filter((item) => {
+    if (connectedOnly && !connectedProviders.has(item.provider)) return false;
+    if (!query.trim()) return true;
+    const q = query.trim().toLowerCase();
+    return item.name?.toLowerCase().includes(q) || item.description?.toLowerCase().includes(q);
+  });
+
   return (
     <Screen
       title="Apps"
@@ -44,6 +58,28 @@ export default function IntegrationsScreen() {
       scroll={false}
       contentStyle={styles.content}
     >
+      <TextInput
+        value={query}
+        onChangeText={setQuery}
+        placeholder="Search apps..."
+        placeholderTextColor={colors.textTertiary}
+        style={[styles.search, { color: colors.textPrimary, borderColor: colors.border, backgroundColor: colors.surface }]}
+      />
+      <View style={styles.filters}>
+        <Pressable
+          onPress={() => setConnectedOnly(false)}
+          style={[styles.filterChip, { borderColor: !connectedOnly ? colors.primary : colors.border, backgroundColor: !connectedOnly ? `${colors.primary}15` : colors.background }]}
+        >
+          <Text style={{ color: !connectedOnly ? colors.primary : colors.textSecondary, fontWeight: '700', fontSize: 12 }}>All</Text>
+        </Pressable>
+        <Pressable
+          onPress={() => setConnectedOnly(true)}
+          style={[styles.filterChip, { borderColor: connectedOnly ? colors.primary : colors.border, backgroundColor: connectedOnly ? `${colors.primary}15` : colors.background }]}
+        >
+          <Text style={{ color: connectedOnly ? colors.primary : colors.textSecondary, fontWeight: '700', fontSize: 12 }}>Connected</Text>
+        </Pressable>
+      </View>
+
       {error ? <Text style={[styles.error, { color: colors.error }]}>{error}</Text> : null}
       {loading ? (
         <View style={styles.center}>
@@ -51,11 +87,11 @@ export default function IntegrationsScreen() {
         </View>
       ) : (
         <FlatList
-          data={integrations}
+          data={filtered}
           keyExtractor={(item) => item.provider}
-          contentContainerStyle={integrations.length ? styles.list : styles.emptyList}
+          contentContainerStyle={filtered.length ? styles.list : styles.emptyList}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} />}
-          ListEmptyComponent={<EmptyState title="No integrations available" message="Check back once your admin configures app integrations." />}
+          ListEmptyComponent={<EmptyState title="No apps found" message="Try a different search or connect an app from the list." />}
           renderItem={({ item }) => {
             const connected = connectedProviders.has(item.provider);
             return (
@@ -89,6 +125,9 @@ export default function IntegrationsScreen() {
 
 const styles = StyleSheet.create({
   content: { paddingBottom: 0 },
+  search: { borderWidth: 1, borderRadius: 12, paddingHorizontal: 14, paddingVertical: 10, fontSize: 14, marginBottom: 10 },
+  filters: { flexDirection: 'row', gap: 8, marginBottom: 12 },
+  filterChip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
   list: { gap: 12, paddingBottom: 28 },
   emptyList: { flexGrow: 1, justifyContent: 'center' },

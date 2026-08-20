@@ -5,16 +5,21 @@ import { Screen } from '../../src/components/Screen';
 import { AppCard, EmptyState, StatusPill } from '../../src/components/ui';
 import { useAuth } from '../../src/context/AuthContext';
 import { createMobileAgentApi } from '../../src/lib/agent';
+import { isAdmin } from '../../src/lib/role';
 import { useTheme } from '../../src/theme';
 
 export default function AgentsScreen() {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const { colors } = useTheme();
   const api = useMemo(() => createMobileAgentApi(() => token), [token]);
   const [agents, setAgents] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (!isAdmin(user?.role)) router.replace('/(tabs)/field' as any);
+  }, [user?.role]);
 
   const load = useCallback(async () => {
     try {

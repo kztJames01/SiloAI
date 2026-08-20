@@ -1,10 +1,11 @@
 import { Redirect } from 'expo-router';
 import { ActivityIndicator, StyleSheet, View } from 'react-native';
 import { useAuth } from '../src/context/AuthContext';
+import { homeTabPath } from '../src/lib/role';
 import { useTheme } from '../src/theme';
 
 export default function Index() {
-  const { token, loading } = useAuth();
+  const { token, user, loading } = useAuth();
   const { colors } = useTheme();
 
   if (loading) {
@@ -15,7 +16,8 @@ export default function Index() {
     );
   }
 
-  return <Redirect href={(token ? '/(tabs)/field' : '/(auth)/login') as any} />;
+  if (!token) return <Redirect href={'/(auth)/login' as any} />;
+  return <Redirect href={homeTabPath(user?.role) as any} />;
 }
 
 const styles = StyleSheet.create({

@@ -1,13 +1,15 @@
 import { Redirect, Tabs } from 'expo-router';
 import { Text } from 'react-native';
 import { useAuth } from '../../src/context/AuthContext';
+import { isAdmin } from '../../src/lib/role';
 import { useTheme } from '../../src/theme';
 
 const icon = (symbol: string, color: string) => <Text style={{ color, fontSize: 19 }}>{symbol}</Text>;
 
 export default function TabsLayout() {
-  const { token, loading } = useAuth();
+  const { token, user, loading } = useAuth();
   const { colors } = useTheme();
+  const admin = isAdmin(user?.role);
 
   if (!loading && !token) return <Redirect href={'/(auth)/login' as any} />;
 
@@ -22,8 +24,22 @@ export default function TabsLayout() {
       }}
     >
       <Tabs.Screen name="field" options={{ title: 'Field', tabBarIcon: ({ color }) => icon('⚡', color) }} />
-      <Tabs.Screen name="workflows" options={{ title: 'Workflows', tabBarIcon: ({ color }) => icon('◇', color) }} />
-      <Tabs.Screen name="executions" options={{ title: 'Runs', tabBarIcon: ({ color }) => icon('◷', color) }} />
+      <Tabs.Screen
+        name="workflows"
+        options={{
+          title: 'Workflows',
+          href: admin ? undefined : null,
+          tabBarIcon: ({ color }) => icon('◇', color),
+        }}
+      />
+      <Tabs.Screen
+        name="executions"
+        options={{
+          title: 'Runs',
+          href: admin ? undefined : null,
+          tabBarIcon: ({ color }) => icon('◷', color),
+        }}
+      />
       <Tabs.Screen name="profile" options={{ title: 'Profile', tabBarIcon: ({ color }) => icon('●', color) }} />
     </Tabs>
   );

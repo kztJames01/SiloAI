@@ -5,6 +5,7 @@ import { Screen } from '../../src/components/Screen';
 import { AppButton, AppCard, AppInput } from '../../src/components/ui';
 import { useAuth } from '../../src/context/AuthContext';
 import { DEFAULT_API_BASE_URL } from '../../src/lib/auth';
+import { homeTabPath } from '../../src/lib/role';
 import { useTheme } from '../../src/theme';
 
 export default function LoginScreen() {
@@ -20,8 +21,8 @@ export default function LoginScreen() {
     setSubmitting(true);
     setError('');
     try {
-      await login({ email: email.trim(), password });
-      router.replace('/(tabs)/field' as any);
+      const signedIn = await login({ email: email.trim(), password });
+      router.replace(homeTabPath(signedIn.role) as any);
     } catch (err: any) {
       setError(err?.data?.error || err?.message || 'Could not sign in');
     } finally {
@@ -33,8 +34,8 @@ export default function LoginScreen() {
     setOauthProvider(provider);
     setError('');
     try {
-      await loginWithOAuth(provider);
-      router.replace('/(tabs)/field' as any);
+      const signedIn = await loginWithOAuth(provider);
+      router.replace(homeTabPath(signedIn.role) as any);
     } catch (err: any) {
       setError(err?.message || `Could not sign in with ${provider}`);
     } finally {
