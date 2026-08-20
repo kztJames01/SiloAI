@@ -1,5 +1,5 @@
-import { useEffect, useMemo, useState } from 'react';
-import { Alert, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Alert, AppState, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Screen } from '../../src/components/Screen';
 import { AppButton, AppCard, AppInput } from '../../src/components/ui';
 import { useAuth } from '../../src/context/AuthContext';
@@ -11,7 +11,7 @@ const actions = [
   { id: 'clock-in', title: 'Clock In', icon: '⏱', color: 'primary' },
   { id: 'log-hazard', title: 'Log Hazard', icon: '⚠', color: 'warning' },
   { id: 'supply-order', title: 'Supply Order', icon: '▣', color: 'secondary' },
-  { id: 'job-update', title: 'Job Update', icon: '✓', color: 'info' },
+  { id: 'patient-intake', title: 'Patient Intake', icon: '✚', color: 'info' },
 ] as const;
 
 export default function FieldScreen() {
@@ -24,13 +24,19 @@ export default function FieldScreen() {
   const [queued, setQueued] = useState(0);
   const [submitting, setSubmitting] = useState(false);
   const [syncing, setSyncing] = useState(false);
+  const [recentActions, setRecentActions] = useState<any[]>([]);
 
-  useEffect(() => {
-    loadFieldQueue().then((q) => setQueued(q.length));
-    flushQueue();
-  }, [token]);
+  const loadRecent = useCallback(async () => {
+    if (!token) return;
+    try {
+      const res = await fieldApi.list();
+      setRecentActions(res.actions || []);
+    } catch {
+      // ignore
+    }
+  }, [fieldApi, token]);
 
-  const flushQueue = async () => {
+  const flushQueue = useCallback(async () => {
     if (syncing || !token) return;
     const queue = await loadFieldQueue();
     if (!queue.length) return;
@@ -51,7 +57,24 @@ export default function FieldScreen() {
     }
     setQueued(remaining);
     setSyncing(false);
-  };
+    if (remaining < queue.length) await loadRecent();
+  }, [fieldApi, syncing, token, loadRecent]);
+
+  useEffect(() => {
+    loadFieldQueue().then((q) => setQueued(q.length));
+    flushQueue();
+    loadRecent();
+  }, [token]);
+
+  useEffect(() => {
+    const sub = AppState.addEventListener('change', (state) => {
+      if (state === 'active') {
+        flushQueue();
+        loadRecent();
+      }
+    });
+    return () => sub.remove();
+  }, [flushQueue, loadRecent]);
 
   const greeting = useMemo(() => {
     const hour = new Date().getHours();
@@ -71,6 +94,7 @@ export default function FieldScreen() {
       await fieldApi.submit(payload);
       setNotes('');
       setActiveAction(null);
+      await loadRecent();
     } catch {
       const count = await enqueueFieldAction(payload);
       setQueued(count);
@@ -83,14 +107,16 @@ export default function FieldScreen() {
   };
 
   return (
-    <Screen title={greeting} subtitle="What do you need to get done in the field?">
+    <Screen title={greeting} subtitle="Tap a button to log field work">
       <View style={styles.statusRow}>
         <View style={[styles.online, { backgroundColor: `${colors.success}18` }]}>
           <View style={[styles.dot, { backgroundColor: colors.success }]} />
-          <Text style={[styles.onlineText, { color: colors.success }]}>Field sync</Text>
+          <Text style={[styles.onlineText, { color: colors.success }]}>
+            {syncing ? 'Syncing' : 'Ready'}
+          </Text>
         </View>
         <Text style={[styles.queueText, { color: colors.textSecondary }]}>
-          {syncing ? 'Syncing...' : `${queued} queued`}
+          {queued > 0 ? `${queued} queued` : 'All synced'}
         </Text>
       </View>
 
@@ -117,13 +143,25 @@ export default function FieldScreen() {
         })}
       </View>
 
+      {recentActions.length > 0 ? (
+        <AppCard style={styles.recent}>
+          <Text style={[styles.recentTitle, { color: colors.textPrimary }]}>Recent actions</Text>
+          {recentActions.slice(0, 5).map((item) => (
+            <View key={item.id} style={[styles.recentRow, { borderBottomColor: colors.border }]}>
+              <Text style={[styles.recentAction, { color: colors.textPrimary }]}>{item.actionType}</Text>
+              <Text style={[styles.recentStatus, { color: colors.textSecondary }]}>{item.status}</Text>
+            </View>
+          ))}
+        </AppCard>
+      ) : null}
+
       <Modal visible={!!activeAction} transparent animationType="slide" onRequestClose={() => setActiveAction(null)}>
         <Pressable style={styles.overlay} onPress={() => setActiveAction(null)}>
           <Pressable style={[styles.sheet, { backgroundColor: colors.surface }]} onPress={() => {}}>
             <View style={[styles.handle, { backgroundColor: colors.border }]} />
             <Text style={[styles.sheetTitle, { color: colors.textPrimary }]}>{activeAction?.title}</Text>
             <Text style={[styles.sheetSubtitle, { color: colors.textSecondary }]}>
-              Add the important details before saving.
+              Add notes, then save. Works offline if needed.
             </Text>
             <AppInput
               label="Notes"
@@ -156,7 +194,7 @@ export default function FieldScreen() {
             </View>
             <View style={styles.sheetActions}>
               <AppButton title="Cancel" variant="outline" onPress={() => setActiveAction(null)} style={styles.flex} />
-              <AppButton title={submitting ? 'Saving...' : 'Save task'} onPress={submit} disabled={submitting} style={styles.flex} />
+              <AppButton title={submitting ? 'Saving...' : 'Save'} onPress={submit} disabled={submitting} style={styles.flex} />
             </View>
           </Pressable>
         </Pressable>
@@ -177,6 +215,11 @@ const styles = StyleSheet.create({
   actionIconText: { fontSize: 20, fontWeight: '800' },
   actionTitle: { fontSize: 16, fontWeight: '800' },
   actionHint: { fontSize: 12, marginTop: 5 },
+  recent: { marginTop: 18 },
+  recentTitle: { fontSize: 15, fontWeight: '800', marginBottom: 8 },
+  recentRow: { paddingVertical: 10, borderBottomWidth: StyleSheet.hairlineWidth },
+  recentAction: { fontSize: 14, fontWeight: '700' },
+  recentStatus: { fontSize: 11, marginTop: 2 },
   overlay: { flex: 1, backgroundColor: '#00000070', justifyContent: 'flex-end' },
   sheet: { borderTopLeftRadius: 26, borderTopRightRadius: 26, padding: 20, paddingBottom: 35 },
   handle: { width: 42, height: 5, borderRadius: 5, alignSelf: 'center', marginBottom: 18 },
