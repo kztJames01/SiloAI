@@ -25,14 +25,17 @@ export default function FieldScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [syncing, setSyncing] = useState(false);
   const [recentActions, setRecentActions] = useState<any[]>([]);
+  const [recentError, setRecentError] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
 
   const loadRecent = useCallback(async () => {
     if (!token) return;
     try {
+      setRecentError('');
       const res = await fieldApi.list();
       setRecentActions(res.actions || []);
     } catch {
-      // ignore
+      setRecentError('Could not load recent actions');
     }
   }, [fieldApi, token]);
 
@@ -59,6 +62,14 @@ export default function FieldScreen() {
     setSyncing(false);
     if (remaining < queue.length) await loadRecent();
   }, [fieldApi, syncing, token, loadRecent]);
+
+  const refreshAll = useCallback(async () => {
+    setRefreshing(true);
+    await loadFieldQueue().then((q) => setQueued(q.length));
+    await flushQueue();
+    await loadRecent();
+    setRefreshing(false);
+  }, [flushQueue, loadRecent]);
 
   useEffect(() => {
     loadFieldQueue().then((q) => setQueued(q.length));
@@ -91,10 +102,14 @@ export default function FieldScreen() {
 
     setSubmitting(true);
     try {
-      await fieldApi.submit(payload);
+      const res = await fieldApi.submit(payload);
       setNotes('');
       setActiveAction(null);
       await loadRecent();
+      const msg = res.status === 'workflow_started'
+        ? 'Saved and workflow started.'
+        : 'Field action saved.';
+      Alert.alert('Done', msg);
     } catch {
       const count = await enqueueFieldAction(payload);
       setQueued(count);
@@ -107,7 +122,12 @@ export default function FieldScreen() {
   };
 
   return (
-    <Screen title={greeting} subtitle="Tap a button to log field work">
+    <Screen
+      title={greeting}
+      subtitle="Tap a button to log field work"
+      refreshing={refreshing}
+      onRefresh={refreshAll}
+    >
       <View style={styles.statusRow}>
         <View style={[styles.online, { backgroundColor: `${colors.success}18` }]}>
           <View style={[styles.dot, { backgroundColor: colors.success }]} />
@@ -115,9 +135,14 @@ export default function FieldScreen() {
             {syncing ? 'Syncing' : 'Ready'}
           </Text>
         </View>
-        <Text style={[styles.queueText, { color: colors.textSecondary }]}>
-          {queued > 0 ? `${queued} queued` : 'All synced'}
-        </Text>
+        <View style={styles.queueSide}>
+          <Text style={[styles.queueText, { color: colors.textSecondary }]}>
+            {queued > 0 ? `${queued} queued` : 'All synced'}
+          </Text>
+          {queued > 0 ? (
+            <AppButton title="Sync now" variant="outline" onPress={flushQueue} disabled={syncing} style={styles.syncBtn} />
+          ) : null}
+        </View>
       </View>
 
       <View style={styles.grid}>
@@ -143,6 +168,7 @@ export default function FieldScreen() {
         })}
       </View>
 
+      {recentError ? <Text style={[styles.recentError, { color: colors.error }]}>{recentError}</Text> : null}
       {recentActions.length > 0 ? (
         <AppCard style={styles.recent}>
           <Text style={[styles.recentTitle, { color: colors.textPrimary }]}>Recent actions</Text>
@@ -209,6 +235,9 @@ const styles = StyleSheet.create({
   dot: { width: 7, height: 7, borderRadius: 10 },
   onlineText: { fontSize: 12, fontWeight: '800' },
   queueText: { fontSize: 12 },
+  queueSide: { alignItems: 'flex-end', gap: 6 },
+  syncBtn: { paddingVertical: 6, paddingHorizontal: 10, minHeight: 32 },
+  recentError: { fontSize: 12, marginTop: 14 },
   grid: { flexDirection: 'row', flexWrap: 'wrap', gap: 12 },
   action: { width: '48%', minHeight: 145, borderWidth: 1, borderRadius: 20, padding: 16 },
   actionIcon: { width: 42, height: 42, borderRadius: 13, alignItems: 'center', justifyContent: 'center', marginBottom: 18 },
