@@ -116,6 +116,10 @@ export default function LoginScreen() {
         </Link>
       </Text>
       <Text style={[styles.switchText, { color: colors.textSecondary, marginTop: 6 }]}>
+        <Link href={'/(marketing)/welcome' as any} style={{ color: colors.textTertiary }}>
+          Welcome
+        </Link>
+        {'  ·  '}
         <Link href={'/(marketing)/help' as any} style={{ color: colors.textTertiary }}>
           Help
         </Link>

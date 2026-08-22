@@ -16,7 +16,7 @@ export default function Index() {
     );
   }
 
-  if (!token) return <Redirect href={'/(auth)/login' as any} />;
+  if (!token) return <Redirect href={'/(marketing)/welcome' as any} />;
   return <Redirect href={homeTabPath(user?.role) as any} />;
 }
 

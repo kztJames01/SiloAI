@@ -14,6 +14,7 @@ export default function RootLayout() {
             <Stack.Screen name="index" />
             <Stack.Screen name="(auth)" />
             <Stack.Screen name="(tabs)" />
+            <Stack.Screen name="(marketing)/welcome" options={{ headerShown: true, title: 'Welcome' }} />
             <Stack.Screen name="(marketing)/help" options={{ headerShown: true, title: 'Help Center' }} />
             <Stack.Screen name="(marketing)/contact" options={{ headerShown: true, title: 'Contact Us' }} />
             <Stack.Screen name="(marketing)/privacy" options={{ headerShown: true, title: 'Privacy Policy' }} />
