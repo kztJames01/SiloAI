@@ -118,6 +118,7 @@ export default function ProfileScreen() {
             <NavRow label="AI Agents" hint="View and run your agents" color={colors.primary} onPress={() => router.push('/agents' as any)} />
           </>
         ) : null}
+        <NavRow label="Welcome" hint="About Silo" color={colors.textTertiary} onPress={() => router.push('/(marketing)/welcome' as any)} />
         <NavRow label="Help Center" hint="Tutorials and FAQs" color={colors.textTertiary} onPress={() => router.push('/(marketing)/help' as any)} />
         <NavRow label="Contact Us" hint="Reach the Silo team" color={colors.textTertiary} onPress={() => router.push('/(marketing)/contact' as any)} />
         <NavRow label="Privacy Policy" hint="How we handle your data" color={colors.textTertiary} onPress={() => router.push('/(marketing)/privacy' as any)} />

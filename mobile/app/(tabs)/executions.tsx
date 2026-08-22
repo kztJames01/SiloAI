@@ -11,6 +11,8 @@ import { useTheme } from '../../src/theme';
 const formatDate = (date: string) =>
   new Date(date).toLocaleString(undefined, { month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit' });
 
+type StatusFilter = 'all' | 'RUNNING' | 'SUCCESS' | 'FAILED';
+
 export default function ExecutionsScreen() {
   const { token } = useAuth();
   const { colors } = useTheme();
@@ -19,6 +21,7 @@ export default function ExecutionsScreen() {
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState('');
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const load = useCallback(async () => {
@@ -38,8 +41,6 @@ export default function ExecutionsScreen() {
     load();
   }, [load]);
 
-  // Keep polling while at least one run is still in flight, so status
-  // updates without the user having to pull-to-refresh.
   useEffect(() => {
     const hasRunning = items.some((item) => item.status === 'RUNNING' || item.status === 'PENDING');
     if (hasRunning && !pollRef.current) {
@@ -56,18 +57,58 @@ export default function ExecutionsScreen() {
     };
   }, [items, load]);
 
+  const shown = useMemo(() => {
+    if (statusFilter === 'all') return items;
+    if (statusFilter === 'RUNNING') {
+      return items.filter((item) => item.status === 'RUNNING' || item.status === 'PENDING');
+    }
+    return items.filter((item) => item.status === statusFilter);
+  }, [items, statusFilter]);
+
+  const filters: { id: StatusFilter; label: string }[] = [
+    { id: 'all', label: 'All' },
+    { id: 'RUNNING', label: 'Running' },
+    { id: 'SUCCESS', label: 'Success' },
+    { id: 'FAILED', label: 'Failed' },
+  ];
+
   return (
     <Screen title="Runs" subtitle="Workflow execution history" scroll={false} contentStyle={styles.content}>
+      <View style={styles.filters}>
+        {filters.map((f) => (
+          <Pressable
+            key={f.id}
+            onPress={() => setStatusFilter(f.id)}
+            style={[
+              styles.chip,
+              {
+                borderColor: statusFilter === f.id ? colors.primary : colors.border,
+                backgroundColor: statusFilter === f.id ? `${colors.primary}15` : colors.surface,
+              },
+            ]}
+          >
+            <Text style={{ color: statusFilter === f.id ? colors.primary : colors.textSecondary, fontWeight: '700', fontSize: 12 }}>
+              {f.label}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+
       {error ? <Text style={[styles.error, { color: colors.error }]}>{error}</Text> : null}
       {loading ? (
         <View style={styles.center}><ActivityIndicator size="large" color={colors.primary} /></View>
       ) : (
         <FlatList
-          data={items}
+          data={shown}
           keyExtractor={(item) => item.id}
-          contentContainerStyle={items.length ? styles.list : styles.emptyList}
+          contentContainerStyle={shown.length ? styles.list : styles.emptyList}
           refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => { setRefreshing(true); load(); }} />}
-          ListEmptyComponent={<EmptyState title="No runs yet" message="Executed workflows will appear here with logs and results." />}
+          ListEmptyComponent={
+            <EmptyState
+              title={statusFilter === 'all' ? 'No runs yet' : 'No matching runs'}
+              message="Executed workflows will appear here with logs and results."
+            />
+          }
           renderItem={({ item }) => (
             <Pressable onPress={() => router.push(`/execution/${item.id}` as any)}>
               <AppCard style={styles.card}>
@@ -80,6 +121,9 @@ export default function ExecutionsScreen() {
                   </View>
                   <StatusPill status={item.status} />
                 </View>
+                {item.error ? (
+                  <Text style={[styles.errPreview, { color: colors.error }]} numberOfLines={1}>{item.error}</Text>
+                ) : null}
                 <Text style={[styles.id, { color: colors.textTertiary }]}>ID {item.id.slice(0, 8)}</Text>
               </AppCard>
             </Pressable>
@@ -93,13 +137,16 @@ export default function ExecutionsScreen() {
 const styles = StyleSheet.create({
   content: { paddingBottom: 0 },
   center: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  list: { gap: 12, paddingBottom: 28 },
+  list: { gap: 12, paddingBottom: 28, paddingTop: 10 },
   emptyList: { flexGrow: 1, justifyContent: 'center' },
   error: { fontSize: 13, marginBottom: 12 },
+  filters: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 4 },
+  chip: { borderWidth: 1, borderRadius: 999, paddingHorizontal: 12, paddingVertical: 7 },
   card: { gap: 12 },
   row: { flexDirection: 'row', alignItems: 'center', gap: 10 },
   titleWrap: { flex: 1 },
   title: { fontSize: 16, fontWeight: '800' },
   date: { fontSize: 12, marginTop: 4 },
+  errPreview: { fontSize: 12 },
   id: { fontSize: 11, fontFamily: 'monospace' },
 });

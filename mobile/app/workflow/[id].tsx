@@ -1,10 +1,11 @@
-import { Workflow } from '../../../shared/src/types';
+import { Workflow, WorkflowExecution } from '../../../shared/src/types';
 import { useLocalSearchParams, router } from 'expo-router';
 import { useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Screen } from '../../src/components/Screen';
 import { AppButton, AppCard, StatusPill } from '../../src/components/ui';
 import { useAuth } from '../../src/context/AuthContext';
+import { createMobileExecutionApi } from '../../src/lib/execution';
 import { createMobileWorkflowApi } from '../../src/lib/workflow';
 import { useTheme } from '../../src/theme';
 
@@ -14,7 +15,9 @@ export default function WorkflowDetailScreen() {
   const canManage = user?.role !== 'FIELD';
   const { colors } = useTheme();
   const api = useMemo(() => createMobileWorkflowApi(() => token), [token]);
+  const execApi = useMemo(() => createMobileExecutionApi(() => token), [token]);
   const [workflow, setWorkflow] = useState<Workflow | null>(null);
+  const [recentRuns, setRecentRuns] = useState<WorkflowExecution[]>([]);
   const [loading, setLoading] = useState(true);
   const [working, setWorking] = useState(false);
   const [error, setError] = useState('');
@@ -24,6 +27,10 @@ export default function WorkflowDetailScreen() {
     try {
       const data = await api.get(id);
       setWorkflow(data.workflow);
+      const runs = await execApi.list();
+      setRecentRuns(
+        runs.executions.filter((e) => e.workflowId === id || e.workflow?.id === id).slice(0, 5)
+      );
     } catch (err: any) {
       setError(err?.message || 'Could not load workflow');
     } finally {
@@ -124,6 +131,27 @@ export default function WorkflowDetailScreen() {
         )}
       </AppCard>
 
+      {recentRuns.length > 0 ? (
+        <AppCard style={styles.steps}>
+          <Text style={[styles.sectionTitle, { color: colors.textPrimary }]}>Recent runs</Text>
+          {recentRuns.map((run) => (
+            <Pressable
+              key={run.id}
+              onPress={() => router.push(`/execution/${run.id}` as any)}
+              style={[styles.runRow, { borderBottomColor: colors.border }]}
+            >
+              <View style={{ flex: 1 }}>
+                <Text style={[styles.stepTitle, { color: colors.textPrimary }]}>
+                  {new Date(run.startedAt).toLocaleString()}
+                </Text>
+                <Text style={[styles.stepType, { color: colors.textSecondary }]}>ID {run.id.slice(0, 8)}</Text>
+              </View>
+              <StatusPill status={run.status} />
+            </Pressable>
+          ))}
+        </AppCard>
+      ) : null}
+
       {canManage ? (
         <View style={styles.actions}>
           <AppButton title="Run now" onPress={run} loading={working} style={styles.flex} />
@@ -160,6 +188,7 @@ const styles = StyleSheet.create({
   stepTitle: { fontSize: 14, fontWeight: '700' },
   stepType: { fontSize: 11, marginTop: 3, textTransform: 'capitalize' },
   noSteps: { fontSize: 13 },
+  runRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: StyleSheet.hairlineWidth, gap: 10 },
   actions: { flexDirection: 'row', gap: 10, marginTop: 18 },
   flex: { flex: 1 },
 });

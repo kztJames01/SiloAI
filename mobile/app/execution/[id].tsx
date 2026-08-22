@@ -6,6 +6,7 @@ import { Screen } from '../../src/components/Screen';
 import { AppCard, StatusPill } from '../../src/components/ui';
 import { useAuth } from '../../src/context/AuthContext';
 import { createMobileExecutionApi } from '../../src/lib/execution';
+import { formatDurationMs } from '../../src/lib/format';
 import { isAdmin } from '../../src/lib/role';
 import { useTheme } from '../../src/theme';
 
@@ -64,7 +65,7 @@ export default function ExecutionDetailScreen() {
   }
 
   const duration = execution.finishedAt
-    ? `${Math.max(0, new Date(execution.finishedAt).getTime() - new Date(execution.startedAt).getTime())} ms`
+    ? formatDurationMs(Math.max(0, new Date(execution.finishedAt).getTime() - new Date(execution.startedAt).getTime()))
     : 'In progress';
 
   return (

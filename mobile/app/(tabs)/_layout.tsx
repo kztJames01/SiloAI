@@ -40,6 +40,14 @@ export default function TabsLayout() {
           tabBarIcon: ({ color }) => icon('◷', color),
         }}
       />
+      <Tabs.Screen
+        name="agents"
+        options={{
+          title: 'Agents',
+          href: admin ? undefined : null,
+          tabBarIcon: ({ color }) => icon('◈', color),
+        }}
+      />
       <Tabs.Screen name="profile" options={{ title: 'Profile', tabBarIcon: ({ color }) => icon('●', color) }} />
     </Tabs>
   );
