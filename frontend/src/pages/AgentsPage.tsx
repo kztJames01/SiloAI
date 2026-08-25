@@ -54,7 +54,7 @@ interface Agent {
   executions?: { status: string; startedAt: string }[];
 }
 
-// ─── New Agent Modal ──────────────────────────────────────────────────────────
+
 function NewAgentModal({
   presets,
   onClose,
@@ -161,7 +161,6 @@ function NewAgentModal({
           </div>
         </div>
 
-        {/* ── Panel 3: Preview (shows on hover) ── */}
         <div className="w-72 flex-shrink-0 flex flex-col bg-card overflow-y-auto">
           {hoveredPreset ? (
             <div className="p-5 flex flex-col h-full">
@@ -223,7 +222,7 @@ function NewAgentModal({
   );
 }
 
-// ─── Quick Run Modal ──────────────────────────────────────────────────────────
+
 function RunModal({
   agent,
   onClose,
@@ -278,7 +277,7 @@ function RunModal({
   );
 }
 
-// ─── Agent Card ───────────────────────────────────────────────────────────────
+
 function AgentCard({
   agent,
   onRun,
@@ -466,7 +465,6 @@ export default function AgentsPage() {
   const [showNewModal, setShowNewModal] = useState(false);
   const [runTarget, setRunTarget] = useState<Agent | null>(null);
 
-  // ── AI Settings state ──
   const [templates, setTemplates] = useState<any[]>([]);
   const [editingTemplate, setEditingTemplate] = useState<any | null>(null);
 
@@ -860,7 +858,6 @@ export default function AgentsPage() {
         </div>
       )}
 
-      {/* ── New Agent Modal ── */}
       {showNewModal && (
         <NewAgentModal
           presets={presets}
@@ -869,7 +866,6 @@ export default function AgentsPage() {
         />
       )}
 
-      {/* ── Run Modal ── */}
       {runTarget && (
         <RunModal
           agent={runTarget}

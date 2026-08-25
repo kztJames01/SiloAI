@@ -22,7 +22,6 @@ export interface AppIntegration {
 
 // All App Integrations
 export const APP_INTEGRATIONS: AppIntegration[] = [
-  // ── Google Suite ──
   {
     provider: 'gmail',
     name: 'Gmail',
@@ -148,7 +147,6 @@ export const APP_INTEGRATIONS: AppIntegration[] = [
     tags: ['Video', 'Google', 'Social'],
   },
 
-  // ── Microsoft Suite ──
   {
     provider: 'microsoft_outlook',
     name: 'Microsoft Outlook',
@@ -246,7 +244,6 @@ export const APP_INTEGRATIONS: AppIntegration[] = [
     tags: ['Tasks', 'Microsoft'],
   },
 
-  // ── Field Service / Blue Collar Trades ──
   {
     provider: 'service_titan',
     name: 'ServiceTitan',
@@ -327,7 +324,6 @@ export const APP_INTEGRATIONS: AppIntegration[] = [
     tags: ['Jobs', 'Quotes', 'Trades'],
   },
 
-  // ── Communication ──
   {
     provider: 'slack',
     name: 'Slack',
@@ -386,7 +382,6 @@ export const APP_INTEGRATIONS: AppIntegration[] = [
     tags: ['Email', 'Marketing'],
   },
 
-  // ── Productivity & Project Management ──
   {
     provider: 'notion',
     name: 'Notion',
@@ -435,7 +430,6 @@ export const APP_INTEGRATIONS: AppIntegration[] = [
     tags: ['Database', 'Spreadsheet'],
   },
 
-  // ── Marketing ──
   {
     provider: 'mailchimp',
     name: 'Mailchimp',
@@ -486,7 +480,6 @@ export const APP_INTEGRATIONS: AppIntegration[] = [
     tags: ['Forms', 'Surveys'],
   },
 
-  // ── Payments ──
   {
     provider: 'stripe',
     name: 'Stripe',
@@ -500,7 +493,6 @@ export const APP_INTEGRATIONS: AppIntegration[] = [
     tags: ['Payments', 'Billing'],
   },
 
-  // ── AI ──
   {
     provider: 'openai',
     name: 'OpenAI',
@@ -525,7 +517,6 @@ export const APP_INTEGRATIONS: AppIntegration[] = [
     tags: ['AI', 'Chat', 'Assistant'],
   },
 
-  // ── Development ──
   {
     provider: 'github',
     name: 'GitHub',
@@ -539,7 +530,6 @@ export const APP_INTEGRATIONS: AppIntegration[] = [
     tags: ['Code', 'Git', 'Issues'],
   },
 
-  // ── Storage ──
   {
     provider: 'dropbox',
     name: 'Dropbox',
@@ -552,7 +542,6 @@ export const APP_INTEGRATIONS: AppIntegration[] = [
     tags: ['Storage', 'Files'],
   },
 
-  // ── Custom ──
   {
     provider: 'webhook',
     name: 'Webhook',
@@ -566,7 +555,6 @@ export const APP_INTEGRATIONS: AppIntegration[] = [
   },
 ];
 
-// ─── Helper lookups ──────────────────────────────────────────────────────────
 
 export const INTEGRATION_BY_PROVIDER = new Map(
   APP_INTEGRATIONS.map((app) => [app.provider, app])

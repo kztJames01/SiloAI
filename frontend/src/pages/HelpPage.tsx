@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
-import { ChevronLeft, ChevronRight, HelpCircle, Sparkles } from 'lucide-react';
+import { ChevronDown, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const tutorialSlides = [
   {
@@ -53,10 +53,6 @@ export default function HelpPage() {
       <div className="max-w-5xl mx-auto px-6 py-10 space-y-8">
         <div className="flex items-center justify-between gap-3">
           <div>
-            <div className="inline-flex items-center gap-2 text-xs font-semibold px-3 py-1 rounded-full bg-primary/10 text-primary mb-3">
-              <HelpCircle className="h-3.5 w-3.5" />
-              Tutorials and FAQs
-            </div>
             <h1 className="text-3xl md:text-4xl font-bold text-foreground">Help Center</h1>
             <p className="text-muted-foreground mt-2">Learn every flow of our tools with interactive slides.</p>
           </div>
@@ -96,7 +92,7 @@ export default function HelpPage() {
                   className="w-full text-left p-4 flex items-center justify-between text-sm font-medium text-foreground"
                 >
                   <span>{f.q}</span>
-                  <Sparkles className={`h-4 w-4 transition-transform ${openFaq === i ? 'rotate-45' : ''}`} />
+                  <ChevronDown className={`h-4 w-4 transition-transform ${openFaq === i ? 'rotate-180' : ''}`} />
                 </button>
                 {openFaq === i && <p className="px-4 pb-4 text-sm text-muted-foreground">{f.a}</p>}
               </div>

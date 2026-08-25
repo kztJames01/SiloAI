@@ -19,7 +19,6 @@ import { Button } from '../components/ui/Button';
 import { agentApi } from '../lib/api';
 import { APP_INTEGRATIONS } from '../lib/integrations';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 type TriggerType = 'manual' | 'schedule' | 'webhook';
 type LLMProvider = 'OPENAI' | 'ANTHROPIC' | 'GEMINI' | 'OLLAMA' | 'CUSTOM';
 
@@ -74,7 +73,6 @@ const INTEGRATION_TOOLS = APP_INTEGRATIONS
     provider: app.provider,
   }));
 
-// ─── Status badge ─────────────────────────────────────────────────────────────
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { cls: string; icon: React.ReactNode; label: string }> = {
     SUCCESS: {
@@ -311,7 +309,6 @@ export default function AgentDetailPage() {
 
       {/* Body: two columns */}
       <div className="flex max-w-7xl mx-auto gap-0 min-h-[calc(100vh-57px)]">
-        {/* ── LEFT: Activity (collapsed by default) ── */}
         {showActivity && (
           <div className="w-80 flex-shrink-0 border-r border-border bg-card flex flex-col">
             <div className="p-4 border-b border-border flex items-center justify-between">
@@ -394,7 +391,6 @@ export default function AgentDetailPage() {
           </div>
         )}
 
-        {/* ── RIGHT: Config Panel ── */}
         <div className="flex-1 p-6 overflow-y-auto">
           <div className="max-w-2xl mx-auto space-y-6">
 

@@ -77,7 +77,6 @@ export default function WorkflowDashboardPage() {
         })}
       </div>
 
-      {/* ── WORKFLOWS TAB ── */}
       {tab === 'workflows' && (
         <section className="space-y-4">
           {loadingWorkflows ? (
@@ -173,7 +172,6 @@ export default function WorkflowDashboardPage() {
         </section>
       )}
 
-      {/* ── EXECUTIONS TAB ── */}
       {tab === 'executions' && (
         <Card>
           <CardHeader>

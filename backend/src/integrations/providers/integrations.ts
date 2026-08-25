@@ -813,7 +813,6 @@ export class ZoomIntegration extends BaseIntegration {
   }
 }
 
-// ── Google Suite ──────────────────────────────────────────────────────────────
 
 export class GoogleDriveIntegration extends BaseIntegration {
   getMetadata(): IntegrationMetadata {
@@ -1031,7 +1030,6 @@ export class YouTubeIntegration extends BaseIntegration {
   }
 }
 
-// ── Microsoft Suite ───────────────────────────────────────────────────────────
 
 export class MicrosoftOutlookIntegration extends BaseIntegration {
   getMetadata(): IntegrationMetadata {
@@ -1217,7 +1215,6 @@ export class MicrosoftOneDriveIntegration extends BaseIntegration {
 
 
 
-// ── Productivity & Project Management ─────────────────────────────────────────
 
 export class ClickUpIntegration extends BaseIntegration {
   getMetadata(): IntegrationMetadata {
@@ -1273,7 +1270,6 @@ export class ClickUpIntegration extends BaseIntegration {
   }
 }
 
-// ── Marketing ─────────────────────────────────────────────────────────────────
 
 export class MailChimpIntegration extends BaseIntegration {
   getMetadata(): IntegrationMetadata {
@@ -1449,7 +1445,6 @@ export class TypeformIntegration extends BaseIntegration {
   }
 }
 
-// ── AI ────────────────────────────────────────────────────────────────────────
 
 export class ChatGPTIntegration extends BaseIntegration {
   getMetadata(): IntegrationMetadata {

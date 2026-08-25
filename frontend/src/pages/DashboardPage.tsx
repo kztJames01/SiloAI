@@ -9,8 +9,6 @@ import {
   CheckCircle2,
   Layers,
   ShieldCheck,
-  Sparkles,
-  Star,
   Workflow,
   Zap,
 } from 'lucide-react';
@@ -56,24 +54,6 @@ const serviceGroups = [
   },
 ];
 
-const reviews = [
-  {
-    name: 'Aung M.',
-    role: 'Ops Manager',
-    text: 'Silo helped us automate repetitive tasks quickly. The UI is clean and the team adopted it fast.',
-  },
-  {
-    name: 'Myo T.',
-    role: 'Product Lead',
-    text: 'We connected multiple tools in one day. Monitoring and troubleshooting are much easier now.',
-  },
-  {
-    name: 'Nora L.',
-    role: 'Automation Engineer',
-    text: 'The workflow + integrations combo is practical. It feels modern without being overwhelming.',
-  },
-];
-
 const glassCard =
   'rounded-2xl border border-white/25 dark:border-white/10 bg-white/45 dark:bg-slate-900/45 backdrop-blur-xl shadow-sm';
 
@@ -112,10 +92,6 @@ export default function DashboardPage() {
         <section className={`${glassCard} p-8 md:p-10 bg-gradient-to-br from-white/70 to-blue-100/30 dark:from-slate-900/60 dark:to-slate-800/40`}>
           <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-8">
             <div className="space-y-4 max-w-2xl">
-              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-primary/10 text-primary text-xs font-semibold">
-                <Sparkles className="h-3.5 w-3.5" />
-                Modern automation platform
-              </div>
               <h1 className="text-4xl md:text-5xl font-bold leading-tight text-foreground">
                 Automate your work with smart workflows and integrations
               </h1>
@@ -252,37 +228,6 @@ export default function DashboardPage() {
           </div>
         </section>
 
-        <section className="space-y-5">
-          <div>
-            <h2 className="text-2xl font-semibold text-foreground">What users say</h2>
-            <p className="text-sm text-muted-foreground">Real feedback from teams using Silo workflows.</p>
-          </div>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            {reviews.map((review) => (
-              <div key={review.name} className={`${glassCard} p-5`}>
-                <div className="flex items-center gap-1 mb-3">
-                  {Array.from({ length: 5 }).map((_, idx) => (
-                    <Star key={idx} className="h-4 w-4 fill-yellow-400 text-yellow-400" />
-                  ))}
-                </div>
-                <p className="text-sm text-muted-foreground mb-4 leading-6">"{review.text}"</p>
-                <div className="flex items-center gap-2">
-                  <div className="w-9 h-9 rounded-full bg-primary/15 text-primary flex items-center justify-center text-xs font-bold">
-                    {review.name
-                      .split(' ')
-                      .map((n) => n[0])
-                      .join('')
-                      .slice(0, 2)}
-                  </div>
-                  <div>
-                    <p className="text-sm font-semibold text-foreground">{review.name}</p>
-                    <p className="text-xs text-muted-foreground">{review.role}</p>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
 
         <section className={`${glassCard} p-6 md:p-8 flex flex-col md:flex-row md:items-center md:justify-between gap-4 bg-gradient-to-r from-primary/10 to-cyan-400/10 dark:from-primary/20 dark:to-sky-500/10`}>
           <div>
