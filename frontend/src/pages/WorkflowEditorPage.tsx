@@ -8,7 +8,7 @@ import {
   Play, X, MoreVertical, Clock3,
   Zap, MessageSquare, FileText, Database, Code, Undo2, Redo2, Settings, ChevronLeft, ChevronRight,
   Wrench, Bot, Boxes, History, Link2, StickyNote, Search, AppWindow,
-  Sparkles, LayoutGrid, Save, CheckCheck, Cloud, CloudOff, Timer
+  LayoutGrid, Save, CheckCheck, Cloud, CloudOff, Timer
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import type { NodeDefinition } from '@silo/shared';
@@ -44,7 +44,40 @@ interface TriggerConfig {
     timezone?: string;
     method?: string;
     validateHeaders?: boolean;
+    secret?: string;
   };
+}
+
+function nodeProblems(step: WorkflowStep) {
+  const out: string[] = [];
+  if (step.type === 'httpRequest') {
+    const url = step.config?.url || '';
+    if (!String(url).trim()) out.push('HTTP request needs a URL');
+  }
+  if (step.type === 'if') {
+    if (!String(step.config?.condition || '').trim()) out.push('If node needs a condition');
+  }
+  if (step.type === 'llmCompletion' || step.type === 'promptTemplate' || step.type === 'code') {
+    if (!String(step.prompt || '').trim() && !String(step.config?.code || '').trim()) {
+      out.push(`${step.type} needs instructions`);
+    }
+  }
+  return out;
+}
+
+function workflowProblems(steps: WorkflowStep[], trigger: TriggerConfig) {
+  const out: string[] = [];
+  if (trigger.type === 'webhook' && !String(trigger.config?.secret || '').trim()) {
+    out.push('Webhook trigger needs a secret');
+  }
+  if (trigger.type === 'schedule' && !String(trigger.config?.cronExpression || '').trim()) {
+    out.push('Schedule trigger needs a cron expression');
+  }
+  if (!steps.length) out.push('Add at least one step');
+  steps.forEach((s, i) => {
+    nodeProblems(s).forEach((p) => out.push(`Step ${i + 1}: ${p}`));
+  });
+  return out;
 }
 
 type TemplateStep = { type: string; label: string; prompt: string; config: Record<string, any> };
@@ -503,6 +536,11 @@ export default function WorkflowEditorPage() {
 
   /** Commits current state as a named version and persists to backend */
   const saveVersion = (label?: string) => {
+    const problems = workflowProblems(steps, triggerConfig);
+    if (problems.length) {
+      toast.error(problems[0]);
+      return;
+    }
     const versionLabel = label || `Version ${savedVersions.length + 1}`;
     const snap: WorkflowSnapshot = {
       timestamp: Date.now(),
@@ -1056,7 +1094,6 @@ export default function WorkflowEditorPage() {
               {isPaletteOpen && (
                 <div className="flex-1  rounded-r-xl shadow-xl border border-l-0 border-border flex flex-col overflow-hidden">
 
-                  {/* ── NODES TAB ── */}
                   {activeTab === 'nodes' && (
                     <div className="flex flex-col h-full">
                       {/* Search */}
@@ -1147,7 +1184,6 @@ export default function WorkflowEditorPage() {
                     </div>
                   )}
 
-                  {/* ── VERSIONS TAB ── */}
                   {activeTab === 'versions' && (
                     <div className="flex flex-col h-full">
                       <div className="px-4 py-3 border-b border-border flex items-center justify-between">
@@ -1236,7 +1272,6 @@ export default function WorkflowEditorPage() {
                     </div>
                   )}
 
-                  {/* ── LINKED ASSETS TAB ── */}
                   {activeTab === 'assets' && (
                     <div className="flex flex-col h-full">
                       <div className="px-4 py-3 border-b border-border">
@@ -1348,7 +1383,7 @@ export default function WorkflowEditorPage() {
                               className="w-full flex items-center gap-2 px-3 py-2.5 bg-gradient-to-r from-primary/5 to-secondary/5 hover:from-primary/10 hover:to-secondary/10 transition-colors text-left"
                             >
                               <div className="w-7 h-7 rounded-lg bg-primary flex items-center justify-center flex-shrink-0">
-                                <Sparkles className="h-3.5 w-3.5 text-primary-foreground" />
+                                <FileText className="h-3.5 w-3.5 text-primary-foreground" />
                               </div>
                               <div className="flex-1 min-w-0">
                                 <p className="text-xs font-semibold text-foreground">Summarise with AI</p>
@@ -1505,10 +1540,13 @@ export default function WorkflowEditorPage() {
               const isSelected = selectedStepId === step.id;
               const nodeDef = getNodeDef(step.type);
 
+              const problems = nodeProblems(step);
+              const isInvalid = problems.length > 0;
               return (
                 <div
                   key={step.id}
-                  className={`step-card absolute w-[300px] bg-card rounded-lg shadow-sm border-2 cursor-move transition-all ${isSelected ? 'border-primary shadow-md' : 'border-border hover:border-border/80'
+                  className={`step-card absolute w-[300px] bg-card rounded-lg shadow-sm border-2 cursor-move transition-all ${
+                    isInvalid ? 'border-red-500' : isSelected ? 'border-primary shadow-md' : 'border-border hover:border-border/80'
                     }`}
                   onMouseDown={(e) => {
                     e.stopPropagation();
@@ -1540,6 +1578,9 @@ export default function WorkflowEditorPage() {
                           </span>
                         )}
                       </div>
+                      {isInvalid ? (
+                        <p className="text-[11px] text-red-500 mt-1">{problems[0]}</p>
+                      ) : null}
                       <p className="text-xs text-muted-foreground truncate mt-0.5">
                         {index + 1}. {step.label}
                       </p>
@@ -1784,6 +1825,22 @@ export default function WorkflowEditorPage() {
                 <label className="block text-sm font-medium text-foreground mb-2">
                   Step Instructions
                 </label>
+                {selectedStep.type === 'httpRequest' ? (
+                  <input
+                    className="w-full mb-2 px-4 py-2.5 border border-border rounded-lg text-sm bg-background"
+                    placeholder="https://..."
+                    value={selectedStep.config.url || ''}
+                    onChange={(e) => updateSelectedStep({ config: { ...selectedStep.config, url: e.target.value } })}
+                  />
+                ) : null}
+                {selectedStep.type === 'if' ? (
+                  <input
+                    className="w-full mb-2 px-4 py-2.5 border border-border rounded-lg text-sm bg-background"
+                    placeholder="data.status === 'ok'"
+                    value={selectedStep.config.condition || ''}
+                    onChange={(e) => updateSelectedStep({ config: { ...selectedStep.config, condition: e.target.value } })}
+                  />
+                ) : null}
                 <textarea
                   value={selectedStep.prompt}
                   onChange={(e) => updateSelectedStep({ prompt: e.target.value })}
