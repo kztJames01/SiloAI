@@ -10,7 +10,7 @@ import { clearToken, getToken } from './tokenStorage';
 const runtimeApiUrl = window.__APP_CONFIG__?.API_URL?.trim();
 const envApiUrl = import.meta.env.VITE_API_URL?.trim();
 
-const API_URL =
+export const API_URL =
   import.meta.env.DEV
     ? envApiUrl || runtimeApiUrl || 'http://localhost:5000'
     : runtimeApiUrl || envApiUrl || 'http://localhost:5000';
@@ -187,6 +187,19 @@ export const agentApi = {
     const data = await sharedApiClient.request<any>('/api/agents/presets', { method: 'GET', token: getToken() ?? undefined });
     return { data };
   },
+};
+
+export const orgApi = {
+  get: async () =>
+    wrapResponse(with401Redirect(sharedApiClient.request<any>('/api/orgs', { method: 'GET', token: getToken() ?? undefined }))),
+  invite: async (email: string, role: string) =>
+    wrapResponse(with401Redirect(sharedApiClient.request<any>('/api/orgs/invite', { method: 'POST', body: { email, role }, token: getToken() ?? undefined }))),
+  inviteInfo: async (token: string) =>
+    wrapResponse(with401Redirect(sharedApiClient.request<any>(`/api/orgs/invite/${token}`, { method: 'GET', token: getToken() ?? undefined }))),
+  acceptInvite: async (token: string) =>
+    wrapResponse(with401Redirect(sharedApiClient.request<any>(`/api/orgs/invite/${token}/accept`, { method: 'POST', token: getToken() ?? undefined }))),
+  transfer: async (userId: string) =>
+    wrapResponse(with401Redirect(sharedApiClient.request<any>('/api/orgs/transfer', { method: 'POST', body: { userId }, token: getToken() ?? undefined }))),
 };
 
 // Generic API client for custom endpoints

@@ -35,7 +35,8 @@ export default function LoginPage() {
         const response = await authApi.exchangeOAuthCode(oauthCode);
         await useAuthStore.getState().loginWithToken(response.data.token);
         toast.success('Logged in successfully!');
-        navigate('/dashboard');
+        const next = new URLSearchParams(window.location.search).get('next');
+        navigate(next && next.startsWith('/') ? next : '/dashboard');
       } catch (error: any) {
         toast.error(getErrorMessage(error, 'Social login failed'));
       } finally {
@@ -51,7 +52,8 @@ export default function LoginPage() {
     try {
       await login(email, password);
       toast.success('Logged in successfully!');
-      navigate('/dashboard');
+      const next = new URLSearchParams(window.location.search).get('next');
+      navigate(next && next.startsWith('/') ? next : '/dashboard');
     } catch (error: any) {
       toast.error(getErrorMessage(error, 'Login failed'));
     } finally {

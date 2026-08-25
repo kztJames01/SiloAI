@@ -20,11 +20,11 @@ import SafetyDashboardPage from './pages/SafetyDashboardPage';
 import IntegrationsPage from './pages/IntegrationsPage';
 import AppExplorerPage from './pages/AppExplorerPage';
 import AppDetailPage from './pages/AppDetailPage';
+import InviteAcceptPage from './pages/InviteAcceptPage';
 import OrganizationDashboardPage from './pages/OrganizationDashboardPage';
 import DataStoragePage from './pages/DataStoragePage';
 import AgentsPage from './pages/AgentsPage';
 import AgentDetailPage from './pages/AgentDetailPage';
-import { AISettingsPage } from './pages/AISettingsPage';
 
 // Components
 import { ProtectedRoute } from './components/ProtectedRoute';
@@ -79,6 +79,7 @@ function App() {
       <Route path="/privacy" element={<PrivacyPolicyPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/invite/:token" element={<InviteAcceptPage />} />
 
       {/* Standalone Workflow Editor - No Dashboard Layout */}
       <Route
@@ -211,14 +212,6 @@ function App() {
           element={
             <RoleGate allowedRoles={['admin']}>
               <ExecutionDetailPage />
-            </RoleGate>
-          }
-        />
-        <Route
-          path="ai-settings"
-          element={
-            <RoleGate allowedRoles={['admin']}>
-              <AISettingsPage />
             </RoleGate>
           }
         />

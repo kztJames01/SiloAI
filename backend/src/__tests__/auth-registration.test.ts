@@ -10,6 +10,12 @@ jest.mock('../db/prisma', () => ({
       findUnique: jest.fn(),
       create: jest.fn(),
     },
+    organizationMember: {
+      findFirst: jest.fn().mockResolvedValue(null),
+    },
+    organization: {
+      create: jest.fn().mockResolvedValue({ id: 'org-1', name: 'My workspace' }),
+    },
   },
 }));
 

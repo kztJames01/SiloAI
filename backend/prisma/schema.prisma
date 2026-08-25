@@ -19,6 +19,8 @@ model User {
   apiKeys   ApiKey[]
   workflows Workflow[]
   fieldActions FieldAction[]
+  ownedOrgs Organization[] @relation("OrgOwner")
+  memberships OrganizationMember[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
@@ -28,6 +30,57 @@ model User {
 enum UserRole {
   ADMIN
   FIELD
+}
+
+enum OrgRole {
+  OWNER
+  ADMIN
+  MEMBER
+  FIELD
+}
+
+model Organization {
+  id        String   @id @default(uuid())
+  name      String
+  ownerId   String
+  owner     User     @relation("OrgOwner", fields: [ownerId], references: [id])
+  members   OrganizationMember[]
+  invites   OrganizationInvite[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ownerId])
+  @@map("organizations")
+}
+
+model OrganizationMember {
+  id        String       @id @default(uuid())
+  orgId     String
+  userId    String
+  role      OrgRole      @default(MEMBER)
+  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime     @default(now())
+
+  @@unique([orgId, userId])
+  @@index([userId])
+  @@map("organization_members")
+}
+
+model OrganizationInvite {
+  id        String       @id @default(uuid())
+  orgId     String
+  email     String
+  role      OrgRole      @default(MEMBER)
+  token     String       @unique
+  expiresAt DateTime
+  invitedBy String
+  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  createdAt DateTime     @default(now())
+
+  @@index([orgId])
+  @@index([email])
+  @@map("organization_invites")
 }
 
 model ApiKey {
