@@ -4,7 +4,8 @@ import { oauth2Handler } from '../../integrations/auth/OAuth2Handler';
 import { credentialManager } from '../../integrations/auth/CredentialManager';
 import prisma from '../../db/prisma';
 import { authenticate, AuthRequest } from '../middleware/auth.middleware';
-import { IntegrationProvider, OAuth2Config, AuthType } from '@silo/shared/types/integration';
+import { getOAuth2Config } from '../../integrations/auth/oauthConfigs';
+import { AuthType, IntegrationProvider } from '@silo/shared/types/integration';
 import { logger } from '../../utils/logger';
 
 const router = Router();
@@ -117,10 +118,31 @@ router.get('/connections/list', async (req: AuthRequest, res) => {
       orderBy: { createdAt: 'desc' },
     });
 
-    const masked = connections.map((conn: any) => ({
-      ...conn,
-      credentials: credentialManager.mask(credentialManager.decrypt(conn.credentials)),
-    }));
+    const masked = connections.map((conn: any) => {
+      let creds: any = {};
+      try {
+        creds = credentialManager.decrypt(conn.credentials);
+      } catch {
+        creds = {};
+      }
+      let expired = false;
+      try {
+        expired = !!(creds && creds.expiresAt && oauth2Handler.isTokenExpired(creds));
+      } catch {
+        expired = conn.status === 'EXPIRED';
+      }
+      let maskedCreds: any = {};
+      try {
+        maskedCreds = credentialManager.mask(creds);
+      } catch {
+        maskedCreds = {};
+      }
+      return {
+        ...conn,
+        needsReconnect: expired || conn.status === 'EXPIRED',
+        credentials: maskedCreds,
+      };
+    });
 
     res.json({ connections: masked });
   } catch (error: any) {
@@ -137,10 +159,31 @@ router.get('/user', async (req: AuthRequest, res) => {
       orderBy: { createdAt: 'desc' },
     });
 
-    const masked = connections.map((conn: any) => ({
-      ...conn,
-      credentials: credentialManager.mask(credentialManager.decrypt(conn.credentials)),
-    }));
+    const masked = connections.map((conn: any) => {
+      let creds: any = {};
+      try {
+        creds = credentialManager.decrypt(conn.credentials);
+      } catch {
+        creds = {};
+      }
+      let expired = false;
+      try {
+        expired = !!(creds && creds.expiresAt && oauth2Handler.isTokenExpired(creds));
+      } catch {
+        expired = conn.status === 'EXPIRED';
+      }
+      let maskedCreds: any = {};
+      try {
+        maskedCreds = credentialManager.mask(creds);
+      } catch {
+        maskedCreds = {};
+      }
+      return {
+        ...conn,
+        needsReconnect: expired || conn.status === 'EXPIRED',
+        credentials: maskedCreds,
+      };
+    });
 
     res.json({ connections: masked });
   } catch (error: any) {
@@ -373,28 +416,5 @@ router.delete('/:provider/disconnect', async (req: AuthRequest, res) => {
     res.status(500).json({ error: 'Disconnect failed' });
   }
 });
-
-function getOAuth2Config(provider: IntegrationProvider): OAuth2Config | null {
-  const configs: Partial<Record<IntegrationProvider, OAuth2Config>> = {
-    [IntegrationProvider.GMAIL]: {
-      clientId: process.env.GOOGLE_CLIENT_ID!,
-      clientSecret: process.env.GOOGLE_CLIENT_SECRET!,
-      authorizationUrl: 'https://accounts.google.com/o/oauth2/v2/auth',
-      tokenUrl: 'https://oauth2.googleapis.com/token',
-      scopes: ['https://www.googleapis.com/auth/gmail.send', 'https://www.googleapis.com/auth/gmail.readonly'],
-      redirectUri: `${process.env.API_URL || 'http://localhost:5000'}/api/integrations/oauth/callback`,
-    },
-    [IntegrationProvider.SLACK]: {
-      clientId: process.env.SLACK_CLIENT_ID!,
-      clientSecret: process.env.SLACK_CLIENT_SECRET!,
-      authorizationUrl: 'https://slack.com/oauth/v2/authorize',
-      tokenUrl: 'https://slack.com/api/oauth.v2.access',
-      scopes: ['chat:write', 'channels:read'],
-      redirectUri: `${process.env.API_URL || 'http://localhost:5000'}/api/integrations/oauth/callback`,
-    },
-  };
-
-  return configs[provider] || null;
-}
 
 export default router;

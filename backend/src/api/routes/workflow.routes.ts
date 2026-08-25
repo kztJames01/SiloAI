@@ -5,6 +5,7 @@ import { authenticate, requireAdmin, AuthRequest } from '../middleware/auth.midd
 import { AppError } from '../middleware/error.middleware';
 import { WorkflowEngine } from '../../engine/WorkflowEngine';
 import { refreshScheduleForWorkflow } from '../../services/scheduleRunner';
+import { getOrgUserIds } from '../../services/org';
 
 const router = Router();
 
@@ -25,8 +26,9 @@ const workflowSchema = z.object({
 
 // Get all workflows
 router.get('/', async (req: AuthRequest, res) => {
+  const userIds = await getOrgUserIds(req.userId!);
   const workflows = await prisma.workflow.findMany({
-    where: { userId: req.userId },
+    where: { userId: { in: userIds } },
     orderBy: { updatedAt: 'desc' },
     include: {
       executions: {
@@ -41,10 +43,11 @@ router.get('/', async (req: AuthRequest, res) => {
 
 // Get single workflow
 router.get('/:id', async (req: AuthRequest, res) => {
+  const userIds = await getOrgUserIds(req.userId!);
   const workflow = await prisma.workflow.findFirst({
     where: {
       id: req.params.id,
-      userId: req.userId,
+      userId: { in: userIds },
     },
     include: {
       executions: {

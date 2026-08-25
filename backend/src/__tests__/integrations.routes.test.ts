@@ -39,6 +39,7 @@ jest.mock('../integrations/auth/OAuth2Handler', () => ({
     generateAuthorizationUrl: jest.fn(),
     verifyState: jest.fn(),
     exchangeCodeForToken: jest.fn(),
+    isTokenExpired: jest.fn().mockReturnValue(false),
   },
 }));
 

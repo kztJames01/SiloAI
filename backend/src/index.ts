@@ -26,8 +26,10 @@ import { requestLogger } from './api/middleware/requestLogger.middleware';
 import { rateLimiter, authRateLimiter } from './api/middleware/rateLimiter.middleware';
 import metricsRoutes from './api/routes/metrics.routes';
 import contactRoutes from './api/routes/contact.routes';
+import orgRoutes from './api/routes/org.routes';
 import { startScheduleRunner } from './services/scheduleRunner';
 import { startExecutionReconciler } from './services/executionSync';
+import { startTokenRefreshJob } from './services/tokenRefresh';
 import { logger } from './utils/logger';
 import { formatDatabaseStartupError, getDatabaseUrlInfo, loadedEnvFiles } from './db/database-url';
 import prisma from './db/prisma';
@@ -58,7 +60,11 @@ app.use(cors({
   },
   credentials: true,
 }));
-app.use(express.json());
+app.use(express.json({
+  verify: (req: any, _res, buf) => {
+    req.rawBody = buf;
+  },
+}));
 app.use(express.urlencoded({ extended: true }));
 app.use(requestLogger);
 app.use(rateLimiter);
@@ -104,6 +110,7 @@ app.use('/api/agents', agentRoutes);
 app.use('/api/field', fieldRoutes);
 app.use('/api/api-keys', apiKeyRoutes);
 app.use('/api/contact', contactRoutes);
+app.use('/api/orgs', orgRoutes);
 
 // Error handling
 app.use(errorHandler);
@@ -137,6 +144,7 @@ async function startServer() {
   await testDatabaseConnection();
   await startScheduleRunner();
   startExecutionReconciler();
+  startTokenRefreshJob();
   
   server.listen(PORT, () => {
     logger.info(`Server running on port ${PORT}`);

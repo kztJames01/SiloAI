@@ -8,6 +8,7 @@ import prisma from '../../db/prisma';
 import { AppError } from '../middleware/error.middleware';
 import { authenticate, AuthRequest } from '../middleware/auth.middleware';
 import { signOAuthState, verifyOAuthState, verifyAppleIdToken, signOAuthExchangeCode, verifyOAuthExchangeCode } from '../../utils/security';
+import { ensureOrg } from '../../services/org';
 
 const router = Router();
 
@@ -65,6 +66,7 @@ async function findOrCreateOAuthUser(email: string, name?: string) {
         role: 'FIELD',
       },
     });
+    await ensureOrg(user.id);
   }
   return user;
 }
@@ -117,6 +119,8 @@ router.post('/register', async (req, res) => {
       createdAt: true,
     },
   });
+
+  await ensureOrg(user.id);
 
   const token = issueToken(user.id);
 

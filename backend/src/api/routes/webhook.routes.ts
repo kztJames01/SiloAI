@@ -2,6 +2,7 @@ import { Router } from 'express';
 import prisma from '../../db/prisma';
 import { WorkflowEngine } from '../../engine/WorkflowEngine';
 import { logger } from '../../utils/logger';
+import { signaturesMatch } from '../../utils/webhookSig';
 
 const router = Router();
 
@@ -23,9 +24,20 @@ router.all('/:workflowId', async (req, res) => {
     return res.status(503).json({ error: 'Webhook secret is not configured for this workflow' });
   }
 
-  const provided = req.headers['x-webhook-secret'];
-  if (!provided || provided !== expectedSecret) {
-    return res.status(401).json({ error: 'Invalid webhook secret' });
+  const sigHeader = req.headers['x-silo-signature'] || req.headers['x-hub-signature-256'];
+  const rawBody = (req as any).rawBody as Buffer | undefined;
+  const bodyForHmac = rawBody || Buffer.from(JSON.stringify(req.body || {}));
+
+  let ok = false;
+  if (sigHeader) {
+    ok = signaturesMatch(expectedSecret, bodyForHmac, sigHeader);
+  } else {
+    const provided = req.headers['x-webhook-secret'];
+    ok = !!provided && provided === expectedSecret;
+  }
+
+  if (!ok) {
+    return res.status(401).json({ error: 'Invalid webhook signature' });
   }
 
   try {
