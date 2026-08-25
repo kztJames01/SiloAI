@@ -96,6 +96,42 @@ describe('Webhook security', () => {
     expect(res.body.executionId).toBe('exec-1');
   });
 
+  it('accepts hmac signature instead of secret header', async () => {
+    prisma.workflow.findUnique.mockResolvedValue({
+      id: workflowId,
+      isActive: true,
+      trigger: { type: 'webhook', config: { secret: 'real-secret' } },
+    });
+
+    const body = { ping: true };
+    const raw = JSON.stringify(body);
+    const crypto = require('crypto');
+    const sig = crypto.createHmac('sha256', 'real-secret').update(raw).digest('hex');
+
+    const res = await request(buildWebhookApp())
+      .post(`/api/webhooks/${workflowId}`)
+      .set('x-silo-signature', `sha256=${sig}`)
+      .set('Content-Type', 'application/json')
+      .send(raw);
+
+    expect(res.status).toBe(202);
+  });
+
+  it('rejects bad hmac signature', async () => {
+    prisma.workflow.findUnique.mockResolvedValue({
+      id: workflowId,
+      isActive: true,
+      trigger: { type: 'webhook', config: { secret: 'real-secret' } },
+    });
+
+    const res = await request(buildWebhookApp())
+      .post(`/api/webhooks/${workflowId}`)
+      .set('x-silo-signature', 'sha256=' + 'a'.repeat(64))
+      .send({ ping: true });
+
+    expect(res.status).toBe(401);
+  });
+
   it('returns 404 for inactive workflows (no oracle leak)', async () => {
     prisma.workflow.findUnique.mockResolvedValue({
       id: workflowId,
