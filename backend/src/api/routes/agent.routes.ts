@@ -1,5 +1,6 @@
 import express from 'express';
 import { authenticate, requireAdmin, AuthRequest } from '../middleware/auth.middleware';
+import { llmRateLimiter } from '../middleware/rateLimiter.middleware';
 import prisma from '../../db/prisma';
 import { WorkflowEngine } from '../../engine/WorkflowEngine';
 import { AppError } from '../middleware/error.middleware';
@@ -343,7 +344,7 @@ router.delete('/:id', requireAdmin, async (req: AuthRequest, res) => {
 });
 
 // Creates an ephemeral workflow with a single AIAgent node and runs it
-router.post('/:id/run', requireAdmin, async (req: AuthRequest, res) => {
+router.post('/:id/run', requireAdmin, llmRateLimiter, async (req: AuthRequest, res) => {
   const agent = await prisma.aIAgent.findFirst({
     where: { id: req.params.id, userId: req.userId! },
   });
@@ -373,6 +374,9 @@ router.post('/:id/run', requireAdmin, async (req: AuthRequest, res) => {
           context: context ?? {},
           maxIterations: agent.maxIterations,
           tools: agent.tools ?? [],
+          enableMemory: agent.enableMemory,
+          agentId: agent.id,
+          userId: req.userId,
         },
       },
     ],

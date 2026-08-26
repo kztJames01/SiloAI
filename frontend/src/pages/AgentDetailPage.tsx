@@ -32,6 +32,7 @@ interface AgentForm {
   triggerType: TriggerType;
   tools: { name: string; type: string }[];
   isActive: boolean;
+  enableMemory: boolean;
 }
 
 const MODEL_OPTIONS: Record<LLMProvider, string[]> = {
@@ -127,6 +128,7 @@ export default function AgentDetailPage() {
     triggerType: (presetSeed?.triggerType as TriggerType) ?? 'manual',
     tools: presetSeed?.tools?.map((t: string) => ({ name: t, type: 'builtin' })) ?? [],
     isActive: true,
+    enableMemory: false,
   });
   const [dirty, setDirty] = useState(!!presetSeed);
   const [runTask, setRunTask] = useState('');
@@ -159,6 +161,7 @@ export default function AgentDetailPage() {
       triggerType: 'manual',
       tools: (agentData.tools ?? []) as { name: string; type: string }[],
       isActive: agentData.isActive,
+      enableMemory: !!agentData.enableMemory,
     });
     setDirty(false);
   }, [agentData?.id]);
@@ -193,6 +196,7 @@ export default function AgentDetailPage() {
         maxIterations: form.maxIterations,
         tools: form.tools,
         isActive: form.isActive,
+        enableMemory: form.enableMemory,
       };
       if (isNew) {
         return agentApi.create(payload);
@@ -266,6 +270,23 @@ export default function AgentDetailPage() {
                 />
               </div>
               <span className="text-xs text-muted-foreground">{form.isActive ? 'Active' : 'Inactive'}</span>
+            </label>
+          )}
+          {!isNew && (
+            <label className="flex items-center gap-2 cursor-pointer ml-1">
+              <div
+                onClick={() => patch('enableMemory', !form.enableMemory)}
+                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                  form.enableMemory ? 'bg-primary' : 'bg-border'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-primary-foreground shadow transition-transform ${
+                    form.enableMemory ? 'translate-x-4' : 'translate-x-0.5'
+                  }`}
+                />
+              </div>
+              <span className="text-xs text-muted-foreground">{form.enableMemory ? 'Memory on' : 'Memory off'}</span>
             </label>
           )}
         </div>
