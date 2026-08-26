@@ -110,6 +110,29 @@ describe('WorkflowEngine', () => {
       expect(nodeRegistry.getNode).toHaveBeenCalledTimes(3);
     });
 
+    it('interpolates flattened config before execute', async () => {
+      const nodeRegistry = require('../nodes/NodeRegistry').nodeRegistry;
+      let seen: any = null;
+      nodeRegistry.getNode.mockReturnValue({
+        execute: jest.fn().mockImplementation(async (data: any) => {
+          seen = data;
+          return { ok: true };
+        }),
+      });
+      const workflow = {
+        id: 'wf-interp',
+        nodes: [{
+          id: 'n1',
+          type: 'httpRequest',
+          data: { label: 'HTTP', config: { url: 'https://x.test/{{input.id}}' } },
+        }],
+        edges: [],
+      };
+      await engine.executeWorkflow(workflow, { id: 'abc' });
+      await new Promise((r) => setTimeout(r, 50));
+      expect(seen.url).toBe('https://x.test/abc');
+    });
+
     it('handles parallel branches without crashing', async () => {
       const workflow = {
         id: 'wf-parallel',

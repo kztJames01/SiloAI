@@ -1,5 +1,6 @@
 import { INode, NodeDefinition } from '../NodeRegistry';
 import { ExecutionContext } from '../../engine/WorkflowEngine';
+import { evalSimpleCondition } from '../../engine/nodeData';
 
 export class IfNode implements INode {
   definition: NodeDefinition = {
@@ -37,7 +38,7 @@ export class IfNode implements INode {
 
   async execute(data: any, _context: ExecutionContext): Promise<any> {
     const { condition, trueValue, falseValue } = data;
-
-    return condition ? trueValue : falseValue;
+    const ok = evalSimpleCondition(condition);
+    return ok ? (trueValue ?? true) : (falseValue ?? false);
   }
 }

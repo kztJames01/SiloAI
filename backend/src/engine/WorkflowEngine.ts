@@ -1,14 +1,15 @@
 import prisma from '../db/prisma';
-// Define Workflow interface based on your schema
+import { logger } from '../utils/logger';
+import { nodeRegistry } from '../nodes/NodeRegistry';
+import { v4 as uuidv4 } from 'uuid';
+import { flattenNodeData, interpolateDeep, buildInterpBag, redactForLog } from './nodeData';
+import { notifyFieldRunFinished } from '../services/pushNotify';
+
 export interface Workflow {
   id: string;
   nodes: any[];
   edges: any[];
-  // Add other fields as needed
 }
-import { logger } from '../utils/logger';
-import { nodeRegistry } from '../nodes/NodeRegistry';
-import { v4 as uuidv4 } from 'uuid';
 
 export interface ExecutionContext {
   executionId: string;
@@ -74,11 +75,12 @@ export class WorkflowEngine {
         data: {
           status: 'SUCCESS',
           finishedAt: new Date(),
-          output: context.data,
+          output: redactForLog(context.data),
         },
       });
 
       await this.log(executionId, 'workflow', 'Workflow', 'INFO', 'Workflow completed successfully');
+      notifyFieldRunFinished(executionId, 'SUCCESS').catch(() => {});
     } catch (error: any) {
       logger.error(`Workflow execution error:`, error);
       
@@ -92,6 +94,7 @@ export class WorkflowEngine {
       });
 
       await this.log(executionId, 'workflow', 'Workflow', 'ERROR', `Workflow failed: ${error.message}`);
+      notifyFieldRunFinished(executionId, 'FAILED').catch(() => {});
     }
   }
 
@@ -100,7 +103,7 @@ export class WorkflowEngine {
       await this.log(
         context.executionId,
         node.id,
-        node.data.label || node.type,
+        node.data?.label || node.type,
         'INFO',
         `Executing node ${node.type}`
       );
@@ -110,23 +113,25 @@ export class WorkflowEngine {
         throw new Error(`Node type ${node.type} not found`);
       }
 
-      const result = await nodeHandler.execute(node.data, context);
+      const flat = flattenNodeData(node);
+      const data = interpolateDeep(flat, buildInterpBag(context));
+      const result = await nodeHandler.execute(data, context);
       context.data[node.id] = result;
       context.previousNodeData = result;
 
       await this.log(
         context.executionId,
         node.id,
-        node.data.label || node.type,
+        node.data?.label || node.type,
         'INFO',
         `Node executed successfully`,
-        result
+        redactForLog(result)
       );
     } catch (error: any) {
       await this.log(
         context.executionId,
         node.id,
-        node.data.label || node.type,
+        node.data?.label || node.type,
         'ERROR',
         `Node execution failed: ${error.message}`
       );

@@ -1,7 +1,7 @@
 import { useMemo, useState, useEffect, useRef } from 'react';
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { workflowApi, nodeApi } from '../lib/api';
+import { workflowApi, nodeApi, executionApi } from '../lib/api';
 import { Button } from '../components/ui/Button';
 import { Input } from '../components/ui/Input';
 import {
@@ -386,6 +386,7 @@ export default function WorkflowEditorPage() {
   const [lastSavedAt, setLastSavedAt] = useState<Date | null>(null);
   const [hasUnsavedChanges, setHasUnsavedChanges] = useState(false);
   const [autoSaveEnabled, setAutoSaveEnabled] = useState(true);
+  const [sampleInput, setSampleInput] = useState('{\n  \n}');
   const canvasRef = useRef<HTMLDivElement>(null);
   const nameInputRef = useRef<HTMLInputElement>(null);
   const nodeTypeSelectRef = useRef<HTMLSelectElement>(null);
@@ -413,6 +414,15 @@ export default function WorkflowEditorPage() {
       return response.data.workflow;
     },
     enabled: !isNewWorkflow,
+  });
+
+  const { data: lastRuns } = useQuery({
+    queryKey: ['workflow-executions', id],
+    queryFn: async () => {
+      const response = await executionApi.listByWorkflow(id!);
+      return response.data.executions as any[];
+    },
+    enabled: !isNewWorkflow && !!id,
   });
 
   const pushHistory = (nextSteps: WorkflowStep[]) => {
@@ -615,7 +625,19 @@ export default function WorkflowEditorPage() {
       if (!id) {
         throw new Error('Please save before running');
       }
-      return workflowApi.execute(id);
+      let input: any = {};
+      try {
+        const raw = sampleInput.trim();
+        input = raw ? JSON.parse(raw) : {};
+      } catch {
+        toast.error('Sample payload is not valid JSON');
+        throw new Error('bad sample json');
+      }
+      if (input === null || typeof input !== 'object' || Array.isArray(input)) {
+        toast.error('Sample payload must be a JSON object');
+        throw new Error('bad sample json');
+      }
+      return workflowApi.execute(id, input);
     },
     onSuccess: (response) => {
       toast.success('Workflow started');
@@ -1836,7 +1858,7 @@ export default function WorkflowEditorPage() {
                 {selectedStep.type === 'if' ? (
                   <input
                     className="w-full mb-2 px-4 py-2.5 border border-border rounded-lg text-sm bg-background"
-                    placeholder="data.status === 'ok'"
+                    placeholder="{{prev.status}} === ok"
                     value={selectedStep.config.condition || ''}
                     onChange={(e) => updateSelectedStep({ config: { ...selectedStep.config, condition: e.target.value } })}
                   />
@@ -1849,6 +1871,60 @@ export default function WorkflowEditorPage() {
                   className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm resize-none bg-background text-foreground"
                 />
               </div>
+
+              {(() => {
+                const ordered = [...steps].sort((a, b) => a.position.y - b.position.y);
+                const idx = ordered.findIndex((s) => s.id === selectedStep.id);
+                const prev = idx > 0 ? ordered[idx - 1] : null;
+                const lastOut = lastRuns?.[0]?.output;
+                const hints: string[] = [];
+                if (prev) hints.push(`{{prev.*}} from "${prev.label}"`);
+                const walk = (obj: any, prefix: string, n = 0) => {
+                  if (!obj || typeof obj !== 'object' || n > 12) return;
+                  for (const k of Object.keys(obj)) {
+                    if (/api[_-]?key|authorization|secret|password|token|cookie|credential/i.test(k)) continue;
+                    if (prefix) hints.push(`{{${prefix}.${k}}}`);
+                    else if (k !== 'input' && typeof obj[k] === 'object') walk(obj[k], k, n + 1);
+                    if (hints.length > 20) return;
+                  }
+                };
+                if (lastOut?.input && typeof lastOut.input === 'object') {
+                  Object.keys(lastOut.input).forEach((k) => {
+                    if (!/api[_-]?key|authorization|secret|password|token|cookie|credential/i.test(k)) {
+                      hints.push(`{{input.${k}}}`);
+                    }
+                  });
+                }
+                walk(lastOut, '');
+                return (
+                  <div className="rounded-xl border border-border p-3 space-y-2">
+                    <p className="text-xs font-semibold text-foreground">Data flow</p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Use {'{{input.field}}'} or {'{{prev.field}}'} in URLs and conditions.
+                    </p>
+                    {prev ? (
+                      <p className="text-[11px] text-muted-foreground">Previous step: {prev.label}</p>
+                    ) : (
+                      <p className="text-[11px] text-muted-foreground">This is the first step. Use input fields.</p>
+                    )}
+                    {hints.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {hints.slice(0, 16).map((h) => (
+                          <button
+                            key={h}
+                            type="button"
+                            className="text-[10px] px-1.5 py-0.5 rounded border border-border bg-muted/40 font-mono"
+                            onClick={() => navigator.clipboard.writeText(h)}
+                            title="Copy"
+                          >
+                            {h}
+                          </button>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                );
+              })()}
 
               {/* Conditional Logic for Code nodes */}
               {selectedStep.type === 'code' && (
@@ -2083,22 +2159,37 @@ export default function WorkflowEditorPage() {
                 </div>
 
                 {triggerConfig.type === 'webhook' && (
-                  <div>
-                    <label className="block text-sm font-medium text-foreground mb-2">HTTP Method</label>
-                    <select
-                      value={triggerConfig.config.method || 'POST'}
-                      onChange={(e) => setTriggerConfig({
-                        ...triggerConfig,
-                        config: { ...triggerConfig.config, method: e.target.value }
-                      })}
-                      className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm bg-background text-foreground"
-                    >
-                      <option>GET</option>
-                      <option>POST</option>
-                      <option>PUT</option>
-                      <option>DELETE</option>
-                    </select>
-                  </div>
+                  <>
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">HTTP Method</label>
+                      <select
+                        value={triggerConfig.config.method || 'POST'}
+                        onChange={(e) => setTriggerConfig({
+                          ...triggerConfig,
+                          config: { ...triggerConfig.config, method: e.target.value }
+                        })}
+                        className="w-full px-4 py-2.5 border border-border rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm bg-background text-foreground"
+                      >
+                        <option>GET</option>
+                        <option>POST</option>
+                        <option>PUT</option>
+                        <option>DELETE</option>
+                      </select>
+                    </div>
+                    <div>
+                      <label className="block text-sm font-medium text-foreground mb-2">Webhook secret</label>
+                      <Input
+                        type="password"
+                        value={triggerConfig.config.secret || ''}
+                        onChange={(e) => setTriggerConfig({
+                          ...triggerConfig,
+                          config: { ...triggerConfig.config, secret: e.target.value }
+                        })}
+                        placeholder="Required for inbound webhooks"
+                        autoComplete="off"
+                      />
+                    </div>
+                  </>
                 )}
 
                 {triggerConfig.type === 'schedule' && (
@@ -2128,6 +2219,17 @@ export default function WorkflowEditorPage() {
                     </div>
                   </>
                 )}
+
+                <div>
+                  <label className="block text-sm font-medium text-foreground mb-2">Sample payload (Test run)</label>
+                  <textarea
+                    value={sampleInput}
+                    onChange={(e) => setSampleInput(e.target.value)}
+                    rows={5}
+                    className="w-full px-3 py-2 border border-border rounded-lg text-xs font-mono bg-background"
+                    placeholder='{ "orderId": "123" }'
+                  />
+                </div>
               </div>
 
               <div className="px-6 py-4 border-t border-border bg-muted/50 flex justify-end gap-2">

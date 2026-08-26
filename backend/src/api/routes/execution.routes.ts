@@ -9,6 +9,33 @@ const router = Router();
 
 router.use(authenticate);
 
+async function findReadableExecution(req: AuthRequest, id: string, withLogs: boolean) {
+  const userIds = await getOrgUserIds(req.userId!);
+  const include = withLogs
+    ? {
+        workflow: { select: { id: true, name: true } },
+        logs: { orderBy: { timestamp: 'asc' as const } },
+      }
+    : { workflow: { select: { id: true, name: true } } };
+
+  const owned = await prisma.workflowExecution.findFirst({
+    where: { id, workflow: { userId: { in: userIds } } },
+    include,
+  });
+  if (owned) return owned;
+
+  const fieldHit = await prisma.fieldAction.findFirst({
+    where: { userId: req.userId!, workflowExecutionId: id },
+    select: { id: true },
+  });
+  if (!fieldHit) return null;
+
+  return prisma.workflowExecution.findFirst({
+    where: { id },
+    include,
+  });
+}
+
 // Get all executions for user's workflows
 router.get('/', async (req: AuthRequest, res) => {
   const userIds = await getOrgUserIds(req.userId!);
@@ -33,37 +60,7 @@ router.get('/', async (req: AuthRequest, res) => {
   res.json({ executions });
 });
 
-// Get single execution with logs
-router.get('/:id', async (req: AuthRequest, res) => {
-  const userIds = await getOrgUserIds(req.userId!);
-  const execution = await prisma.workflowExecution.findFirst({
-    where: {
-      id: req.params.id,
-      workflow: {
-        userId: { in: userIds },
-      },
-    },
-    include: {
-      workflow: {
-        select: {
-          id: true,
-          name: true,
-        },
-      },
-      logs: {
-        orderBy: { timestamp: 'asc' },
-      },
-    },
-  });
-
-  if (!execution) {
-    throw new AppError('Execution not found', 404);
-  }
-
-  res.json({ execution });
-});
-
-// Get executions for a specific workflow
+// Get executions for a specific workflow (must be before /:id)
 router.get('/workflow/:workflowId', async (req: AuthRequest, res) => {
   const userIds = await getOrgUserIds(req.userId!);
   const workflow = await prisma.workflow.findFirst({
@@ -91,21 +88,11 @@ router.get('/workflow/:workflowId', async (req: AuthRequest, res) => {
   res.json({ executions });
 });
 
-// Get real-time logs for an execution (polling endpoint)
 router.get('/:id/logs', async (req: AuthRequest, res) => {
   const { since } = req.query;
   const sinceDate = since ? new Date(since as string) : new Date(0);
 
-  const userIds = await getOrgUserIds(req.userId!);
-  const execution = await prisma.workflowExecution.findFirst({
-    where: {
-      id: req.params.id,
-      workflow: {
-        userId: { in: userIds },
-      },
-    },
-  });
-
+  const execution = await findReadableExecution(req, req.params.id, false);
   if (!execution) {
     throw new AppError('Execution not found', 404);
   }
@@ -124,13 +111,7 @@ router.get('/:id/logs', async (req: AuthRequest, res) => {
 });
 
 router.get('/:id/stream', async (req: AuthRequest, res) => {
-  const userIds = await getOrgUserIds(req.userId!);
-  const execution = await prisma.workflowExecution.findFirst({
-    where: {
-      id: req.params.id,
-      workflow: { userId: { in: userIds } },
-    },
-  });
+  const execution = await findReadableExecution(req, req.params.id, false);
   if (!execution) {
     throw new AppError('Execution not found', 404);
   }
@@ -185,6 +166,14 @@ router.get('/:id/stream', async (req: AuthRequest, res) => {
     stopped = true;
     clearInterval(timer);
   });
+});
+
+router.get('/:id', async (req: AuthRequest, res) => {
+  const execution = await findReadableExecution(req, req.params.id, true);
+  if (!execution) {
+    throw new AppError('Execution not found', 404);
+  }
+  res.json({ execution });
 });
 
 export default router;
