@@ -728,6 +728,9 @@ export class HubSpotIntegration extends BaseIntegration {
       return { success: false, message: error.message };
     }
   }
+  async executeAction(actionId: string, parameters: Record<string, any>, credentials: IntegrationCredentials): Promise<IntegrationResult> {
+    try {
+      if (actionId === 'create_contact') {
         const data = await this.makeRequest({
           url: 'https://api.hubapi.com/crm/v3/objects/contacts',
           method: 'POST',
@@ -784,6 +787,9 @@ export class ZoomIntegration extends BaseIntegration {
       return { success: false, message: error.message };
     }
   }
+  async executeAction(actionId: string, parameters: Record<string, any>, credentials: IntegrationCredentials): Promise<IntegrationResult> {
+    try {
+      if (actionId === 'create_meeting') {
         const data = await this.makeRequest({
           url: 'https://api.zoom.us/v2/users/me/meetings',
           method: 'POST',
