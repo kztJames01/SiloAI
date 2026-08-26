@@ -5,6 +5,7 @@ import { AuthUser, LoginPayload, RegisterPayload } from '../../../shared/src/typ
 import React, { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import { createMobileAuthApi, DEFAULT_API_BASE_URL } from '../lib/auth';
 import { getSecureItem, removeSecureItem, setSecureItem } from '../lib/secureStorage';
+import { registerPushToken, unregisterPushToken } from '../lib/push';
 
 const TOKEN_KEY = 'silo.mobile.token';
 const LEGACY_TOKEN_KEY = TOKEN_KEY; // same key was previously stored in AsyncStorage
@@ -47,6 +48,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         const data = await api.me(saved);
         setToken(saved);
         setUser(data.user);
+        registerPushToken(saved).catch(() => {});
       } catch {
         await removeSecureItem(TOKEN_KEY);
       } finally {
@@ -60,6 +62,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     await setSecureItem(TOKEN_KEY, nextToken);
     setToken(nextToken);
     setUser(nextUser);
+    registerPushToken(nextToken).catch(() => {});
   };
 
   const login = async (data: LoginPayload) => {
@@ -75,6 +78,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   };
 
   const logout = async () => {
+    if (token) await unregisterPushToken(token).catch(() => {});
     await removeSecureItem(TOKEN_KEY);
     setToken(null);
     setUser(null);

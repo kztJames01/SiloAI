@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Alert, AppState, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { router } from 'expo-router';
 import { Screen } from '../../src/components/Screen';
 import { AppButton, AppCard, AppInput } from '../../src/components/ui';
 import { useAuth } from '../../src/context/AuthContext';
@@ -106,10 +107,18 @@ export default function FieldScreen() {
       setNotes('');
       setActiveAction(null);
       await loadRecent();
+      const execId = res.workflowExecutionId;
       const msg = res.status === 'workflow_started'
         ? 'Saved and workflow started.'
         : 'Field action saved.';
-      Alert.alert('Done', msg);
+      if (execId) {
+        Alert.alert('Done', msg, [
+          { text: 'OK' },
+          { text: 'View run', onPress: () => router.push(`/execution/${execId}` as any) },
+        ]);
+      } else {
+        Alert.alert('Done', msg);
+      }
     } catch {
       const count = await enqueueFieldAction(payload);
       setQueued(count);
@@ -173,10 +182,16 @@ export default function FieldScreen() {
         <AppCard style={styles.recent}>
           <Text style={[styles.recentTitle, { color: colors.textPrimary }]}>Recent actions</Text>
           {recentActions.slice(0, 5).map((item) => (
-            <View key={item.id} style={[styles.recentRow, { borderBottomColor: colors.border }]}>
+            <Pressable
+              key={item.id}
+              onPress={() => {
+                if (item.workflowExecutionId) router.push(`/execution/${item.workflowExecutionId}` as any);
+              }}
+              style={[styles.recentRow, { borderBottomColor: colors.border }]}
+            >
               <Text style={[styles.recentAction, { color: colors.textPrimary }]}>{item.actionType}</Text>
               <Text style={[styles.recentStatus, { color: colors.textSecondary }]}>{item.status}</Text>
-            </View>
+            </Pressable>
           ))}
         </AppCard>
       ) : null}

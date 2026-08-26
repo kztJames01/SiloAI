@@ -19,6 +19,7 @@ model User {
   apiKeys   ApiKey[]
   workflows Workflow[]
   fieldActions FieldAction[]
+  pushTokens DevicePushToken[]
   ownedOrgs Organization[] @relation("OrgOwner")
   memberships OrganizationMember[]
   createdAt DateTime @default(now())
@@ -153,7 +154,21 @@ model FieldAction {
   createdAt           DateTime @default(now())
 
   @@index([userId])
+  @@index([workflowExecutionId])
   @@map("field_actions")
+}
+
+model DevicePushToken {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  platform  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@map("device_push_tokens")
 }
 
 model ExecutionLog {

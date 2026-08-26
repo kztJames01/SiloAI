@@ -1,14 +1,28 @@
-import { Stack } from 'expo-router';
+import { Stack, router } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
-import { AuthProvider } from '../src/context/AuthContext';
+import { AuthProvider, useAuth } from '../src/context/AuthContext';
+import { listenForPushTap } from '../src/lib/push';
 import { ThemeProvider } from '../src/theme';
+
+function PushTapHandler() {
+  const { token } = useAuth();
+  useEffect(() => {
+    if (!token) return;
+    return listenForPushTap((executionId) => {
+      router.push(`/execution/${executionId}` as any);
+    });
+  }, [token]);
+  return null;
+}
 
 export default function RootLayout() {
   return (
     <SafeAreaProvider>
       <ThemeProvider>
         <AuthProvider>
+          <PushTapHandler />
           <StatusBar style="auto" />
           <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="index" />

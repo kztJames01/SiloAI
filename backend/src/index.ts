@@ -27,6 +27,7 @@ import { rateLimiter, authRateLimiter } from './api/middleware/rateLimiter.middl
 import metricsRoutes from './api/routes/metrics.routes';
 import contactRoutes from './api/routes/contact.routes';
 import orgRoutes from './api/routes/org.routes';
+import deviceRoutes from './api/routes/device.routes';
 import { startScheduleRunner } from './services/scheduleRunner';
 import { startExecutionReconciler } from './services/executionSync';
 import { startTokenRefreshJob } from './services/tokenRefresh';
@@ -111,6 +112,7 @@ app.use('/api/field', fieldRoutes);
 app.use('/api/api-keys', apiKeyRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/orgs', orgRoutes);
+app.use('/api/devices', deviceRoutes);
 
 // Error handling
 app.use(errorHandler);
