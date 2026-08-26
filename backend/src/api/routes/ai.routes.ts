@@ -1,5 +1,6 @@
 import express from 'express';
 import { authenticate, AuthRequest } from '../middleware/auth.middleware';
+import { llmRateLimiter } from '../middleware/rateLimiter.middleware';
 import { AppError } from '../middleware/error.middleware';
 import { LLMProviderFactory } from '../../ai/providers';
 import { PromptLibrary } from '../../ai/PromptTemplateEngine';
@@ -13,7 +14,7 @@ const router = express.Router();
 
 // Apply auth middleware
 router.use(authenticate);
-router.post('/complete', async (req: AuthRequest, res) => {
+router.post('/complete', llmRateLimiter, async (req: AuthRequest, res) => {
   try {
     const { provider, model, apiKey, baseUrl, messages, temperature, maxTokens } = req.body;
     const isAdmin = req.userRole === 'ADMIN';

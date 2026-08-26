@@ -15,3 +15,14 @@ export const authRateLimiter = rateLimit({
   standardHeaders: true,
   legacyHeaders: false,
 });
+
+// per logged-in user, not IP. in-memory so it resets on restart / doesn't share across instances
+export const llmRateLimiter = rateLimit({
+  windowMs: parseInt(process.env.LLM_RATE_LIMIT_WINDOW_MS || '900000', 10),
+  max: parseInt(process.env.LLM_RATE_LIMIT_MAX || '30', 10),
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { error: 'Too many AI requests, try again later.' },
+  keyGenerator: (req: any) => (req.userId ? `u:${req.userId}` : req.ip || 'anon'),
+  validate: false,
+});
