@@ -12,6 +12,7 @@
     "lint": "eslint . --ext ts,tsx --report-unused-disable-directives --max-warnings 0"
   },
   "dependencies": {
+    "@sentry/react": "^10.71.0",
     "@silo/shared": "*",
     "@supabase/supabase-js": "^2.95.3",
     "@tanstack/react-query": "^5.17.9",
