@@ -1,4 +1,36 @@
 import './env';
+import * as Sentry from '@sentry/node';
+
+// init Sentry before anything else so it can instrument modules
+const SENTRY_SCRUB_KEYS = /apikey|api_key|authorization|password|token|secret|cookie|credential|refresh|prompt|messages/i;
+
+Sentry.init({
+  dsn: process.env.SENTRY_DSN,
+  environment: process.env.SENTRY_ENVIRONMENT || process.env.NODE_ENV || 'development',
+  release: process.env.GIT_SHA,
+  tracesSampleRate: 0.1,
+  enabled: !!process.env.SENTRY_DSN,
+  beforeSend(event) {
+    // strip sensitive fields from extras and request data
+    function scrub(obj: any): any {
+      if (!obj || typeof obj !== 'object') return obj;
+      const out: any = Array.isArray(obj) ? [] : {};
+      for (const k of Object.keys(obj)) {
+        out[k] = SENTRY_SCRUB_KEYS.test(k) ? '[redacted]' : scrub(obj[k]);
+      }
+      return out;
+    }
+    if (event.extra) event.extra = scrub(event.extra);
+    if (event.request?.data) event.request.data = '[redacted]';
+    if (event.request?.headers) {
+      const h = event.request.headers as Record<string, string>;
+      if (h['authorization']) h['authorization'] = '[redacted]';
+      if (h['x-api-key']) h['x-api-key'] = '[redacted]';
+    }
+    return event;
+  },
+});
+
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
@@ -114,7 +146,8 @@ app.use('/api/contact', contactRoutes);
 app.use('/api/orgs', orgRoutes);
 app.use('/api/devices', deviceRoutes);
 
-// Error handling
+// Error handling — Sentry must be before our handler
+Sentry.setupExpressErrorHandler(app);
 app.use(errorHandler);
 
 // Database connection test
@@ -148,8 +181,8 @@ async function startServer() {
   startExecutionReconciler();
   startTokenRefreshJob();
   
-  server.listen(PORT, () => {
-    logger.info(`Server running on port ${PORT}`);
+  server.listen(Number(PORT), '0.0.0.0', () => {
+    logger.info(`Server running on 0.0.0.0:${PORT}`);
     logger.info(`Environment: ${process.env.NODE_ENV}`);
     logger.info(`Database: ${process.env.DATABASE_URL ? 'Connected' : 'NOT CONFIGURED'}`);
   });
