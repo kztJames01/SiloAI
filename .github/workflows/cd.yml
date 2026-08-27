@@ -34,6 +34,8 @@ jobs:
           tags: |
             ${{ secrets.DOCKERHUB_USERNAME }}/silo-backend:latest
             ${{ secrets.DOCKERHUB_USERNAME }}/silo-backend:${{ github.sha }}
+          build-args: |
+            GIT_SHA=${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
@@ -50,6 +52,9 @@ jobs:
             VITE_API_URL=${{ vars.VITE_API_URL }}
             VITE_SUPABASE_URL=${{ secrets.VITE_SUPABASE_URL }}
             VITE_SUPABASE_ANON_KEY=${{ secrets.VITE_SUPABASE_ANON_KEY }}
+            VITE_SENTRY_DSN=${{ secrets.SENTRY_DSN }}
+            VITE_SENTRY_ENVIRONMENT=production
+            VITE_GIT_SHA=${{ github.sha }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
