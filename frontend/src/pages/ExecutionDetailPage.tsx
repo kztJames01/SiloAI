@@ -69,7 +69,8 @@ export default function ExecutionDetailPage() {
         const reader = res.body.getReader();
         const dec = new TextDecoder();
         let buf = '';
-        while (true) {
+        // stream read loop — breaks on done
+        for (;;) {
           const { done, value } = await reader.read();
           if (done) break;
           buf += dec.decode(value, { stream: true });
