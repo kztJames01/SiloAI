@@ -27,7 +27,7 @@
     "expo-linking": "~56.0.15",
     "expo-notifications": "~56.0.24",
     "expo-router": "~4.0.17",
-    "expo-secure-store": "~56.0.4",
+    "expo-secure-store": "~57.0.1",
     "expo-status-bar": "~2.0.1",
     "expo-web-browser": "~56.0.5",
     "react": "18.3.1",
