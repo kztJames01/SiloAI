@@ -22,15 +22,21 @@ export default function LoginPage() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const token = params.get('token');
-    if (!token) return;
+    const oauthCode = params.get('oauth_code');
+    if (!oauthCode) return;
+
+    params.delete('oauth_code');
+    const clean = params.toString();
+    window.history.replaceState(null, '', window.location.pathname + (clean ? `?${clean}` : ''));
 
     (async () => {
       try {
         setIsOAuthLoading(true);
-        await useAuthStore.getState().loginWithToken(token);
+        const response = await authApi.exchangeOAuthCode(oauthCode);
+        await useAuthStore.getState().loginWithToken(response.data.token);
         toast.success('Logged in successfully!');
-        navigate('/workflows');
+        const next = new URLSearchParams(window.location.search).get('next');
+        navigate(next && next.startsWith('/') ? next : '/dashboard');
       } catch (error: any) {
         toast.error(getErrorMessage(error, 'Social login failed'));
       } finally {
@@ -46,7 +52,8 @@ export default function LoginPage() {
     try {
       await login(email, password);
       toast.success('Logged in successfully!');
-      navigate('/workflows');
+      const next = new URLSearchParams(window.location.search).get('next');
+      navigate(next && next.startsWith('/') ? next : '/dashboard');
     } catch (error: any) {
       toast.error(getErrorMessage(error, 'Login failed'));
     } finally {

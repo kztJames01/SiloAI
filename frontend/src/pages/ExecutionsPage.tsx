@@ -12,6 +12,10 @@ export default function ExecutionsPage() {
       const response = await executionApi.list();
       return response.data.executions;
     },
+    refetchInterval: (q) => {
+      const list = (q.state.data as any[]) || [];
+      return list.some((e) => e.status === 'RUNNING' || e.status === 'PENDING') ? 4000 : false;
+    },
   });
 
   if (isLoading) {

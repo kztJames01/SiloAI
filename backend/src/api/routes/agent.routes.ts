@@ -1,8 +1,10 @@
 import express from 'express';
-import { authenticate, AuthRequest } from '../middleware/auth.middleware';
+import { authenticate, requireAdmin, AuthRequest } from '../middleware/auth.middleware';
+import { llmRateLimiter } from '../middleware/rateLimiter.middleware';
 import prisma from '../../db/prisma';
 import { WorkflowEngine } from '../../engine/WorkflowEngine';
 import { AppError } from '../middleware/error.middleware';
+import { watchAgentExecution } from '../../services/executionSync';
 import { z } from 'zod';
 
 const router = express.Router();
@@ -267,12 +269,10 @@ const agentSchema = z.object({
   isActive: z.boolean().optional().default(true),
 });
 
-// ─── GET /api/agents/presets
 router.get('/presets', (_req, res) => {
   res.json({ presets: PRESET_AGENTS });
 });
 
-// ─── GET /api/agents 
 router.get('/', async (req: AuthRequest, res) => {
   const agents = await prisma.aIAgent.findMany({
     where: { userId: req.userId! },
@@ -288,7 +288,6 @@ router.get('/', async (req: AuthRequest, res) => {
   res.json({ agents });
 });
 
-// ─── GET /api/agents/:id ─────────────────────────────────────────────────────
 router.get('/:id', async (req: AuthRequest, res) => {
   const agent = await prisma.aIAgent.findFirst({
     where: { id: req.params.id, userId: req.userId! },
@@ -304,8 +303,7 @@ router.get('/:id', async (req: AuthRequest, res) => {
   res.json({ agent });
 });
 
-// ─── POST /api/agents ────────────────────────────────────────────────────────
-router.post('/', async (req: AuthRequest, res) => {
+router.post('/', requireAdmin, async (req: AuthRequest, res) => {
   const data = agentSchema.parse(req.body);
 
   const agent = await prisma.aIAgent.create({
@@ -319,8 +317,7 @@ router.post('/', async (req: AuthRequest, res) => {
   res.status(201).json({ agent });
 });
 
-// ─── PUT /api/agents/:id ──────────────────────────────────────────────────────
-router.put('/:id', async (req: AuthRequest, res) => {
+router.put('/:id', requireAdmin, async (req: AuthRequest, res) => {
   const existing = await prisma.aIAgent.findFirst({
     where: { id: req.params.id, userId: req.userId! },
   });
@@ -336,8 +333,7 @@ router.put('/:id', async (req: AuthRequest, res) => {
   res.json({ agent });
 });
 
-// ─── DELETE /api/agents/:id ───────────────────────────────────────────────────
-router.delete('/:id', async (req: AuthRequest, res) => {
+router.delete('/:id', requireAdmin, async (req: AuthRequest, res) => {
   const existing = await prisma.aIAgent.findFirst({
     where: { id: req.params.id, userId: req.userId! },
   });
@@ -347,9 +343,8 @@ router.delete('/:id', async (req: AuthRequest, res) => {
   res.json({ message: 'Agent deleted' });
 });
 
-// ─── POST /api/agents/:id/run ─────────────────────────────────────────────────
 // Creates an ephemeral workflow with a single AIAgent node and runs it
-router.post('/:id/run', async (req: AuthRequest, res) => {
+router.post('/:id/run', requireAdmin, llmRateLimiter, async (req: AuthRequest, res) => {
   const agent = await prisma.aIAgent.findFirst({
     where: { id: req.params.id, userId: req.userId! },
   });
@@ -379,6 +374,9 @@ router.post('/:id/run', async (req: AuthRequest, res) => {
           context: context ?? {},
           maxIterations: agent.maxIterations,
           tools: agent.tools ?? [],
+          enableMemory: agent.enableMemory,
+          agentId: agent.id,
+          userId: req.userId,
         },
       },
     ],
@@ -413,10 +411,21 @@ router.post('/:id/run', async (req: AuthRequest, res) => {
   }
 
   const executionId = await engine.executeWorkflow(agentWorkflow as any, { task, context });
-  res.json({ executionId, message: 'Agent run started' });
+
+  const agentExecution = await prisma.aIAgentExecution.create({
+    data: {
+      agentId: agent.id,
+      input: typeof task === 'string' ? task : JSON.stringify(task),
+      steps: [{ workflowExecutionId: executionId }],
+      status: 'RUNNING',
+    },
+  });
+
+  watchAgentExecution(agentExecution.id, executionId);
+
+  res.json({ executionId, agentExecutionId: agentExecution.id, message: 'Agent run started' });
 });
 
-// ─── GET /api/agents/:id/executions ──────────────────────────────────────────
 router.get('/:id/executions', async (req: AuthRequest, res) => {
   const agent = await prisma.aIAgent.findFirst({
     where: { id: req.params.id, userId: req.userId! },

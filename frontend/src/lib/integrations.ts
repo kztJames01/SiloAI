@@ -22,7 +22,6 @@ export interface AppIntegration {
 
 // All App Integrations
 export const APP_INTEGRATIONS: AppIntegration[] = [
-  // ── Google Suite ──
   {
     provider: 'gmail',
     name: 'Gmail',
@@ -88,6 +87,54 @@ export const APP_INTEGRATIONS: AppIntegration[] = [
     tags: ['Documents', 'Google'],
   },
   {
+    provider: 'google_forms',
+    name: 'Google Forms',
+    description: 'Build forms and pull field inspection responses',
+    category: 'forms',
+    authType: 'oauth2',
+    color: '#7248B9',
+    icon: '📋',
+    enabled: true,
+    suite: 'google',
+    tags: ['Forms', 'Google', 'Surveys'],
+  },
+  {
+    provider: 'google_meet',
+    name: 'Google Meet',
+    description: 'Video calls for remote estimates and crew check-ins',
+    category: 'communication',
+    authType: 'oauth2',
+    color: '#00897B',
+    icon: '🎥',
+    enabled: true,
+    suite: 'google',
+    tags: ['Video', 'Google', 'Meetings'],
+  },
+  {
+    provider: 'google_slides',
+    name: 'Google Slides',
+    description: 'Share job walkthrough decks and safety briefings',
+    category: 'productivity',
+    authType: 'oauth2',
+    color: '#F4B400',
+    icon: '📽️',
+    enabled: true,
+    suite: 'google',
+    tags: ['Presentations', 'Google'],
+  },
+  {
+    provider: 'google_contacts',
+    name: 'Google Contacts',
+    description: 'Sync customers, subs, and vendor contacts',
+    category: 'productivity',
+    authType: 'oauth2',
+    color: '#4285F4',
+    icon: '👤',
+    enabled: true,
+    suite: 'google',
+    tags: ['Contacts', 'Google', 'CRM'],
+  },
+  {
     provider: 'youtube',
     name: 'YouTube',
     description: 'Video management and analytics',
@@ -100,7 +147,6 @@ export const APP_INTEGRATIONS: AppIntegration[] = [
     tags: ['Video', 'Google', 'Social'],
   },
 
-  // ── Microsoft Suite ──
   {
     provider: 'microsoft_outlook',
     name: 'Microsoft Outlook',
@@ -149,8 +195,135 @@ export const APP_INTEGRATIONS: AppIntegration[] = [
     suite: 'microsoft',
     tags: ['Storage', 'Microsoft'],
   },
+  {
+    provider: 'microsoft_word',
+    name: 'Microsoft Word',
+    description: 'Work orders, scopes, and contract documents',
+    category: 'productivity',
+    authType: 'oauth2',
+    color: '#2B579A',
+    icon: '📄',
+    enabled: true,
+    suite: 'microsoft',
+    tags: ['Documents', 'Microsoft'],
+  },
+  {
+    provider: 'microsoft_powerpoint',
+    name: 'Microsoft PowerPoint',
+    description: 'Bid decks and safety training slides',
+    category: 'productivity',
+    authType: 'oauth2',
+    color: '#D24726',
+    icon: '📊',
+    enabled: true,
+    suite: 'microsoft',
+    tags: ['Presentations', 'Microsoft'],
+  },
+  {
+    provider: 'microsoft_sharepoint',
+    name: 'Microsoft SharePoint',
+    description: 'Job folders, permits, and team document libraries',
+    category: 'storage',
+    authType: 'oauth2',
+    color: '#038387',
+    icon: '🗂️',
+    enabled: true,
+    suite: 'microsoft',
+    tags: ['Storage', 'Microsoft', 'Sites'],
+  },
+  {
+    provider: 'microsoft_todo',
+    name: 'Microsoft To Do',
+    description: 'Crew task lists and punch-list follow-ups',
+    category: 'productivity',
+    authType: 'oauth2',
+    color: '#0078D4',
+    icon: '✅',
+    enabled: true,
+    suite: 'microsoft',
+    tags: ['Tasks', 'Microsoft'],
+  },
 
-  // ── Communication ──
+  {
+    provider: 'service_titan',
+    name: 'ServiceTitan',
+    description: 'HVAC, plumbing, and electrical dispatch at scale',
+    category: 'field_service',
+    authType: 'oauth2',
+    color: '#FF6B00',
+    icon: '🔧',
+    enabled: true,
+    popular: true,
+    tags: ['HVAC', 'Plumbing', 'Dispatch', 'FSM'],
+  },
+  {
+    provider: 'jobber',
+    name: 'Jobber',
+    description: 'Quotes, scheduling, and invoicing for home services',
+    category: 'field_service',
+    authType: 'oauth2',
+    color: '#84BD00',
+    icon: '🏠',
+    enabled: true,
+    popular: true,
+    tags: ['Landscaping', 'Cleaning', 'Scheduling'],
+  },
+  {
+    provider: 'housecall_pro',
+    name: 'Housecall Pro',
+    description: 'Dispatch, estimates, and payments for trade pros',
+    category: 'field_service',
+    authType: 'api_key',
+    color: '#005CB9',
+    icon: '📞',
+    enabled: true,
+    tags: ['Dispatch', 'Invoicing', 'Trades'],
+  },
+  {
+    provider: 'companycam',
+    name: 'CompanyCam',
+    description: 'Before/after job site photos for crews',
+    category: 'field_service',
+    authType: 'api_key',
+    color: '#FFD100',
+    icon: '📸',
+    enabled: true,
+    tags: ['Photos', 'Construction', 'Documentation'],
+  },
+  {
+    provider: 'workiz',
+    name: 'Workiz',
+    description: 'CRM for locksmiths, garage door, and HVAC techs',
+    category: 'field_service',
+    authType: 'api_key',
+    color: '#1E88E5',
+    icon: '🚐',
+    enabled: true,
+    tags: ['CRM', 'Dispatch', 'Mobile'],
+  },
+  {
+    provider: 'buildertrend',
+    name: 'BuilderTrend',
+    description: 'Construction schedules, subs, and change orders',
+    category: 'field_service',
+    authType: 'oauth2',
+    color: '#F7941D',
+    icon: '🏗️',
+    enabled: true,
+    tags: ['Construction', 'Projects', 'Subs'],
+  },
+  {
+    provider: 'servicem8',
+    name: 'ServiceM8',
+    description: 'Job cards, quotes, and invoicing for mobile trades',
+    category: 'field_service',
+    authType: 'oauth2',
+    color: '#00AEEF',
+    icon: '🛠️',
+    enabled: true,
+    tags: ['Jobs', 'Quotes', 'Trades'],
+  },
+
   {
     provider: 'slack',
     name: 'Slack',
@@ -194,6 +367,7 @@ export const APP_INTEGRATIONS: AppIntegration[] = [
     color: '#2D8CFF',
     icon: '🎥',
     enabled: true,
+    comingSoon: true,
     tags: ['Video', 'Meetings'],
   },
   {
@@ -208,7 +382,6 @@ export const APP_INTEGRATIONS: AppIntegration[] = [
     tags: ['Email', 'Marketing'],
   },
 
-  // ── Productivity & Project Management ──
   {
     provider: 'notion',
     name: 'Notion',
@@ -230,6 +403,7 @@ export const APP_INTEGRATIONS: AppIntegration[] = [
     color: '#0052CC',
     icon: '📋',
     enabled: true,
+    comingSoon: true,
     tags: ['Boards', 'Tasks'],
   },
   {
@@ -256,7 +430,6 @@ export const APP_INTEGRATIONS: AppIntegration[] = [
     tags: ['Database', 'Spreadsheet'],
   },
 
-  // ── Marketing ──
   {
     provider: 'mailchimp',
     name: 'Mailchimp',
@@ -266,6 +439,7 @@ export const APP_INTEGRATIONS: AppIntegration[] = [
     color: '#FFE01B',
     icon: '🐒',
     enabled: true,
+    comingSoon: true,
     tags: ['Email', 'Campaigns'],
   },
   {
@@ -278,6 +452,7 @@ export const APP_INTEGRATIONS: AppIntegration[] = [
     icon: '🧡',
     enabled: true,
     popular: true,
+    comingSoon: true,
     tags: ['CRM', 'Marketing', 'Sales'],
   },
   {
@@ -289,6 +464,7 @@ export const APP_INTEGRATIONS: AppIntegration[] = [
     color: '#1877F2',
     icon: '📣',
     enabled: true,
+    comingSoon: true,
     tags: ['Ads', 'Social Media'],
   },
   {
@@ -300,10 +476,10 @@ export const APP_INTEGRATIONS: AppIntegration[] = [
     color: '#262627',
     icon: '📝',
     enabled: true,
+    comingSoon: true,
     tags: ['Forms', 'Surveys'],
   },
 
-  // ── Payments ──
   {
     provider: 'stripe',
     name: 'Stripe',
@@ -317,7 +493,6 @@ export const APP_INTEGRATIONS: AppIntegration[] = [
     tags: ['Payments', 'Billing'],
   },
 
-  // ── AI ──
   {
     provider: 'openai',
     name: 'OpenAI',
@@ -342,7 +517,6 @@ export const APP_INTEGRATIONS: AppIntegration[] = [
     tags: ['AI', 'Chat', 'Assistant'],
   },
 
-  // ── Development ──
   {
     provider: 'github',
     name: 'GitHub',
@@ -356,7 +530,6 @@ export const APP_INTEGRATIONS: AppIntegration[] = [
     tags: ['Code', 'Git', 'Issues'],
   },
 
-  // ── Storage ──
   {
     provider: 'dropbox',
     name: 'Dropbox',
@@ -369,7 +542,6 @@ export const APP_INTEGRATIONS: AppIntegration[] = [
     tags: ['Storage', 'Files'],
   },
 
-  // ── Custom ──
   {
     provider: 'webhook',
     name: 'Webhook',
@@ -383,7 +555,6 @@ export const APP_INTEGRATIONS: AppIntegration[] = [
   },
 ];
 
-// ─── Helper lookups ──────────────────────────────────────────────────────────
 
 export const INTEGRATION_BY_PROVIDER = new Map(
   APP_INTEGRATIONS.map((app) => [app.provider, app])
@@ -402,6 +573,7 @@ export const INTEGRATION_CATEGORIES = [
   { id: 'development', label: 'Development', icon: '🛠️' },
   { id: 'video', label: 'Video', icon: '🎬' },
   { id: 'forms', label: 'Forms', icon: '📝' },
+  { id: 'field_service', label: 'Field Service', icon: '🔧' },
   { id: 'custom', label: 'Custom', icon: '🔧' },
 ] as const;
 
@@ -442,15 +614,19 @@ export function getMicrosoftSuiteApps(): AppIntegration[] {
   return APP_INTEGRATIONS.filter((a) => a.suite === 'microsoft');
 }
 
+export function getFieldServiceApps(): AppIntegration[] {
+  return APP_INTEGRATIONS.filter((a) => a.category === 'field_service');
+}
+
 /** Integrations used in a specific workflow template (for template cards) */
 export const TEMPLATE_CONNECTORS: Record<string, string[]> = {
   // Healthcare
   'healthcare-intake': ['gmail', 'slack', 'google_sheets'],
   'appointment-scheduler': ['google_calendar', 'sendgrid', 'twilio'],
   // Field Service
-  'field-hazard': ['slack', 'webhook', 'airtable'],
-  'inventory-check': ['google_sheets', 'slack', 'airtable'],
-  'maintenance-request': ['sendgrid', 'clickup', 'slack'],
+  'field-hazard': ['slack', 'companycam', 'servicem8'],
+  'inventory-check': ['google_sheets', 'service_titan', 'airtable'],
+  'maintenance-request': ['housecall_pro', 'jobber', 'slack'],
   // Invoicing
   'invoice-approval': ['stripe', 'google_sheets', 'slack'],
   'expense-approval': ['google_sheets', 'slack', 'hubspot'],

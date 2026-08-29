@@ -1,4 +1,6 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
+import { useQuery } from '@tanstack/react-query';
+import { integrationApi } from '../lib/api';
 import {
   Database,
   Plus,
@@ -55,34 +57,12 @@ const STATUS_META: Record<DbStatus, { label: string; color: string; dot: string 
   provisioning: { label: 'Provisioning', color: 'text-amber-700 bg-amber-100',  dot: 'bg-amber-400 animate-pulse' },
 };
 
-const DEMO_CONNECTIONS: DbConnection[] = [
-  {
-    id: 'conn-1',
-    name: 'Silo Local Postgres',
-    engine: 'postgresql',
-    status: 'connected',
-    host: '127.0.0.1',
-    port: 5432,
-    database: 'silo_db',
-    username: 'silo_user',
-    isLocal: true,
-    createdAt: new Date('2026-02-01'),
-    lastUsed: new Date('2026-02-20'),
-    sizeBytes: 24 * 1024 * 1024,
-  },
-  {
-    id: 'conn-2',
-    name: 'Cache Store',
-    engine: 'redis',
-    status: 'connected',
-    host: '127.0.0.1',
-    port: 6379,
-    database: '0',
-    isLocal: true,
-    createdAt: new Date('2026-02-10'),
-    lastUsed: new Date('2026-02-19'),
-  },
-];
+const DEMO_CONNECTIONS: DbConnection[] = [];
+
+const API_BASE =
+  import.meta.env.VITE_API_URL?.trim() ||
+  window.__APP_CONFIG__?.API_URL?.trim() ||
+  'http://localhost:5000';
 
 function fmtSize(bytes?: number) {
   if (!bytes) return null;
@@ -120,9 +100,11 @@ function DbModal({ mode, onClose, onSave }: CreateModalProps) {
   const testConnection = async () => {
     setIsTesting(true);
     setTestResult(null);
-    await new Promise(r => setTimeout(r, 1200));
-    // Simulate: success if host provided
-    setTestResult(host.trim() ? 'ok' : 'fail');
+    const ok =
+      engine === 'sqlite'
+        ? !!database.trim()
+        : !!host.trim() && !!database.trim() && port > 0;
+    setTestResult(ok ? 'ok' : 'fail');
     setIsTesting(false);
   };
 
@@ -405,18 +387,81 @@ export default function DataStoragePage() {
   const [modal, setModal] = useState<ModalMode>(null);
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
+  const { data: userIntegrations = [] } = useQuery({
+    queryKey: ['storage-integrations'],
+    queryFn: async () => {
+      const res = await integrationApi.listUser();
+      return res.data.userIntegrations || [];
+    },
+  });
+
+  useEffect(() => {
+    const load = async () => {
+      let dbConn: DbConnection | null = null;
+      try {
+        const res = await fetch(`${API_BASE}/health`);
+        const health = await res.json();
+        dbConn = {
+          id: 'app-db',
+          name: 'Application Database',
+          engine: 'postgresql',
+          status: health.database === 'connected' ? 'connected' : 'error',
+          host: 'managed',
+          port: 5432,
+          database: 'postgres',
+          isLocal: false,
+          createdAt: new Date(),
+          lastUsed: new Date(),
+        };
+      } catch {
+        dbConn = {
+          id: 'app-db',
+          name: 'Application Database',
+          engine: 'postgresql',
+          status: 'disconnected',
+          host: 'managed',
+          port: 5432,
+          database: 'postgres',
+          isLocal: false,
+          createdAt: new Date(),
+        };
+      }
+
+      const integrationConns: DbConnection[] = userIntegrations
+        .filter((item: any) => ['google_drive', 'dropbox', 'onedrive', 'airtable'].includes(item.provider))
+        .map((item: any) => ({
+          id: `int-${item.id}`,
+          name: item.provider,
+          engine: 'mongodb' as DbEngine,
+          status: item.status === 'active' ? 'connected' : 'disconnected',
+          host: item.provider,
+          port: 0,
+          database: item.provider,
+          isLocal: false,
+          createdAt: new Date(item.createdAt || Date.now()),
+          lastUsed: item.updatedAt ? new Date(item.updatedAt) : undefined,
+        }));
+
+      setConnections((prev) => {
+        const manual = prev.filter((c) => !c.id.startsWith('app-db') && !c.id.startsWith('int-'));
+        return [...(dbConn ? [dbConn] : []), ...integrationConns, ...manual];
+      });
+    };
+
+    load();
+  }, [userIntegrations]);
+
   const handleSave = (conn: DbConnection) => {
     setConnections(prev => [conn, ...prev]);
     setModal(null);
-    // Simulate provisioning completing
     if (conn.status === 'provisioning') {
-      setTimeout(() => {
-        setConnections(prev =>
-          prev.map(c => c.id === conn.id ? { ...c, status: 'connected' as DbStatus } : c)
-        );
-        toast.success(`${conn.name} is ready`);
-      }, 3000);
+      toast('Saved locally — cloud DB provisioning is not available yet');
+      setConnections(prev =>
+        prev.map(c => (c.id === conn.id ? { ...c, status: 'disconnected' as DbStatus } : c))
+      );
+      return;
     }
+    toast.success(conn.status === 'connected' ? 'Connection added' : 'Connection saved locally');
   };
 
   const handleDelete = (id: string) => {
@@ -453,6 +498,10 @@ export default function DataStoragePage() {
 
   return (
     <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 py-8 space-y-8">
+
+      <div className="rounded-lg border border-amber-300 bg-amber-50 text-amber-900 px-4 py-3 text-sm">
+        Preview feature: connections are saved in this browser only. Managed database provisioning and workflow database nodes are not wired to a backend yet.
+      </div>
 
       {/* Header */}
       <div className="flex items-start justify-between gap-4 flex-wrap">
@@ -579,7 +628,7 @@ export default function DataStoragePage() {
             <p className="text-sm font-bold text-foreground mb-1">Use in Workflows</p>
             <p className="text-xs text-muted-foreground leading-relaxed">
               Every connected database is available as a data source inside the Workflow Editor.
-              Add a <strong>Database Query</strong> or <strong>Database Write</strong> node and select your connection from the dropdown.
+              Use integration database apps (Airtable, Google Sheets, etc.) inside workflows today. Direct SQL connection nodes are planned.
               No cloud credentials needed — everything stays local.
             </p>
           </div>

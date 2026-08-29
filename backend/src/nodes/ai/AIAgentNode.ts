@@ -2,6 +2,7 @@ import { INode, NodeDefinition } from '../NodeRegistry';
 import { ExecutionContext } from '../../engine/WorkflowEngine';
 import { LLMProviderFactory } from '../../ai/providers';
 import { LLMConfig, Message, AIAgentStep } from '../../../../shared/src/types/ai';
+import { loadAgentMemory, saveAgentMemory } from '../../services/agentMemory';
 
 /**
  * AI Agent Node - Autonomous decision-making AI agent
@@ -92,6 +93,9 @@ export class AIAgentNode implements INode {
       context: agentContext = {},
       maxIterations = 5,
       tools = [],
+      enableMemory,
+      agentId,
+      userId,
     } = data;
 
     const config: LLMConfig = {
@@ -119,11 +123,23 @@ ${tools.length > 0 ? `Available tools: ${tools.map((t: any) => t.name).join(', '
 
     const messages: Message[] = [
       { role: 'system', content: agentSystemPrompt },
-      {
-        role: 'user',
-        content: `Task: ${task}\n\nContext: ${JSON.stringify(agentContext, null, 2)}`,
-      },
     ];
+
+    if (enableMemory && agentId && userId) {
+      try {
+        const past = await loadAgentMemory(agentId, userId);
+        for (const m of past) {
+          messages.push({ role: m.role, content: m.content });
+        }
+      } catch {
+        // keep going without history
+      }
+    }
+
+    messages.push({
+      role: 'user',
+      content: `Task: ${task}\n\nContext: ${JSON.stringify(agentContext, null, 2)}`,
+    });
 
     const steps: AIAgentStep[] = [];
     let totalPromptTokens = 0;
@@ -179,8 +195,18 @@ ${tools.length > 0 ? `Available tools: ${tools.map((t: any) => t.name).join(', '
       });
     }
 
+    const resultText = finalAnswer || 'Max iterations reached without final answer';
+
+    if (enableMemory && agentId && userId) {
+      try {
+        await saveAgentMemory(agentId, userId, String(task), resultText);
+      } catch {
+        // don't fail the run if memory write fails
+      }
+    }
+
     return {
-      result: finalAnswer || 'Max iterations reached without final answer',
+      result: resultText,
       steps,
       totalUsage: {
         promptTokens: totalPromptTokens,

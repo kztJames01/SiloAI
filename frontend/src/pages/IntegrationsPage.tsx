@@ -26,6 +26,7 @@ interface Connection {
   name: string;
   provider: string;
   status: 'ACTIVE' | 'EXPIRED' | 'ERROR' | 'DISCONNECTED';
+  needsReconnect?: boolean;
   lastUsed?: string;
   lastTested?: string;
   integration: {
@@ -270,6 +271,9 @@ export default function IntegrationsPage() {
                         )}
                         {connection.status === 'EXPIRED' && (
                           <span className="text-orange-600">● Expired</span>
+                        )}
+                        {connection.needsReconnect && connection.status === 'ACTIVE' && (
+                          <span className="text-orange-600">● Reconnect</span>
                         )}
                         {connection.lastUsed && <span className="ml-2">Last used: {new Date(connection.lastUsed).toLocaleDateString()}</span>}
                       </div>

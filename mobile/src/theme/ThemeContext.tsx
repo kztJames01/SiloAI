@@ -20,8 +20,6 @@ import { colors, type ColorMode, type Colors } from './colors';
 import { gradients, type Gradients } from './gradients';
 import { palette } from './colors';
 
-// ── Context shape ─────────────────────────────────────────────────────────────
-
 export interface ThemeContextValue {
   /** Whether dark mode is currently active */
   isDark: boolean;
@@ -37,8 +35,6 @@ export interface ThemeContextValue {
   palette: typeof palette;
 }
 
-// ── Context & hook ────────────────────────────────────────────────────────────
-
 const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 
 export function useTheme(): ThemeContextValue {
@@ -48,8 +44,6 @@ export function useTheme(): ThemeContextValue {
   }
   return ctx;
 }
-
-// ── Provider ──────────────────────────────────────────────────────────────────
 
 interface ThemeProviderProps {
   children: React.ReactNode;

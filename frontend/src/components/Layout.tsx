@@ -151,10 +151,10 @@ export function Layout() {
                   {isDark ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
                 </button>
 
-                <button className="flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors">
+                <Link to="/help" className="flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium text-muted-foreground hover:bg-accent hover:text-accent-foreground transition-colors">
                   <HelpCircle className="h-4 w-4" />
                   <span>Help</span>
-                </button>
+                </Link>
                 <button className="flex items-center space-x-2 px-3 py-2 rounded-md text-sm font-medium bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
                   <CreditCard className="h-4 w-4" />
                   <span>Upgrade</span>
@@ -176,7 +176,7 @@ export function Layout() {
         </header>
 
         {/* Page Content */}
-        <main className="bg-background pt-16">
+        <main className="pt-16 min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800">
           <Outlet />
         </main>
       </div>

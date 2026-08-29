@@ -86,7 +86,7 @@ export class PromptTemplateNode implements INode {
     ],
   };
 
-  async execute(data: any, _context: ExecutionContext): Promise<any> {
+  async execute(data: any, context: ExecutionContext): Promise<any> {
     const {
       templateId,
       customTemplate,
@@ -98,6 +98,11 @@ export class PromptTemplateNode implements INode {
       baseUrl,
       temperature = 0.7,
     } = data;
+
+    const vars =
+      variables && typeof variables === 'object' && Object.keys(variables).length
+        ? variables
+        : { ...(context.data?.input || {}), ...(context.previousNodeData || {}) };
 
     // Get or create template
     let template;
@@ -117,7 +122,7 @@ export class PromptTemplateNode implements INode {
     }
 
     // Build messages from template
-    const messages = PromptTemplateEngine.buildMessages(template, variables, false);
+    const messages = PromptTemplateEngine.buildMessages(template, vars, false);
 
     // Create LLM provider
     const config: LLMConfig = {

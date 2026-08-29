@@ -1,7 +1,10 @@
+export type UserRole = 'ADMIN' | 'FIELD';
+
 export interface AuthUser {
   id: string;
   email: string;
   name: string | null;
+  role?: UserRole;
   createdAt?: string;
 }
 

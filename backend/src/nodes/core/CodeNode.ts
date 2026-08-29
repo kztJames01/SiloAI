@@ -28,9 +28,12 @@ export class CodeNode implements INode {
   async execute(data: any, context: ExecutionContext): Promise<any> {
     const { code } = data;
 
-    // Create a safe execution environment
-    const func = new Function('context', 'data', 'require', code);
-    const result = await func(context, context.previousNodeData, require);
+    if (process.env.NODE_ENV === 'production' || process.env.ALLOW_CODE_NODE !== 'true') {
+      throw new Error('Code node is disabled in production. Set ALLOW_CODE_NODE=true only in local dev.');
+    }
+
+    const func = new Function('context', 'data', code);
+    const result = await func(context, context.previousNodeData);
 
     return result;
   }

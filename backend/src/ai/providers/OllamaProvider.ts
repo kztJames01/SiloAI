@@ -1,6 +1,6 @@
 import { BaseLLMProvider } from './BaseLLMProvider';
 import { LLMConfig, LLMResponse, Message, TokenUsage } from '../../../../shared/src/types/ai';
-import axios from 'axios';
+import { createSafeAxios } from '../../utils/security';
 
 interface OllamaMessage {
   role: string;
@@ -26,6 +26,7 @@ interface OllamaResponse {
  */
 export class OllamaProvider extends BaseLLMProvider {
   private baseUrl: string;
+  private http = createSafeAxios();
 
   constructor(config: LLMConfig) {
     super(config);
@@ -36,7 +37,7 @@ export class OllamaProvider extends BaseLLMProvider {
   async complete(messages: Message[], options?: Partial<LLMConfig>): Promise<LLMResponse> {
     const config = this.mergeConfig(options);
 
-    const response = await axios.post<OllamaResponse>(
+    const response = await this.http.post<OllamaResponse>(
       `${this.baseUrl}/api/chat`,
       {
         model: config.model,
@@ -81,7 +82,7 @@ export class OllamaProvider extends BaseLLMProvider {
     let promptTokens = 0;
     let completionTokens = 0;
 
-    const response = await axios.post(
+    const response = await this.http.post(
       `${this.baseUrl}/api/chat`,
       {
         model: config.model,
@@ -163,7 +164,7 @@ export class OllamaProvider extends BaseLLMProvider {
    */
   async listModels(): Promise<string[]> {
     try {
-      const response = await axios.get(`${this.baseUrl}/api/tags`);
+      const response = await this.http.get(`${this.baseUrl}/api/tags`);
       return response.data.models?.map((m: any) => m.name) || [];
     } catch (error) {
       console.error('Failed to list Ollama models:', error);
@@ -175,7 +176,7 @@ export class OllamaProvider extends BaseLLMProvider {
    * Pull a model from Ollama library
    */
   async pullModel(modelName: string): Promise<void> {
-    await axios.post(`${this.baseUrl}/api/pull`, {
+    await this.http.post(`${this.baseUrl}/api/pull`, {
       name: modelName,
     });
   }

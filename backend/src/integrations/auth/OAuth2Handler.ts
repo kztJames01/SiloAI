@@ -1,4 +1,3 @@
-import crypto from 'crypto';
 import {
   OAuth2Config,
   OAuth2TokenResponse,
@@ -9,19 +8,14 @@ import {
 import axios from 'axios';
 import { IntegrationError } from '../base/BaseIntegration';
 import { logger } from '../../utils/logger';
+import { signOAuthState, verifyOAuthState } from '../../utils/security';
 
 /**
  * OAuth2 handler for managing OAuth2 authentication flows
  */
 export class OAuth2Handler {
-  private stateStore: Map<string, { userId: string; provider: string; timestamp: number }> = new Map();
-  private readonly STATE_EXPIRY_MS = 10 * 60 * 1000; // 10 minutes
-
-  /**
-   * Generate authorization URL for OAuth2 flow
-   */
-  generateAuthorizationUrl(config: OAuth2Config, userId: string, provider: string): string {
-    const state = this.generateState(userId, provider);
+  generateAuthorizationUrl(config: OAuth2Config, userId: string, provider: string, platform: 'web' | 'mobile' = 'web'): string {
+    const state = signOAuthState({ userId, provider, platform });
 
     const params = new URLSearchParams({
       client_id: config.clientId,
@@ -29,62 +23,31 @@ export class OAuth2Handler {
       response_type: 'code',
       scope: config.scopes.join(' '),
       state,
-      access_type: 'offline', // Request refresh token
-      prompt: 'consent', // Force consent screen to get refresh token
+      access_type: 'offline',
+      prompt: 'consent',
     });
 
     return `${config.authorizationUrl}?${params.toString()}`;
   }
 
-  /**
-   * Generate and store state parameter for CSRF protection
-   */
-  private generateState(userId: string, provider: string): string {
-    const state = crypto.randomBytes(32).toString('hex');
-    this.stateStore.set(state, { userId, provider, timestamp: Date.now() });
-
-    // Clean up expired states
-    this.cleanExpiredStates();
-
-    return state;
-  }
-
-  /**
-   * Verify state parameter
-   */
-  verifyState(state: string): { userId: string; provider: string } | null {
-    const stored = this.stateStore.get(state);
-
-    if (!stored) {
-      logger.warn('Invalid OAuth2 state parameter', { state });
-      return null;
-    }
-
-    if (Date.now() - stored.timestamp > this.STATE_EXPIRY_MS) {
-      logger.warn('Expired OAuth2 state parameter', { state });
-      this.stateStore.delete(state);
-      return null;
-    }
-
-    this.stateStore.delete(state);
-    return { userId: stored.userId, provider: stored.provider };
-  }
-
-  /**
-   * Clean up expired state entries
-   */
-  private cleanExpiredStates(): void {
-    const now = Date.now();
-    for (const [state, data] of this.stateStore.entries()) {
-      if (now - data.timestamp > this.STATE_EXPIRY_MS) {
-        this.stateStore.delete(state);
+  verifyState(state: string): { userId: string; provider: string; platform: 'web' | 'mobile' } | null {
+    try {
+      const payload = verifyOAuthState<{ userId?: string; provider?: string; platform?: string }>(state);
+      if (!payload.userId || !payload.provider) {
+        logger.warn('Invalid OAuth2 state payload', { state });
+        return null;
       }
+      return {
+        userId: payload.userId,
+        provider: payload.provider,
+        platform: (payload.platform as 'web' | 'mobile') || 'web',
+      };
+    } catch (error: any) {
+      logger.warn('Invalid OAuth2 state parameter', { state, error: error?.message });
+      return null;
     }
   }
 
-  /**
-   * Exchange authorization code for access token
-   */
   async exchangeCodeForToken(
     config: OAuth2Config,
     code: string
@@ -134,9 +97,6 @@ export class OAuth2Handler {
     }
   }
 
-  /**
-   * Refresh access token using refresh token
-   */
   async refreshAccessToken(
     config: OAuth2Config,
     refreshToken: string
@@ -163,7 +123,7 @@ export class OAuth2Handler {
 
       return {
         accessToken: tokenData.access_token,
-        refreshToken: tokenData.refresh_token || refreshToken, // Some providers don't return new refresh token
+        refreshToken: tokenData.refresh_token || refreshToken,
         tokenType: tokenData.token_type,
         expiresAt,
         scope: tokenData.scope,
@@ -183,9 +143,6 @@ export class OAuth2Handler {
     }
   }
 
-  /**
-   * Check if token is expired or about to expire
-   */
   isTokenExpired(credentials: IntegrationCredentials, bufferSeconds = 300): boolean {
     if (!credentials.expiresAt) return false;
 
@@ -195,9 +152,6 @@ export class OAuth2Handler {
     return Date.now() >= expiryTime - bufferMs;
   }
 
-  /**
-   * Get client credentials token (for server-to-server)
-   */
   async getClientCredentialsToken(config: OAuth2Config): Promise<IntegrationCredentials> {
     try {
       const params = new URLSearchParams({
@@ -237,13 +191,9 @@ export class OAuth2Handler {
     }
   }
 
-  /**
-   * Extract provider-specific metadata from token response
-   */
   private extractMetadata(tokenData: OAuth2TokenResponse): Record<string, any> {
     const metadata: Record<string, any> = {};
 
-    // Extract non-standard fields
     for (const [key, value] of Object.entries(tokenData)) {
       if (
         !['access_token', 'refresh_token', 'token_type', 'expires_in', 'scope'].includes(key)
@@ -256,5 +206,4 @@ export class OAuth2Handler {
   }
 }
 
-// Singleton instance
 export const oauth2Handler = new OAuth2Handler();

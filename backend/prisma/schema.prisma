@@ -15,12 +15,73 @@ model User {
   email     String   @unique
   password  String
   name      String?
+  role      UserRole @default(FIELD)
   apiKeys   ApiKey[]
   workflows Workflow[]
+  fieldActions FieldAction[]
+  pushTokens DevicePushToken[]
+  ownedOrgs Organization[] @relation("OrgOwner")
+  memberships OrganizationMember[]
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
   @@map("users")
+}
+
+enum UserRole {
+  ADMIN
+  FIELD
+}
+
+enum OrgRole {
+  OWNER
+  ADMIN
+  MEMBER
+  FIELD
+}
+
+model Organization {
+  id        String   @id @default(uuid())
+  name      String
+  ownerId   String
+  owner     User     @relation("OrgOwner", fields: [ownerId], references: [id])
+  members   OrganizationMember[]
+  invites   OrganizationInvite[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([ownerId])
+  @@map("organizations")
+}
+
+model OrganizationMember {
+  id        String       @id @default(uuid())
+  orgId     String
+  userId    String
+  role      OrgRole      @default(MEMBER)
+  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  user      User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  createdAt DateTime     @default(now())
+
+  @@unique([orgId, userId])
+  @@index([userId])
+  @@map("organization_members")
+}
+
+model OrganizationInvite {
+  id        String       @id @default(uuid())
+  orgId     String
+  email     String
+  role      OrgRole      @default(MEMBER)
+  token     String       @unique
+  expiresAt DateTime
+  invitedBy String
+  org       Organization @relation(fields: [orgId], references: [id], onDelete: Cascade)
+  createdAt DateTime     @default(now())
+
+  @@index([orgId])
+  @@index([email])
+  @@map("organization_invites")
 }
 
 model ApiKey {
@@ -28,11 +89,24 @@ model ApiKey {
   userId    String
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
   name      String
-  key       String   @unique
+  keyHash   String   @unique @map("key")
+  keyPrefix String   @default("")
   lastUsed  DateTime?
   createdAt DateTime @default(now())
 
   @@map("api_keys")
+}
+
+model ContactMessage {
+  id        String   @id @default(uuid())
+  name      String
+  email     String
+  message   String
+  source    String   @default("web")
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@map("contact_messages")
 }
 
 model Workflow {
@@ -65,6 +139,36 @@ model WorkflowExecution {
   error      String?
 
   @@map("workflow_executions")
+}
+
+model FieldAction {
+  id                  String   @id @default(uuid())
+  userId              String
+  user                User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  actionType          String
+  notes               String?
+  jobType             String?
+  payload             Json?
+  workflowExecutionId String?
+  status              String   @default("saved")
+  createdAt           DateTime @default(now())
+
+  @@index([userId])
+  @@index([workflowExecutionId])
+  @@map("field_actions")
+}
+
+model DevicePushToken {
+  id        String   @id @default(uuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  token     String   @unique
+  platform  String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId])
+  @@map("device_push_tokens")
 }
 
 model ExecutionLog {
@@ -324,6 +428,7 @@ enum LLMProvider {
   ANTHROPIC
   GEMINI
   OLLAMA
+  OPENROUTER
   CUSTOM
 }
 

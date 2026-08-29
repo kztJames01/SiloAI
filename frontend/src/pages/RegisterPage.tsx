@@ -23,15 +23,20 @@ export default function RegisterPage() {
 
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
-    const token = params.get('token');
-    if (!token) return;
+    const oauthCode = params.get('oauth_code');
+    if (!oauthCode) return;
+
+    params.delete('oauth_code');
+    const clean = params.toString();
+    window.history.replaceState(null, '', window.location.pathname + (clean ? `?${clean}` : ''));
 
     (async () => {
       try {
         setIsOAuthLoading(true);
-        await useAuthStore.getState().loginWithToken(token);
+        const response = await authApi.exchangeOAuthCode(oauthCode);
+        await useAuthStore.getState().loginWithToken(response.data.token);
         toast.success('Account created successfully!');
-        navigate('/workflows');
+        navigate('/dashboard');
       } catch (error: any) {
         toast.error(getErrorMessage(error, 'Social signup failed'));
       } finally {
@@ -47,7 +52,7 @@ export default function RegisterPage() {
     try {
       await register(email, password, name);
       toast.success('Account created successfully!');
-      navigate('/workflows');
+      navigate('/dashboard');
     } catch (error: any) {
       toast.error(getErrorMessage(error, 'Registration failed'));
     } finally {

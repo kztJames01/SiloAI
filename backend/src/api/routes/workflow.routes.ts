@@ -1,9 +1,11 @@
 import { Router } from 'express';
 import { z } from 'zod';
 import prisma from '../../db/prisma';
-import { authenticate, AuthRequest } from '../middleware/auth.middleware';
+import { authenticate, requireAdmin, AuthRequest } from '../middleware/auth.middleware';
 import { AppError } from '../middleware/error.middleware';
 import { WorkflowEngine } from '../../engine/WorkflowEngine';
+import { refreshScheduleForWorkflow } from '../../services/scheduleRunner';
+import { getOrgUserIds } from '../../services/org';
 
 const router = Router();
 
@@ -24,8 +26,9 @@ const workflowSchema = z.object({
 
 // Get all workflows
 router.get('/', async (req: AuthRequest, res) => {
+  const userIds = await getOrgUserIds(req.userId!);
   const workflows = await prisma.workflow.findMany({
-    where: { userId: req.userId },
+    where: { userId: { in: userIds } },
     orderBy: { updatedAt: 'desc' },
     include: {
       executions: {
@@ -40,10 +43,11 @@ router.get('/', async (req: AuthRequest, res) => {
 
 // Get single workflow
 router.get('/:id', async (req: AuthRequest, res) => {
+  const userIds = await getOrgUserIds(req.userId!);
   const workflow = await prisma.workflow.findFirst({
     where: {
       id: req.params.id,
-      userId: req.userId,
+      userId: { in: userIds },
     },
     include: {
       executions: {
@@ -61,7 +65,7 @@ router.get('/:id', async (req: AuthRequest, res) => {
 });
 
 // Create workflow
-router.post('/', async (req: AuthRequest, res) => {
+router.post('/', requireAdmin, async (req: AuthRequest, res) => {
   const data = workflowSchema.parse(req.body);
 
   const workflow = await prisma.workflow.create({
@@ -71,11 +75,13 @@ router.post('/', async (req: AuthRequest, res) => {
     },
   });
 
+  refreshScheduleForWorkflow(workflow.id, workflow.trigger, workflow.isActive);
+
   res.status(201).json({ workflow });
 });
 
 // Update workflow
-router.put('/:id', async (req: AuthRequest, res) => {
+router.put('/:id', requireAdmin, async (req: AuthRequest, res) => {
   const data = workflowSchema.partial().parse(req.body);
 
   const workflow = await prisma.workflow.findFirst({
@@ -94,11 +100,13 @@ router.put('/:id', async (req: AuthRequest, res) => {
     data,
   });
 
+  refreshScheduleForWorkflow(updated.id, updated.trigger, updated.isActive);
+
   res.json({ workflow: updated });
 });
 
 // Delete workflow
-router.delete('/:id', async (req: AuthRequest, res) => {
+router.delete('/:id', requireAdmin, async (req: AuthRequest, res) => {
   const workflow = await prisma.workflow.findFirst({
     where: {
       id: req.params.id,
@@ -118,7 +126,7 @@ router.delete('/:id', async (req: AuthRequest, res) => {
 });
 
 // Toggle workflow active status
-router.patch('/:id/toggle', async (req: AuthRequest, res) => {
+router.patch('/:id/toggle', requireAdmin, async (req: AuthRequest, res) => {
   const workflow = await prisma.workflow.findFirst({
     where: {
       id: req.params.id,
@@ -135,11 +143,13 @@ router.patch('/:id/toggle', async (req: AuthRequest, res) => {
     data: { isActive: !workflow.isActive },
   });
 
+  refreshScheduleForWorkflow(updated.id, updated.trigger, updated.isActive);
+
   res.json({ workflow: updated });
 });
 
 // Execute workflow manually
-router.post('/:id/execute', async (req: AuthRequest, res) => {
+router.post('/:id/execute', requireAdmin, async (req: AuthRequest, res) => {
   const workflow = await prisma.workflow.findFirst({
     where: {
       id: req.params.id,

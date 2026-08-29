@@ -13,13 +13,21 @@ export enum IntegrationProvider {
   GOOGLE_DRIVE = 'google_drive',
   GOOGLE_CALENDAR = 'google_calendar',
   GOOGLE_DOCS = 'google_docs',
+  GOOGLE_FORMS = 'google_forms',
+  GOOGLE_MEET = 'google_meet',
+  GOOGLE_SLIDES = 'google_slides',
+  GOOGLE_CONTACTS = 'google_contacts',
   YOUTUBE = 'youtube',
 
   // Microsoft Suite
   MICROSOFT_OUTLOOK = 'microsoft_outlook',
   MICROSOFT_TEAMS = 'microsoft_teams',
   MICROSOFT_EXCEL = 'microsoft_excel',
+  MICROSOFT_WORD = 'microsoft_word',
+  MICROSOFT_POWERPOINT = 'microsoft_powerpoint',
   MICROSOFT_ONEDRIVE = 'microsoft_onedrive',
+  MICROSOFT_SHAREPOINT = 'microsoft_sharepoint',
+  MICROSOFT_TODO = 'microsoft_todo',
 
   // Communication
   SLACK = 'slack',
@@ -53,6 +61,15 @@ export enum IntegrationProvider {
   // Storage
   DROPBOX = 'dropbox',
 
+  // Field service / blue collar trades
+  SERVICE_TITAN = 'service_titan',
+  JOBBER = 'jobber',
+  HOUSECALL_PRO = 'housecall_pro',
+  COMPANYCAM = 'companycam',
+  WORKIZ = 'workiz',
+  BUILDERTREND = 'buildertrend',
+  SERVICEM8 = 'servicem8',
+
   // Custom
   WEBHOOK = 'webhook',
 }
@@ -82,6 +99,7 @@ export enum IntegrationCategory {
   CUSTOM = 'custom',
   VIDEO = 'video',
   FORMS = 'forms',
+  FIELD_SERVICE = 'field_service',
 }
 
 /**

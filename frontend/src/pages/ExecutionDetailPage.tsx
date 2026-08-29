@@ -1,6 +1,8 @@
+import { useEffect } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { useParams, Link } from 'react-router-dom';
-import { executionApi } from '../lib/api';
+import { executionApi, API_URL } from '../lib/api';
+import { getToken } from '../lib/tokenStorage';
 import { Card, CardHeader, CardTitle, CardContent } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { ArrowLeft, Clock, CheckCircle2, XCircle } from 'lucide-react';
@@ -39,14 +41,49 @@ export default function ExecutionDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { isMaskingEnabled } = useUiStore();
 
-  const { data, isLoading } = useQuery({
+  const { data, isLoading, refetch } = useQuery({
     queryKey: ['execution', id],
     queryFn: async () => {
       const response = await executionApi.get(id!);
       return response.data.execution;
     },
     enabled: !!id,
+    refetchInterval: (q) => {
+      const status = (q.state.data as any)?.status;
+      return status === 'RUNNING' ? 4000 : false;
+    },
   });
+
+  useEffect(() => {
+    if (!id || !data || data.status !== 'RUNNING') return;
+    const token = getToken();
+    if (!token) return;
+    const ac = new AbortController();
+    (async () => {
+      try {
+        const res = await fetch(`${API_URL}/api/executions/${id}/stream`, {
+          headers: { Authorization: `Bearer ${token}` },
+          signal: ac.signal,
+        });
+        if (!res.body) return;
+        const reader = res.body.getReader();
+        const dec = new TextDecoder();
+        let buf = '';
+        // stream read loop — breaks on done
+        for (;;) {
+          const { done, value } = await reader.read();
+          if (done) break;
+          buf += dec.decode(value, { stream: true });
+          if (buf.includes('event: done') || buf.includes('event: logs')) {
+            refetch();
+          }
+        }
+      } catch {
+        // fall back to the interval above
+      }
+    })();
+    return () => ac.abort();
+  }, [id, data?.status, refetch]);
 
   if (isLoading) {
     return (

@@ -1,6 +1,6 @@
 // AI Integration Types
 
-export type LLMProvider = 'openai' | 'anthropic' | 'gemini' | 'ollama' | 'custom';
+export type LLMProvider = 'openai' | 'anthropic' | 'gemini' | 'ollama' | 'openrouter' | 'custom';
 
 export interface LLMConfig {
   provider: LLMProvider;

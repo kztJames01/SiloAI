@@ -1,28 +1,40 @@
 import express from 'express';
 import { authenticate, AuthRequest } from '../middleware/auth.middleware';
+import { llmRateLimiter } from '../middleware/rateLimiter.middleware';
+import { AppError } from '../middleware/error.middleware';
 import { LLMProviderFactory } from '../../ai/providers';
 import { PromptLibrary } from '../../ai/PromptTemplateEngine';
 import { tokenTracker } from '../../ai/TokenUsageTracker';
 import { aiDebugger } from '../../ai/AIDebugger';
 import { contextManager } from '../../ai/AIContextManager';
+import { assertSafeOutboundUrl } from '../../utils/security';
+import prisma from '../../db/prisma';
 
 const router = express.Router();
 
 // Apply auth middleware
 router.use(authenticate);
-
-/**
- * POST /api/ai/complete
- * Generate an LLM completion
- */
-router.post('/complete', async (req: AuthRequest, res) => {
+router.post('/complete', llmRateLimiter, async (req: AuthRequest, res) => {
   try {
     const { provider, model, apiKey, baseUrl, messages, temperature, maxTokens } = req.body;
+    const isAdmin = req.userRole === 'ADMIN';
+    const selfHosted = provider === 'ollama' || provider === 'custom';
+
+    if (selfHosted && !isAdmin) {
+      throw new AppError('Self-hosted AI endpoints require admin', 403);
+    }
+    if (!apiKey && !isAdmin) {
+      throw new AppError('API key required for non-admin accounts', 403);
+    }
+
+    if (baseUrl) {
+      assertSafeOutboundUrl(baseUrl);
+    }
 
     const config = {
       provider,
       model,
-      apiKey,
+      apiKey: apiKey || undefined,
       baseUrl,
       temperature,
       maxTokens,
@@ -48,6 +60,7 @@ router.post('/complete', async (req: AuthRequest, res) => {
       latency,
     });
   } catch (error) {
+    if (error instanceof AppError) throw error;
     console.error('AI completion error:', error);
     res.status(500).json({ error: 'Failed to generate completion' });
   }
@@ -73,9 +86,18 @@ router.get('/token-usage', async (req: AuthRequest, res) => {
  * GET /api/ai/debug/:executionId
  * Get debug logs for an execution
  */
-router.get('/debug/:executionId', async (req, res) => {
+router.get('/debug/:executionId', async (req: AuthRequest, res) => {
   try {
     const { executionId } = req.params;
+
+    const owned = await prisma.workflowExecution.findFirst({
+      where: { id: executionId, workflow: { userId: req.user!.id } },
+    });
+    if (!owned) {
+      res.status(404).json({ error: 'Execution not found' });
+      return;
+    }
+
     const logs = aiDebugger.getExecutionLogs(executionId);
     const session = aiDebugger.getSession(executionId);
     const summary = aiDebugger.getSessionSummary(executionId);
@@ -132,14 +154,34 @@ router.get('/templates/:id', async (req, res) => {
  * POST /api/ai/templates
  * Create a new template
  */
-router.post('/templates', async (req, res) => {
+router.post('/templates', async (req: AuthRequest, res) => {
   try {
     const template = req.body;
+    if (!template?.id || !template?.name) {
+      res.status(400).json({ error: 'Template id and name are required' });
+      return;
+    }
     PromptLibrary.register(template);
     res.json({ template });
   } catch (error) {
     console.error('Template creation error:', error);
     res.status(500).json({ error: 'Failed to create template' });
+  }
+});
+
+router.put('/templates/:id', async (req: AuthRequest, res) => {
+  try {
+    const { id } = req.params;
+    const template = { ...req.body, id };
+    if (!template.name) {
+      res.status(400).json({ error: 'Template name is required' });
+      return;
+    }
+    PromptLibrary.register(template);
+    res.json({ template });
+  } catch (error) {
+    console.error('Template update error:', error);
+    res.status(500).json({ error: 'Failed to update template' });
   }
 });
 
@@ -152,6 +194,10 @@ router.post('/config', async (req, res) => {
     // In production, save to database
     // For now, just validate the config
     const { provider, model, apiKey, baseUrl } = req.body;
+
+    if (baseUrl) {
+      assertSafeOutboundUrl(baseUrl);
+    }
 
     const config = {
       provider,
@@ -177,13 +223,19 @@ router.post('/config', async (req, res) => {
  * GET /api/ai/context/:conversationId
  * Get AI context
  */
-router.get('/context/:conversationId', async (req, res) => {
+router.get('/context/:conversationId', async (req: AuthRequest, res) => {
   try {
     const { conversationId } = req.params;
     const context = contextManager.getContext(conversationId);
 
     if (!context) {
       res.status(404).json({ error: 'Context not found' });
+      return;
+    }
+
+    const ownerId = context.metadata?.userId;
+    if (ownerId && ownerId !== req.user!.id) {
+      res.status(403).json({ error: 'Forbidden' });
       return;
     }
 
@@ -198,9 +250,22 @@ router.get('/context/:conversationId', async (req, res) => {
  * DELETE /api/ai/context/:conversationId
  * Clear AI context
  */
-router.delete('/context/:conversationId', async (req, res) => {
+router.delete('/context/:conversationId', async (req: AuthRequest, res) => {
   try {
     const { conversationId } = req.params;
+    const context = contextManager.getContext(conversationId);
+
+    if (!context) {
+      res.status(404).json({ error: 'Context not found' });
+      return;
+    }
+
+    const ownerId = context.metadata?.userId;
+    if (ownerId && ownerId !== req.user!.id) {
+      res.status(403).json({ error: 'Forbidden' });
+      return;
+    }
+
     const deleted = contextManager.deleteContext(conversationId);
 
     if (!deleted) {
@@ -234,7 +299,7 @@ router.get('/providers', async (_req, res) => {
       },
       gemini: {
         name: 'Google Gemini',
-        models: ['gemini-3.1-pro-preview', 'gemini-3-flash-preview', 'gemini-1.5-pro', 'gemini-1.5-flash'],
+        models: ['gemini-1.5-pro', 'gemini-1.5-flash', 'gemini-pro'],
         requiresApiKey: true,
       },
       ollama: {
@@ -242,6 +307,22 @@ router.get('/providers', async (_req, res) => {
         models: ['llama3', 'mistral', 'codellama', 'phi'],
         requiresApiKey: false,
         requiresBaseUrl: true,
+      },
+      openrouter: {
+        name: 'OpenRouter',
+        models: [
+          'openai/gpt-4o',
+          'openai/gpt-4-turbo',
+          'anthropic/claude-3-5-sonnet',
+          'anthropic/claude-3-opus',
+          'google/gemini-pro-1.5',
+          'meta-llama/llama-3.1-70b-instruct',
+          'mistralai/mistral-large',
+          'qwen/qwen-2.5-72b-instruct',
+        ],
+        requiresApiKey: true,
+        baseUrl: 'https://openrouter.ai/api/v1',
+        description: 'Access 100+ models via a single OpenAI-compatible API',
       },
       custom: {
         name: 'Custom Endpoint',

@@ -38,5 +38,12 @@ export function createAuthApi(
         token: token ?? options.getToken?.() ?? undefined,
       });
     },
+
+    exchangeOAuthCode(code: string) {
+      return apiClient.request<AuthResponse>(`${authBasePath}/oauth/exchange`, {
+        method: 'POST',
+        body: { code },
+      });
+    },
   };
 }

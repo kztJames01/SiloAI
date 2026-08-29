@@ -15,6 +15,7 @@ import {
 export default function AppExplorerPage() {
   const navigate = useNavigate();
   const [connections, setConnections] = useState<Set<string>>(new Set());
+  const [reconnect, setReconnect] = useState<Set<string>>(new Set());
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
@@ -24,10 +25,15 @@ export default function AppExplorerPage() {
     api
       .get('/integrations/connections/list')
       .then((r) => {
-        const active = (r.data.connections || [])
-          .filter((c: any) => c.status === 'ACTIVE')
+        const list = r.data.connections || [];
+        const active = list
+          .filter((c: any) => c.status === 'ACTIVE' && !c.needsReconnect)
+          .map((c: any) => c.provider as string);
+        const expired = list
+          .filter((c: any) => c.needsReconnect || c.status === 'EXPIRED')
           .map((c: any) => c.provider as string);
         setConnections(new Set(active));
+        setReconnect(new Set(expired));
       })
       .catch(() => {})
       .finally(() => setLoading(false));
@@ -366,7 +372,11 @@ export default function AppExplorerPage() {
                       <span className="text-xs text-muted-foreground capitalize hidden sm:block">
                         {integration.category}
                       </span>
-                      {connected ? (
+                      {reconnect.has(integration.provider) ? (
+                        <span className="flex items-center gap-1 text-xs font-medium text-orange-600 bg-orange-500/10 px-2 py-1 rounded-full">
+                          Reconnect
+                        </span>
+                      ) : connected ? (
                         <span className="flex items-center gap-1 text-xs font-medium text-green-600 bg-green-500/10 px-2 py-1 rounded-full">
                           <Check className="h-3 w-3" /> Connected
                         </span>

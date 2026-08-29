@@ -15,17 +15,16 @@ export class CredentialManager {
   private encryptionKey: Buffer;
 
   constructor() {
-    // Get encryption key from environment
-    const keyBase = process.env.INTEGRATION_ENCRYPTION_KEY || this.generateFallbackKey();
+    const keyBase = process.env.INTEGRATION_ENCRYPTION_KEY;
+    if (!keyBase) {
+      if (process.env.NODE_ENV === 'production') {
+        throw new Error('INTEGRATION_ENCRYPTION_KEY is required in production');
+      }
+      logger.warn('Using fallback encryption key - set INTEGRATION_ENCRYPTION_KEY in production!');
+      this.encryptionKey = this.deriveKey(process.env.JWT_SECRET || 'dev-only-change-me');
+      return;
+    }
     this.encryptionKey = this.deriveKey(keyBase);
-  }
-
-  /**
-   * Generate a fallback key (only for development - use strong key in production)
-   */
-  private generateFallbackKey(): string {
-    logger.warn('Using fallback encryption key - set INTEGRATION_ENCRYPTION_KEY in production!');
-    return process.env.JWT_SECRET || 'change-me-in-production-this-is-not-secure';
   }
 
   /**

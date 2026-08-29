@@ -1,0 +1,23 @@
+# Replace {$DOMAIN} with your actual domain, e.g. silo.example.com
+# Caddy auto-provisions TLS via Let's Encrypt.
+# For local testing set DOMAIN=localhost and Caddy uses a self-signed cert.
+
+{$DOMAIN:localhost} {
+    # API calls go to backend
+    handle /api/* {
+        reverse_proxy backend:3000
+    }
+
+    handle /health {
+        reverse_proxy backend:3000
+    }
+
+    handle /metrics* {
+        reverse_proxy backend:3000
+    }
+
+    # everything else is the SPA
+    handle {
+        reverse_proxy frontend:80
+    }
+}

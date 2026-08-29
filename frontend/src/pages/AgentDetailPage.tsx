@@ -19,7 +19,6 @@ import { Button } from '../components/ui/Button';
 import { agentApi } from '../lib/api';
 import { APP_INTEGRATIONS } from '../lib/integrations';
 
-// ─── Types ────────────────────────────────────────────────────────────────────
 type TriggerType = 'manual' | 'schedule' | 'webhook';
 type LLMProvider = 'OPENAI' | 'ANTHROPIC' | 'GEMINI' | 'OLLAMA' | 'CUSTOM';
 
@@ -33,6 +32,7 @@ interface AgentForm {
   triggerType: TriggerType;
   tools: { name: string; type: string }[];
   isActive: boolean;
+  enableMemory: boolean;
 }
 
 const MODEL_OPTIONS: Record<LLMProvider, string[]> = {
@@ -74,7 +74,6 @@ const INTEGRATION_TOOLS = APP_INTEGRATIONS
     provider: app.provider,
   }));
 
-// ─── Status badge ─────────────────────────────────────────────────────────────
 function StatusBadge({ status }: { status: string }) {
   const map: Record<string, { cls: string; icon: React.ReactNode; label: string }> = {
     SUCCESS: {
@@ -129,6 +128,7 @@ export default function AgentDetailPage() {
     triggerType: (presetSeed?.triggerType as TriggerType) ?? 'manual',
     tools: presetSeed?.tools?.map((t: string) => ({ name: t, type: 'builtin' })) ?? [],
     isActive: true,
+    enableMemory: false,
   });
   const [dirty, setDirty] = useState(!!presetSeed);
   const [runTask, setRunTask] = useState('');
@@ -161,9 +161,9 @@ export default function AgentDetailPage() {
       triggerType: 'manual',
       tools: (agentData.tools ?? []) as { name: string; type: string }[],
       isActive: agentData.isActive,
+      enableMemory: !!agentData.enableMemory,
     });
     setDirty(false);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [agentData?.id]);
 
   // Fetch executions
@@ -196,6 +196,7 @@ export default function AgentDetailPage() {
         maxIterations: form.maxIterations,
         tools: form.tools,
         isActive: form.isActive,
+        enableMemory: form.enableMemory,
       };
       if (isNew) {
         return agentApi.create(payload);
@@ -229,7 +230,7 @@ export default function AgentDetailPage() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-800">
       {/* Top Bar */}
       <div className="bg-background border-b border-border px-6 py-3 flex items-center justify-between sticky top-0 z-30">
         <div className="flex items-center gap-4">
@@ -269,6 +270,23 @@ export default function AgentDetailPage() {
                 />
               </div>
               <span className="text-xs text-muted-foreground">{form.isActive ? 'Active' : 'Inactive'}</span>
+            </label>
+          )}
+          {!isNew && (
+            <label className="flex items-center gap-2 cursor-pointer ml-1">
+              <div
+                onClick={() => patch('enableMemory', !form.enableMemory)}
+                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${
+                  form.enableMemory ? 'bg-primary' : 'bg-border'
+                }`}
+              >
+                <span
+                  className={`inline-block h-4 w-4 transform rounded-full bg-primary-foreground shadow transition-transform ${
+                    form.enableMemory ? 'translate-x-4' : 'translate-x-0.5'
+                  }`}
+                />
+              </div>
+              <span className="text-xs text-muted-foreground">{form.enableMemory ? 'Memory on' : 'Memory off'}</span>
             </label>
           )}
         </div>
@@ -312,7 +330,6 @@ export default function AgentDetailPage() {
 
       {/* Body: two columns */}
       <div className="flex max-w-7xl mx-auto gap-0 min-h-[calc(100vh-57px)]">
-        {/* ── LEFT: Activity (collapsed by default) ── */}
         {showActivity && (
           <div className="w-80 flex-shrink-0 border-r border-border bg-card flex flex-col">
             <div className="p-4 border-b border-border flex items-center justify-between">
@@ -395,7 +412,6 @@ export default function AgentDetailPage() {
           </div>
         )}
 
-        {/* ── RIGHT: Config Panel ── */}
         <div className="flex-1 p-6 overflow-y-auto">
           <div className="max-w-2xl mx-auto space-y-6">
 

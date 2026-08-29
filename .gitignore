@@ -30,6 +30,12 @@ npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
 
+# Coverage reports
+coverage/
+backend/coverage/
+frontend/coverage/
+mobile/coverage/
+
 # OS
 .DS_Store
 *.swp
@@ -39,6 +45,9 @@ yarn-error.log*
 .vscode/
 .idea/
 *.iml
+
+# Lint/tool caches
+.eslintcache
 
 # Expo / React Native
 .expo/

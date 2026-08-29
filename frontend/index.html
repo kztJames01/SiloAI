@@ -18,10 +18,12 @@
       })();
     </script>
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Silo - AI Automation Platform</title>
+    <title>Silo</title>
   </head>
   <body>
     <div id="root"></div>
+    <!-- runtime config injected by Docker entrypoint, ignored in dev -->
+    <script src="/config.js" data-vite-ignore onerror="window.__APP_CONFIG__={}"></script>
     <script type="module" src="/src/main.tsx"></script>
   </body>
 </html>

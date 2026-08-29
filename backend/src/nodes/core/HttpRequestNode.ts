@@ -1,6 +1,7 @@
 import { INode, NodeDefinition } from '../NodeRegistry';
 import { ExecutionContext } from '../../engine/WorkflowEngine';
 import axios from 'axios';
+import { assertSafeOutboundUrl } from '../../utils/security';
 
 export class HttpRequestNode implements INode {
   definition: NodeDefinition = {
@@ -55,6 +56,8 @@ export class HttpRequestNode implements INode {
 
   async execute(data: any, _context: ExecutionContext): Promise<any> {
     const { url, method = 'GET', headers = {}, body } = data;
+
+    assertSafeOutboundUrl(url);
 
     const response = await axios({
       url,

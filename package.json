@@ -3,6 +3,9 @@
   "version": "1.0.0",
   "description": "AI-powered workflow automation platform",
   "private": true,
+  "engines": {
+    "node": ">=20 <21"
+  },
   "workspaces": [
     "backend",
     "frontend",

@@ -1,13 +1,18 @@
 import { useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
-import { useAuthStore, useUiStore, UserRole } from './lib/store';
+import { useAuthStore, useUiStore, UserRole, dbRoleToUi } from './lib/store';
 
 // Pages
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
+import WelcomePage from './pages/WelcomePage';
+import HelpPage from './pages/HelpPage';
+import ContactPage from './pages/ContactPage';
+import PrivacyPolicyPage from './pages/PrivacyPolicyPage';
 import DashboardPage from './pages/DashboardPage';
 import TemplatesPage from './pages/TemplatesPage';
 import WorkflowEditorPage from './pages/WorkflowEditorPage';
+import ExecutionsPage from './pages/ExecutionsPage';
 import ExecutionDetailPage from './pages/ExecutionDetailPage';
 import ProfilePage from './pages/ProfilePage';
 import FieldPage from './pages/FieldPage';
@@ -15,6 +20,7 @@ import SafetyDashboardPage from './pages/SafetyDashboardPage';
 import IntegrationsPage from './pages/IntegrationsPage';
 import AppExplorerPage from './pages/AppExplorerPage';
 import AppDetailPage from './pages/AppDetailPage';
+import InviteAcceptPage from './pages/InviteAcceptPage';
 import OrganizationDashboardPage from './pages/OrganizationDashboardPage';
 import DataStoragePage from './pages/DataStoragePage';
 import AgentsPage from './pages/AgentsPage';
@@ -32,18 +38,20 @@ function RoleGate({
   allowedRoles: UserRole[];
   children: React.ReactNode;
 }) {
-  const { role } = useUiStore();
+  const user = useAuthStore((s) => s.user);
+  const role = dbRoleToUi(user?.role);
 
   if (!allowedRoles.includes(role)) {
-    return <Navigate to={role === 'field' ? '/field' : '/workflows'} replace />;
+    return <Navigate to={role === 'field' ? '/field' : '/dashboard'} replace />;
   }
 
   return <>{children}</>;
 }
 
 function App() {
-  const { checkAuth, isLoading } = useAuthStore();
-  const { role, isDark } = useUiStore();
+  const { checkAuth, isLoading, user } = useAuthStore();
+  const { isDark } = useUiStore();
+  const role = dbRoleToUi(user?.role);
 
   useEffect(() => {
     checkAuth();
@@ -65,8 +73,13 @@ function App() {
 
   return (
     <Routes>
+      <Route path="/welcome" element={<WelcomePage />} />
+      <Route path="/help" element={<HelpPage />} />
+      <Route path="/contact" element={<ContactPage />} />
+      <Route path="/privacy" element={<PrivacyPolicyPage />} />
       <Route path="/login" element={<LoginPage />} />
       <Route path="/register" element={<RegisterPage />} />
+      <Route path="/invite/:token" element={<InviteAcceptPage />} />
 
       {/* Standalone Workflow Editor - No Dashboard Layout */}
       <Route
@@ -121,7 +134,7 @@ function App() {
           </ProtectedRoute>
         }
       >
-        <Route index element={<Navigate to={role === 'field' ? '/field' : '/workflows'} replace />} />
+        <Route index element={<Navigate to={role === 'field' ? '/field' : '/dashboard'} replace />} />
         <Route
           path="field"
           element={
@@ -187,6 +200,14 @@ function App() {
           }
         />
         <Route
+          path="executions"
+          element={
+            <RoleGate allowedRoles={['admin']}>
+              <ExecutionsPage />
+            </RoleGate>
+          }
+        />
+        <Route
           path="executions/:id"
           element={
             <RoleGate allowedRoles={['admin']}>
@@ -194,7 +215,6 @@ function App() {
             </RoleGate>
           }
         />
-        <Route path="ai-settings" element={<Navigate to="/agents" replace />} />
         <Route
           path="integrations"
           element={

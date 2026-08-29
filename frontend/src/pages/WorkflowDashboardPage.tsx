@@ -77,7 +77,6 @@ export default function WorkflowDashboardPage() {
         })}
       </div>
 
-      {/* ── WORKFLOWS TAB ── */}
       {tab === 'workflows' && (
         <section className="space-y-4">
           {loadingWorkflows ? (
@@ -154,7 +153,7 @@ export default function WorkflowDashboardPage() {
                 <h2 className="text-lg font-semibold text-foreground">Connect Apps to Your Workflows</h2>
                 <p className="text-xs text-muted-foreground mt-0.5">Power your automations with these popular integrations</p>
               </div>
-              <Link to="/apps" className="flex items-center gap-1 text-sm font-medium text-primary hover:underline">
+              <Link to="/integrations" className="flex items-center gap-1 text-sm font-medium text-primary hover:underline">
                 All apps <ArrowRight className="h-4 w-4" />
               </Link>
             </div>
@@ -173,7 +172,6 @@ export default function WorkflowDashboardPage() {
         </section>
       )}
 
-      {/* ── EXECUTIONS TAB ── */}
       {tab === 'executions' && (
         <Card>
           <CardHeader>

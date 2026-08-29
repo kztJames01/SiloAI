@@ -1,6 +1,6 @@
 import { BaseLLMProvider } from './BaseLLMProvider';
 import { LLMConfig, LLMResponse, Message, TokenUsage } from '../../../../shared/src/types/ai';
-import axios from 'axios';
+import { createSafeAxios } from '../../utils/security';
 
 /**
  * Custom LLM Provider for self-hosted or compatible APIs
@@ -9,6 +9,7 @@ import axios from 'axios';
 export class CustomProvider extends BaseLLMProvider {
   private baseUrl: string;
   private apiKey?: string;
+  private http = createSafeAxios();
 
   constructor(config: LLMConfig) {
     super(config);
@@ -33,7 +34,7 @@ export class CustomProvider extends BaseLLMProvider {
       headers['Authorization'] = `Bearer ${this.apiKey}`;
     }
 
-    const response = await axios.post(
+    const response = await this.http.post(
       `${this.baseUrl}/v1/chat/completions`,
       {
         model: config.model,
@@ -85,7 +86,7 @@ export class CustomProvider extends BaseLLMProvider {
       headers['Authorization'] = `Bearer ${this.apiKey}`;
     }
 
-    const response = await axios.post(
+    const response = await this.http.post(
       `${this.baseUrl}/v1/chat/completions`,
       {
         model: config.model,

@@ -4,7 +4,7 @@
  */
 
 export const palette = {
-  // ── Primary · Royal Blue / Sky Blue ──────────────────────────────────────
+  // Primary — Royal Blue / Sky Blue
   primary: {
     50:  '#EFF6FF',
     100: '#DBEAFE',
@@ -17,7 +17,7 @@ export const palette = {
     800: '#1E40AF',  // ← light-mode default
     900: '#1E3A8A',
   },
-  // ── Secondary · Emerald / Mint ────────────────────────────────────────────
+  // Secondary — Emerald / Mint
   secondary: {
     50:  '#ECFDF5',
     100: '#D1FAE5',
@@ -30,7 +30,7 @@ export const palette = {
     800: '#065F46',
     900: '#064E3B',
   },
-  // ── Tertiary · Amber ──────────────────────────────────────────────────────
+  // Tertiary — Amber
   tertiary: {
     50:  '#FFFBEB',
     100: '#FEF3C7',
@@ -43,7 +43,7 @@ export const palette = {
     800: '#92400E',
     900: '#78350F',
   },
-  // ── Slate Neutrals ───────────────────────────────────────────────────────
+  // Slate Neutrals
   slate: {
     50:  '#F8FAFC',
     100: '#F1F5F9',
@@ -58,8 +58,7 @@ export const palette = {
   },
 } as const;
 
-// ── Semantic colour sets ──────────────────────────────────────────────────────
-
+// Semantic colour sets
 export const colors = {
   light: {
     // Brand

@@ -582,7 +582,7 @@ export class DropboxIntegration extends BaseIntegration {
 
 export class TrelloIntegration extends BaseIntegration {
   getMetadata(): IntegrationMetadata {
-    return { provider: IntegrationProvider.TRELLO, name: 'Trello', description: 'Project management boards', category: IntegrationCategory.PRODUCTIVITY, authType: AuthType.API_KEY, color: '#0079BF', enabled: true };
+    return { provider: IntegrationProvider.TRELLO, name: 'Trello', description: 'Project management boards', category: IntegrationCategory.PRODUCTIVITY, authType: AuthType.API_KEY, color: '#0079BF', enabled: true, comingSoon: true };
   }
   getActions(): IntegrationAction[] {
     return [
@@ -597,8 +597,16 @@ export class TrelloIntegration extends BaseIntegration {
     ];
   }
   getTriggers(): IntegrationTrigger[] { return []; }
-  async testConnection(_credentials: IntegrationCredentials): Promise<IntegrationTestResult> {
-    return { success: true, message: 'Connected' };
+  async testConnection(credentials: IntegrationCredentials): Promise<IntegrationTestResult> {
+    try {
+      const key = credentials.apiKey;
+      const token = credentials.apiSecret || credentials.accessToken;
+      if (!key || !token) return { success: false, message: 'Trello API key and token are required' };
+      await this.makeRequest({ url: 'https://api.trello.com/1/members/me', method: 'GET', params: { key, token } }, credentials);
+      return { success: true, message: 'Connected to Trello' };
+    } catch (error: any) {
+      return { success: false, message: error.message };
+    }
   }
   async executeAction(actionId: string, parameters: Record<string, any>, credentials: IntegrationCredentials): Promise<IntegrationResult> {
     try {
@@ -697,7 +705,7 @@ export class SendGridIntegration extends BaseIntegration {
 
 export class HubSpotIntegration extends BaseIntegration {
   getMetadata(): IntegrationMetadata {
-    return { provider: IntegrationProvider.HUBSPOT, name: 'HubSpot', description: 'CRM and marketing automation', category: IntegrationCategory.MARKETING, authType: AuthType.OAUTH2, color: '#FF7A59', enabled: true };
+    return { provider: IntegrationProvider.HUBSPOT, name: 'HubSpot', description: 'CRM and marketing automation', category: IntegrationCategory.MARKETING, authType: AuthType.OAUTH2, color: '#FF7A59', enabled: true, comingSoon: true };
   }
   getActions(): IntegrationAction[] {
     return [
@@ -712,8 +720,13 @@ export class HubSpotIntegration extends BaseIntegration {
     ];
   }
   getTriggers(): IntegrationTrigger[] { return []; }
-  async testConnection(_credentials: IntegrationCredentials): Promise<IntegrationTestResult> {
-    return { success: true, message: 'Connected' };
+  async testConnection(credentials: IntegrationCredentials): Promise<IntegrationTestResult> {
+    try {
+      await this.makeRequest({ url: 'https://api.hubapi.com/crm/v3/objects/contacts?limit=1', method: 'GET' }, credentials);
+      return { success: true, message: 'Connected to HubSpot' };
+    } catch (error: any) {
+      return { success: false, message: error.message };
+    }
   }
   async executeAction(actionId: string, parameters: Record<string, any>, credentials: IntegrationCredentials): Promise<IntegrationResult> {
     try {
@@ -753,7 +766,7 @@ export class HubSpotIntegration extends BaseIntegration {
 
 export class ZoomIntegration extends BaseIntegration {
   getMetadata(): IntegrationMetadata {
-    return { provider: IntegrationProvider.ZOOM, name: 'Zoom', description: 'Video conferencing', category: IntegrationCategory.COMMUNICATION, authType: AuthType.OAUTH2, color: '#2D8CFF', enabled: true };
+    return { provider: IntegrationProvider.ZOOM, name: 'Zoom', description: 'Video conferencing', category: IntegrationCategory.COMMUNICATION, authType: AuthType.OAUTH2, color: '#2D8CFF', enabled: true, comingSoon: true };
   }
   getActions(): IntegrationAction[] {
     return [
@@ -766,8 +779,13 @@ export class ZoomIntegration extends BaseIntegration {
     ];
   }
   getTriggers(): IntegrationTrigger[] { return []; }
-  async testConnection(_credentials: IntegrationCredentials): Promise<IntegrationTestResult> {
-    return { success: true, message: 'Connected' };
+  async testConnection(credentials: IntegrationCredentials): Promise<IntegrationTestResult> {
+    try {
+      await this.makeRequest({ url: 'https://api.zoom.us/v2/users/me', method: 'GET' }, credentials);
+      return { success: true, message: 'Connected to Zoom' };
+    } catch (error: any) {
+      return { success: false, message: error.message };
+    }
   }
   async executeAction(actionId: string, parameters: Record<string, any>, credentials: IntegrationCredentials): Promise<IntegrationResult> {
     try {
@@ -801,7 +819,6 @@ export class ZoomIntegration extends BaseIntegration {
   }
 }
 
-// ── Google Suite ──────────────────────────────────────────────────────────────
 
 export class GoogleDriveIntegration extends BaseIntegration {
   getMetadata(): IntegrationMetadata {
@@ -1019,7 +1036,6 @@ export class YouTubeIntegration extends BaseIntegration {
   }
 }
 
-// ── Microsoft Suite ───────────────────────────────────────────────────────────
 
 export class MicrosoftOutlookIntegration extends BaseIntegration {
   getMetadata(): IntegrationMetadata {
@@ -1036,8 +1052,13 @@ export class MicrosoftOutlookIntegration extends BaseIntegration {
     ];
   }
   getTriggers(): IntegrationTrigger[] { return []; }
-  async testConnection(_credentials: IntegrationCredentials): Promise<IntegrationTestResult> {
-    return { success: true, message: 'Connected to Outlook' };
+  async testConnection(credentials: IntegrationCredentials): Promise<IntegrationTestResult> {
+    try {
+      await this.makeRequest({ url: 'https://graph.microsoft.com/v1.0/me', method: 'GET' }, credentials);
+      return { success: true, message: 'Connected to Outlook' };
+    } catch (error: any) {
+      return { success: false, message: error.message };
+    }
   }
   async executeAction(actionId: string, parameters: Record<string, any>, credentials: IntegrationCredentials): Promise<IntegrationResult> {
     try {
@@ -1085,8 +1106,13 @@ export class MicrosoftTeamsIntegration extends BaseIntegration {
     ];
   }
   getTriggers(): IntegrationTrigger[] { return []; }
-  async testConnection(_credentials: IntegrationCredentials): Promise<IntegrationTestResult> {
-    return { success: true, message: 'Connected to Teams' };
+  async testConnection(credentials: IntegrationCredentials): Promise<IntegrationTestResult> {
+    try {
+      await this.makeRequest({ url: 'https://graph.microsoft.com/v1.0/me', method: 'GET' }, credentials);
+      return { success: true, message: 'Connected to Teams' };
+    } catch (error: any) {
+      return { success: false, message: error.message };
+    }
   }
   async executeAction(actionId: string, parameters: Record<string, any>, credentials: IntegrationCredentials): Promise<IntegrationResult> {
     try {
@@ -1119,8 +1145,13 @@ export class MicrosoftExcelIntegration extends BaseIntegration {
     ];
   }
   getTriggers(): IntegrationTrigger[] { return []; }
-  async testConnection(_credentials: IntegrationCredentials): Promise<IntegrationTestResult> {
-    return { success: true, message: 'Connected to Excel' };
+  async testConnection(credentials: IntegrationCredentials): Promise<IntegrationTestResult> {
+    try {
+      await this.makeRequest({ url: 'https://graph.microsoft.com/v1.0/me', method: 'GET' }, credentials);
+      return { success: true, message: 'Connected to Excel' };
+    } catch (error: any) {
+      return { success: false, message: error.message };
+    }
   }
   async executeAction(actionId: string, parameters: Record<string, any>, credentials: IntegrationCredentials): Promise<IntegrationResult> {
     try {
@@ -1190,7 +1221,6 @@ export class MicrosoftOneDriveIntegration extends BaseIntegration {
 
 
 
-// ── Productivity & Project Management ─────────────────────────────────────────
 
 export class ClickUpIntegration extends BaseIntegration {
   getMetadata(): IntegrationMetadata {
@@ -1246,11 +1276,10 @@ export class ClickUpIntegration extends BaseIntegration {
   }
 }
 
-// ── Marketing ─────────────────────────────────────────────────────────────────
 
 export class MailChimpIntegration extends BaseIntegration {
   getMetadata(): IntegrationMetadata {
-    return { provider: IntegrationProvider.MAILCHIMP, name: 'Mailchimp', description: 'Email marketing and campaigns', category: IntegrationCategory.MARKETING, authType: AuthType.API_KEY, color: '#FFE01B', enabled: true };
+    return { provider: IntegrationProvider.MAILCHIMP, name: 'Mailchimp', description: 'Email marketing and campaigns', category: IntegrationCategory.MARKETING, authType: AuthType.API_KEY, color: '#FFE01B', enabled: true, comingSoon: true };
   }
   getActions(): IntegrationAction[] {
     return [
@@ -1265,8 +1294,16 @@ export class MailChimpIntegration extends BaseIntegration {
     ];
   }
   getTriggers(): IntegrationTrigger[] { return []; }
-  async testConnection(_credentials: IntegrationCredentials): Promise<IntegrationTestResult> {
-    return { success: true, message: 'Connected to Mailchimp' };
+  async testConnection(credentials: IntegrationCredentials): Promise<IntegrationTestResult> {
+    try {
+      const apiKey = credentials.apiKey || '';
+      if (!apiKey) return { success: false, message: 'Mailchimp API key is required' };
+      const baseUrl = this.getBaseUrl(apiKey);
+      await this.makeRequest({ url: `${baseUrl}/ping`, method: 'GET', auth: { username: 'anystring', password: apiKey } }, credentials);
+      return { success: true, message: 'Connected to Mailchimp' };
+    } catch (error: any) {
+      return { success: false, message: error.message };
+    }
   }
   private getBaseUrl(apiKey: string): string {
     const datacenter = apiKey.split('-')[1] || 'us1';
@@ -1308,7 +1345,7 @@ export class MailChimpIntegration extends BaseIntegration {
 
 export class FacebookAdsIntegration extends BaseIntegration {
   getMetadata(): IntegrationMetadata {
-    return { provider: IntegrationProvider.FACEBOOK_ADS, name: 'Facebook Ads', description: 'Advertising campaigns on Facebook & Instagram', category: IntegrationCategory.MARKETING, authType: AuthType.OAUTH2, color: '#1877F2', enabled: true };
+    return { provider: IntegrationProvider.FACEBOOK_ADS, name: 'Facebook Ads', description: 'Advertising campaigns on Facebook & Instagram', category: IntegrationCategory.MARKETING, authType: AuthType.OAUTH2, color: '#1877F2', enabled: true, comingSoon: true };
   }
   getActions(): IntegrationAction[] {
     return [
@@ -1324,8 +1361,13 @@ export class FacebookAdsIntegration extends BaseIntegration {
     ];
   }
   getTriggers(): IntegrationTrigger[] { return []; }
-  async testConnection(_credentials: IntegrationCredentials): Promise<IntegrationTestResult> {
-    return { success: true, message: 'Connected to Facebook Ads' };
+  async testConnection(credentials: IntegrationCredentials): Promise<IntegrationTestResult> {
+    try {
+      await this.makeRequest({ url: 'https://graph.facebook.com/v20.0/me/adaccounts?limit=1', method: 'GET' }, credentials);
+      return { success: true, message: 'Connected to Facebook Ads' };
+    } catch (error: any) {
+      return { success: false, message: error.message };
+    }
   }
   async executeAction(actionId: string, parameters: Record<string, any>, credentials: IntegrationCredentials): Promise<IntegrationResult> {
     try {
@@ -1363,7 +1405,7 @@ export class FacebookAdsIntegration extends BaseIntegration {
 
 export class TypeformIntegration extends BaseIntegration {
   getMetadata(): IntegrationMetadata {
-    return { provider: IntegrationProvider.TYPEFORM, name: 'Typeform', description: 'Interactive forms and surveys', category: IntegrationCategory.FORMS, authType: AuthType.OAUTH2, color: '#262627', enabled: true };
+    return { provider: IntegrationProvider.TYPEFORM, name: 'Typeform', description: 'Interactive forms and surveys', category: IntegrationCategory.FORMS, authType: AuthType.OAUTH2, color: '#262627', enabled: true, comingSoon: true };
   }
   getActions(): IntegrationAction[] {
     return [
@@ -1376,8 +1418,13 @@ export class TypeformIntegration extends BaseIntegration {
     ];
   }
   getTriggers(): IntegrationTrigger[] { return []; }
-  async testConnection(_credentials: IntegrationCredentials): Promise<IntegrationTestResult> {
-    return { success: true, message: 'Connected to Typeform' };
+  async testConnection(credentials: IntegrationCredentials): Promise<IntegrationTestResult> {
+    try {
+      await this.makeRequest({ url: 'https://api.typeform.com/me', method: 'GET' }, credentials);
+      return { success: true, message: 'Connected to Typeform' };
+    } catch (error: any) {
+      return { success: false, message: error.message };
+    }
   }
   async executeAction(actionId: string, parameters: Record<string, any>, credentials: IntegrationCredentials): Promise<IntegrationResult> {
     try {
@@ -1404,7 +1451,6 @@ export class TypeformIntegration extends BaseIntegration {
   }
 }
 
-// ── AI ────────────────────────────────────────────────────────────────────────
 
 export class ChatGPTIntegration extends BaseIntegration {
   getMetadata(): IntegrationMetadata {

@@ -1,12 +1,19 @@
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
+import toast from 'react-hot-toast';
 import { authApi, workflowApi, executionApi, integrationApi } from '../lib/api';
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '../components/ui/Card';
 import { Button } from '../components/ui/Button';
 import { User, Mail, Calendar } from 'lucide-react';
-import { useUiStore } from '../lib/store';
+import { useAuthStore, dbRoleToUi } from '../lib/store';
 
 export default function ProfilePage() {
-  const { role, setRole } = useUiStore();
+  const user = useAuthStore((s) => s.user);
+  const role = dbRoleToUi(user?.role);
+  const [showPasswordForm, setShowPasswordForm] = useState(false);
+  const [currentPassword, setCurrentPassword] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [savingPassword, setSavingPassword] = useState(false);
 
   // Load user profile
   const { data: profile, isLoading } = useQuery({
@@ -48,6 +55,25 @@ export default function ProfilePage() {
       month: 'long',
       day: 'numeric',
     });
+  };
+
+  const handleChangePassword = async () => {
+    if (newPassword.length < 8) {
+      toast.error('New password must be at least 8 characters');
+      return;
+    }
+    setSavingPassword(true);
+    try {
+      await authApi.changePassword({ currentPassword, newPassword });
+      toast.success('Password updated');
+      setShowPasswordForm(false);
+      setCurrentPassword('');
+      setNewPassword('');
+    } catch (err: any) {
+      toast.error(err?.response?.data?.message || 'Could not update password');
+    } finally {
+      setSavingPassword(false);
+    }
   };
 
   if (isLoading) {
@@ -160,17 +186,34 @@ export default function ProfilePage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-muted-foreground mb-1">Interface Role</label>
-            <select
-              value={role}
-              onChange={(event) => setRole(event.target.value as 'field' | 'admin')}
-              className="w-full max-w-sm px-3 py-2 border border-input rounded-md focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
-            >
-              <option value="field">Field Worker</option>
-              <option value="admin">Admin</option>
-            </select>
+            <label className="block text-sm font-medium text-muted-foreground mb-1">Account Role</label>
+            <p className="text-sm text-foreground capitalize">{role === 'admin' ? 'Admin' : 'Field Worker'}</p>
+            <p className="text-xs text-muted-foreground mt-1">Role is assigned by your organization and cannot be changed here.</p>
           </div>
-          <Button variant="outline">Change Password</Button>
+          <Button variant="outline" onClick={() => setShowPasswordForm((v) => !v)}>
+            Change Password
+          </Button>
+          {showPasswordForm && (
+            <div className="space-y-3 pt-2 border-t border-border">
+              <input
+                type="password"
+                placeholder="Current password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                className="w-full max-w-sm px-3 py-2 border border-input rounded-md"
+              />
+              <input
+                type="password"
+                placeholder="New password (min 8 chars)"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                className="w-full max-w-sm px-3 py-2 border border-input rounded-md"
+              />
+              <Button onClick={handleChangePassword} disabled={savingPassword}>
+                {savingPassword ? 'Saving...' : 'Update password'}
+              </Button>
+            </div>
+          )}
         </CardContent>
       </Card>
       </div>

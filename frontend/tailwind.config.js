@@ -43,8 +43,7 @@ export default {
           foreground: "hsl(var(--accent-foreground))",
         },
 
-        // ── Silo Brand Palette ────────────────────────────────────────────────
-        // Primary — Royal Blue / Sky Blue
+        // Silo brand palette
         silo: {
           primary: {
             DEFAULT: '#1E40AF',
