@@ -22,7 +22,7 @@
     "@silo/shared": "*",
     "expo": "^56.0.9",
     "expo-constants": "~56.0.21",
-    "expo-crypto": "~56.0.4",
+    "expo-crypto": "~57.0.2",
     "expo-device": "~56.0.4",
     "expo-linking": "~56.0.15",
     "expo-notifications": "~56.0.24",
